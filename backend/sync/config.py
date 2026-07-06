@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import pathlib
 from dataclasses import dataclass
+
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+# COGS workbook path (relative to repo root).
+COGS_XLSX = _REPO_ROOT / "reference" / "data" / "COGS_Magical_Butter_1.xlsx"
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,21 @@ MARKETPLACE_CURRENCY: dict[str, str] = {
 }
 
 US_MARKETPLACE_ID = "ATVPDKIKX0DER"
+
+MARKETPLACE_ALIASES: dict[str, str] = {
+    "US": "ATVPDKIKX0DER",
+    "CA": "A2EUQ1WTGCTBG2",
+    "UK": "A1F83G8C2ARO7P",
+    "AU": "A39IBJ37TRP1C6",
+}
+
+# COGS workbook sheet name per marketplace.
+MARKETPLACE_TO_SHEET: dict[str, str] = {
+    "ATVPDKIKX0DER": "US",
+    "A2EUQ1WTGCTBG2": "CA",
+    "A1F83G8C2ARO7P": "UK",
+    "A39IBJ37TRP1C6": "AU",
+}
 
 # Backfill start (per project decision — matches the Sellerise sheet).
 BACKFILL_START_ISO = "2026-01-01T00:00:00Z"

@@ -78,22 +78,56 @@ def _iter_windows(start: datetime, end: datetime) -> Iterator[tuple[datetime, da
 
 # ---------------- response walking ----------------
 
-def _flatten_breakdowns(breakdowns: list[dict[str, Any]] | None) -> Iterable[tuple[str, Decimal, str | None]]:
-    """Yield (breakdown_type, amount, currency) for LEAF breakdowns only.
+def _flatten_breakdowns(
+    breakdowns: list[dict[str, Any]] | None,
+    *,
+    _parent_type: str | None = None,
+) -> Iterable[tuple[str, Decimal, str | None]]:
+    """Yield (breakdown_type, amount, currency) for classifiable leaf breakdowns.
 
-    A parent breakdown's amount equals the sum of its children, so flattening to
-    leaves avoids double-counting during aggregation.
+    Two invariants enforced here:
+
+    1. Parent nodes (Sales, Expenses, AmazonFees, PromoRebates, Shipping, …) with
+       non-empty children are never emitted directly — only their leaves are.
+
+    2. Amazon uses "Base" as a generic internal leaf under named fee nodes
+       (FBAPerUnitFulfillmentFee, Commission, FBAStorageFee, …). Emitting "Base"
+       directly loses the context needed for bucket mapping, so we substitute the
+       immediate parent's type instead.
     """
     for b in breakdowns or []:
-        children = b.get("breakdowns") or []
+        bt = b["breakdownType"]
+        children = b.get("breakdowns") or []  # null and [] both mean no children
         if children:
-            yield from _flatten_breakdowns(children)
+            yield from _flatten_breakdowns(children, _parent_type=bt)
             continue
         amt = b.get("breakdownAmount") or {}
         raw = amt.get("currencyAmount")
         if raw is None:
             continue
-        yield (b["breakdownType"], Decimal(str(raw)), amt.get("currencyCode"))
+        emit_type = _parent_type if (bt == "Base" and _parent_type) else bt
+        yield (emit_type, Decimal(str(raw)), amt.get("currencyCode"))
+
+
+def breakdown_leaves_for_txn(txn: dict[str, Any]) -> list[tuple[str, Decimal, str | None]]:
+    """Return the canonical set of (breakdown_type, amount, currency) leaves for a transaction.
+
+    Strategy:
+    - Prefer item-level breakdowns (more granular: OurPricePrincipal, FBAPerUnitFulfillmentFee,
+      Commission, etc.).
+    - Fall back to transaction-level when item-level yields ONLY anonymous "Base" roots (e.g.
+      AdvertisingFee transactions where the item breakdown is just [{Base}] — the named type
+      only appears in the transaction tree) OR when there are no item breakdowns at all
+      (FundTransfer, ReserveCredit/Debit, etc.).
+    """
+    item_leaves: list[tuple[str, Decimal, str | None]] = []
+    for item in txn.get("items") or []:
+        item_leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
+
+    has_named = any(bt != "Base" for bt, _, _ in item_leaves)
+    if has_named:
+        return item_leaves
+    return list(_flatten_breakdowns(txn.get("breakdowns")))
 
 
 def _extract_product_contexts(items: list[dict[str, Any]] | None) -> Iterable[tuple[str | None, str | None, int | None]]:
@@ -176,13 +210,20 @@ def _process_page(
         md = txn.get("marketplaceDetails") or {}
         txn_marketplace = md.get("marketplaceId") or marketplace_id
 
-        txn_rows.append((txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn)))
+        txn_status = txn.get("transactionStatus")
+        # RELEASED Shipment transactions that carry DEFERRED_TRANSACTION_ID are pure
+        # release events — the actual order amount is already captured in the
+        # corresponding DEFERRED_RELEASED transaction at the original shipment date.
+        # Counting both would double the revenue for that order.
+        is_release_event = txn_status == "RELEASED" and any(
+            ri.get("relatedIdentifierName") == "DEFERRED_TRANSACTION_ID"
+            for ri in (txn.get("relatedIdentifiers") or [])
+        )
+
+        txn_rows.append((txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn), txn_status, is_release_event))
         txn_ids.append(txn_id)
 
-        leaves: list[tuple[str, Decimal, str | None]] = []
-        leaves.extend(_flatten_breakdowns(txn.get("breakdowns")))
-        for item in txn.get("items") or []:
-            leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
+        leaves = breakdown_leaves_for_txn(txn)
         for bt, amt, cc in leaves:
             breakdown_rows.append((txn_id, bt, amt, cc))
 
@@ -192,15 +233,19 @@ def _process_page(
     with conn.cursor() as cur:
         cur.executemany(
             """
-            INSERT INTO sp_transactions (transaction_id, marketplace_id, posted_at, total_amount, currency, raw_json)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+            INSERT INTO sp_transactions
+                (transaction_id, marketplace_id, posted_at, total_amount, currency, raw_json,
+                 transaction_status, is_deferred_release_event)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s)
             ON CONFLICT (transaction_id) DO UPDATE SET
-                marketplace_id = EXCLUDED.marketplace_id,
-                posted_at      = EXCLUDED.posted_at,
-                total_amount   = EXCLUDED.total_amount,
-                currency       = EXCLUDED.currency,
-                raw_json       = EXCLUDED.raw_json,
-                ingested_at    = now()
+                marketplace_id             = EXCLUDED.marketplace_id,
+                posted_at                  = EXCLUDED.posted_at,
+                total_amount               = EXCLUDED.total_amount,
+                currency                   = EXCLUDED.currency,
+                raw_json                   = EXCLUDED.raw_json,
+                transaction_status         = EXCLUDED.transaction_status,
+                is_deferred_release_event  = EXCLUDED.is_deferred_release_event,
+                ingested_at                = now()
             """,
             txn_rows,
         )
