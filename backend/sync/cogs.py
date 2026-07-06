@@ -201,17 +201,17 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
                 )
         conn.commit()
 
-    # Write pnl_monthly rows for COGS
+    # Write pnl_monthly rows for COGS. Sellerise's top-level `cog` field.
     pnl_rows = [
-        (marketplace_id, ym, "cogs.cost_of_goods", "Cost of goods sold",
-         "Cost of Goods", -abs(amount), "USD")
+        (marketplace_id, ym, "cog", "Cost of goods sold",
+         "cog", abs(amount), "USD")
         for ym, amount in sorted(monthly_cogs.items())
         if amount != 0
     ]
 
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM pnl_monthly WHERE marketplace_id = %s AND bucket = 'Cost of Goods'",
+            "DELETE FROM pnl_monthly WHERE marketplace_id = %s AND bucket = 'cog'",
             (marketplace_id,),
         )
         if pnl_rows:

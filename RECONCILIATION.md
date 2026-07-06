@@ -62,12 +62,19 @@ split by `adProduct.value`.
    (For a "true" P&L they are real costs — make this an explicit, configurable exclusion,
    not a silent one.)
 
-2. **Deferred = estimated, Released = settled.** Sellerise splits fees: settled amounts
-   land in `Commission` / `FBAPerUnitFulfillmentFee`; its *estimates* for orders not yet
-   posted land in generic `ReferralFee` / `FBAFees`. Older months (Jan–Apr) are fully
-   settled with ~zero estimate; recent months (May, Jun) carry large estimates. This maps
-   directly to `transactionStatus` RELEASED vs DEFERRED. **Reconcile oldest→newest and
-   expect the trailing 1–2 months not to match to the cent until they settle.**
+2. **Settled vs estimated is by `transactionStatus`, not by leaf name (probe-confirmed).**
+   SP-API emits `Commission` and `FBAPerUnitFulfillmentFee` at *every* status. Sellerise's
+   settled lines (`Commission` / `FBAPerUnitFulfillmentFee`) and its estimate lines
+   (`ReferralFee` / `FBAFees`) are the **same leaves re-labelled by status**:
+   - `RELEASED` **+ `DEFERRED_RELEASED`** → settled → `feesObject.Commission` /
+     `fbaObject.FBAPerUnitFulfillmentFee`
+   - `DEFERRED` only → pending estimate → `feesObject.ReferralFee` / `fbaObject.FBAFees`
+
+   `DEFERRED_RELEASED` means *was deferred, now released* — it is **settled money** and is
+   the dominant status (~4,590 occ vs ~411 for `DEFERRED`). Routing it to the estimate
+   bucket would blow up every settled month. Older months are fully settled (estimate = 0);
+   only the trailing live month carries `DEFERRED`. **Reconcile oldest→newest and expect
+   only the trailing month's estimate lines to differ.**
 
 3. **`storageFee` ≠ `StorageRenewalBilling`.** The monthly storage fee is its own line and
    IS in net. `StorageRenewalBilling` (long-term storage) is in the EXCLUDED expenses
@@ -132,26 +139,82 @@ snake_case variant — by checking `sp_api/api/finances/finances_v2024_06_19.py`
 sandbox call; (b) that `load_all_pages` keys off this endpoint's `nextToken`, since token
 field names vary across SP-API endpoints. Flag whichever you couldn't confirm.
 
-## Step 1 — Run an empirical probe BEFORE writing the mapping
+## Step 1 — Probe (COMPLETE — do not re-run)
 
-Use the Step 0 client for this. We do NOT have the full leaf `breakdownType` vocabulary,
-and the sample response has two traps (see Gotchas). So discover it from the real account
-instead of hardcoding:
+The breakdown-vocabulary probe is done: `reference/data/probe_breakdowns.md`, 129
+`(txnType, txnStatus, breakdownType)` combos across 13,818 US transactions (Jan–Jul 2026).
+**Every observed leaf is already accounted for — 0 unmapped.** Spelling resolved:
+`Principal` (not `Principle`), universally. Treat that file as the authoritative leaf
+inventory. Do not re-probe; the mapping decisions below are locked from it.
 
-- Call `FinancesV20240619(...).list_transactions(...)` for the US marketplace over a
-  settled window (e.g. a full past month), once per `transactionType` present, and dump
-  the **distinct leaf `breakdownType` values** (with a couple of example amounts each) to
-  a scratch file.
-- From that output, resolve: the exact spelling of the principal line, the actual
-  `breakdownType` strings for referral fee, FBA per-unit fee, shipping chargeback,
-  gift-wrap, marketplace-facilitator tax, refund components, storage fee, and each
-  `expenses`-bucket item.
-- Print the findings and stop for review before locking the mapping. Flag any leaf you
-  cannot confidently assign to a Sellerise bucket.
+## Step 2 — Mapping decisions (LOCKED — implement, do not re-litigate)
 
-## Step 2 — Flattener + bucketer
+These are resolved from the probe + the full 6-month Sellerise response. They are
+authoritative. Where a validation target is given, assert it in the report.
 
-Small and defensive. Handle both breakdowns shapes (see Gotchas):
+**A. Status split (supersedes any earlier RELEASED-vs-DEFERRED wording).** Per Ground
+truth 2.2: `RELEASED` + `DEFERRED_RELEASED` → settled buckets; `DEFERRED` only → estimate
+buckets (`ReferralFee` / `FBAFees`). *Validate: Feb and Mar must yield
+`feesObject.ReferralFee = 0` and `fbaObject.FBAFees = 0`.*
+
+**B. SP-API `ProductAdsPayment.AdvertisingFee` (238 occ) → `passthrough`, excluded from
+net.** Net's advertising comes from the five Ads-API lines only; counting this too would
+double-count the same spend. Keep it as an audit line: in the report, diff its monthly
+total against the Ads-API total as an independent cross-check. Never compare it to a
+Sellerise bucket.
+
+**C. Transaction-level fallback leaves (Shipment, 14 occ each) → the real fee buckets.**
+`AmazonFees(Shipment)` → `feesObject.Commission`; `FBAFees(Shipment)` →
+`fbaObject.FBAPerUnitFulfillmentFee`. These are parent roll-ups the flattener emits when
+`items[]` yields only `Base` roots. **Fix the current bug:** `AmazonFees` today routes to
+`other_amz.amazon_fees` (the excluded expenses bucket), which understates net fees. Apply
+the status split from A (a fallback at `DEFERRED` → `ReferralFee`). Log `transactionId`
+whenever the fallback fires.
+
+**D. Refund components `RestockingDeduction*` / `Goodwill*` → `refundsObject`, NOT
+expenses.** (They were absent in March, which is why they looked unplaced.)
+- `RestockingDeductionPrincipal` + `RestockingDeductionTax` → `refundsObject.RestockingFee`
+  (sum both into the one line; positive = fee retained, reduces refund cost).
+  *Targets: Feb +52.94, Apr +4.59, Jun +9.70.*
+- `GoodwillPrincipal` → `refundsObject.Goodwill` (negative concession).
+  *Targets: May −17.09, Jun −13.23.* Validate against **June** (both non-zero).
+
+**E. Shipment `Promo` (positive, 8 occ) → `passthrough`, excluded, uncompared.**
+Validated by arithmetic: Feb `refundsObject.Promotion` = 146.99 = `Refund.OurPriceDiscount`
++ `Refund.ShippingDiscount` *exactly* — Sellerise builds that bucket from the two Refund
+discount leaves and does **not** include `Shipment.Promo`. So `Shipment.Promo` has no home
+in the Sellerise net taxonomy; treat it like `AdvertisingFee`/MFT (real money Sellerise's
+P&L doesn't count). Do NOT route it to `refundsObject.Promotion` (overshoots by the Promo
+amount) or `chargesObject.Promotion` (would inflate revenue).
+Map the actual promotion lines instead: `Refund.OurPriceDiscount` + `Refund.ShippingDiscount`
+→ `refundsObject.Promotion`; the negative charge-side promotion leaf → `chargesObject.Promotion`
+(confirm its exact name from `probe_breakdowns.md`).
+*Targets — `refundsObject.Promotion`: Feb 146.99, Mar 44.87, Jun 3.99; `chargesObject.Promotion`:
+Feb −811.14, Mar −610.03, Jun −496.12.* (`promos = −Promotion` is derived — don't source it
+separately. Small remaining charge-side deltas are DEFERRED-timing residuals, not Promo.)
+
+**F. `MarketplaceFacilitator*` / `VAT*` / `LowValueGoodsTax-*` at Shipment → `passthrough`,
+excluded, uncompared.** Collect+remit net-zero with no Sellerise home. `salesTaxes` is
+**derived** (`Tax + ShippingTax + GiftWrapTax`), not sourced from facilitator leaves, and
+`chargesObject.Tax` = `OurPriceTax` alone (Mar 6,673.91). Map only `OurPriceTax` →
+`chargesObject.Tax`, `ShippingTax` → `ShippingTax`, `GiftwrapTax` → `GiftWrapTax`.
+
+**G. Three-way inclusion flag with fixed precedence.** Every leaf resolves to
+`net | expenses | passthrough`, keyed by `(txn_type, breakdown_type, txn_status)`.
+Resolve in this order:
+1. `passthrough` — MFT*/VAT*/LowValueGoodsTax*, `ProductAdsPayment.AdvertisingFee`,
+   `Shipment.Promo`
+2. explicit `net` buckets — `chargesObject` / `feesObject` / `fbaObject` / `refundsObject` /
+   `storageFee` (`salesTaxes` is derived, not sourced; `adExpenses` is Ads-API)
+3. `expenses` — the remainder (mirrors Sellerise's own catch-all `expenses` object)
+
+Precedence matters: resolve passthrough *first* or MFT/AdvertisingFee leaves fall into
+`expenses`. Guard: a genuinely new/unknown leaf raises an **unmapped WARNING and defaults
+to `expenses`** (safe — kept out of net), so you're alerted without corrupting net.
+
+## Step 2 (impl) — rewrite `bucket_map.py`
+
+Flattener (small, defensive — handles both breakdowns shapes; see Gotchas):
 
 ```python
 def leaf_breakdowns(node):
@@ -165,20 +228,33 @@ def leaf_breakdowns(node):
             yield b["breakdownType"], b["breakdownAmount"]["currencyAmount"]
 ```
 
-Then, using the probe-confirmed mapping `{breakdownType: sellerise_bucket}`, aggregate each
-transaction's leaves into the Sellerise buckets, keyed by month (`postedDate`) and by
-`transactionStatus`. Keep settled and deferred separated so we can reproduce both the
-settled figure and Sellerise's estimate behavior.
+Then bucket each leaf using the mapping keyed by `(txn_type, breakdown_type, txn_status)`,
+carrying the `net | expenses | passthrough` flag from decision G. Aggregate into the
+Sellerise buckets per month (`postedDate`). The full leaf inventory lives in
+`reference/data/probe_breakdowns.md`; decisions A–G above are the only deltas from today's
+`BUCKET_MAP`. This is a mechanical rewrite — the map already covers every observed leaf.
 
 ## Step 3 — Reconciliation report
 
-Produce a per-month, per-bucket comparison of our computed numbers vs the Sellerise
-response, for `chargesObject`, `feesObject`, `fbaObject`, `refundsObject`, `salesTaxes`,
-`storageFee`, the excluded `expenses` bucket, `adExpenses`, and `net`. For each cell show
-ours, theirs, and the delta. Use a small tolerance (e.g. ±$0.01) and mark PASS/FAIL.
-Order months oldest→newest; treat the trailing months' fee estimates as expected
-mismatches, not failures. Any leaf `breakdownType` seen in the data but not in the mapping
-must surface as an "unmapped" warning line, never silently dropped.
+Read `reference/data/SELLERISE_RAW_DATA.json` and produce a per-month, per-bucket
+comparison of our computed numbers vs Sellerise, for `chargesObject`, `feesObject`,
+`fbaObject`, `refundsObject`, `salesTaxes`, `storageFee`, the excluded `expenses` bucket,
+`adExpenses`, and `net`. For each cell show ours, theirs, and the delta. Use a small
+tolerance (e.g. ±$0.01) and mark PASS/FAIL. Order months oldest→newest; treat the trailing
+month's `DEFERRED` estimate lines as expected mismatches, not failures.
+
+Assert the locked validation targets so a regression is caught immediately:
+- Feb & Mar: `feesObject.ReferralFee = 0`, `fbaObject.FBAFees = 0` (decision A).
+- `refundsObject.RestockingFee`: Feb 52.94, Apr 4.59, Jun 9.70 (D).
+- `refundsObject.Goodwill`: May −17.09, Jun −13.23 (D).
+- `refundsObject.Promotion`: Feb 146.99, Mar 44.87, Jun 3.99 (E).
+- `chargesObject.Promotion`: Feb −811.14, Mar −610.03, Jun −496.12 (E).
+
+Also emit the audit cross-check (decision B): SP-API `AdvertisingFee` monthly total vs the
+Ads-API monthly total — informational, not a PASS/FAIL gate.
+
+Any leaf `breakdownType` seen in the data but not in the mapping must surface as an
+"unmapped" WARNING (and default to `expenses`), never silently dropped.
 
 ---
 
@@ -208,8 +284,9 @@ must surface as an "unmapped" warning line, never silently dropped.
 
 - SP-API access goes through `python-amazon-sp-api` (`FinancesV20240619.list_transactions`),
   with the old hand-rolled auth/HTTP removed and the kwarg-casing + pagination checks resolved.
-- For fully-settled months, every Sellerise bucket AND `net` reconcile within ±$0.01.
-- The trailing unsettled month(s) show explainable deltas isolated to the fee-estimate
-  lines, with a note in the report.
-- No leaf `breakdownType` is dropped without an explicit unmapped-warning.
-- The mapping dict is grounded in the probe output, with any unverified assignment flagged.
+- `bucket_map.py` implements decisions A–G, keyed by `(txn_type, breakdown_type, txn_status)`
+  with the `net | expenses | passthrough` flag and passthrough-first precedence.
+- For fully-settled months, every Sellerise bucket AND `net` reconcile within ±$0.01, and
+  all locked validation targets (Step 3) pass.
+- Only the trailing `DEFERRED` month shows deltas, isolated to the estimate lines.
+- No leaf is dropped without an unmapped WARNING; unknown leaves default to `expenses`.

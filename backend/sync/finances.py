@@ -145,6 +145,16 @@ def breakdown_leaves_for_txn(txn: dict[str, Any]) -> list[tuple[str, Decimal, st
     has_named = any(bt != "Base" for bt, _, _ in item_leaves)
     if has_named:
         return item_leaves
+
+    # Fallback: RECONCILIATION.md decision C — for Shipment transactions this
+    # surfaces as AmazonFees / FBAFees, which bucket_map routes to real fee
+    # buckets. Log so the count stays visible in ops.
+    if txn.get("transactionType") == "Shipment" and item_leaves:
+        log.info(
+            "breakdown fallback (Shipment): items[] yielded only Base roots — "
+            "using transaction-level breakdowns for %s",
+            txn.get("transactionId"),
+        )
     return list(_flatten_breakdowns(txn.get("breakdowns")))
 
 
