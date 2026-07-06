@@ -217,14 +217,11 @@ _EXPECTED_EXPENSES: frozenset[tuple[str, str]] = frozenset({
     ("Adjustment", "AmazonFees"),
     ("Adjustment", "RecommerceLiquidation"),
     ("Adjustment", "Tax"),
-    ("Adjustment", "ReserveCredit"),
-    ("Adjustment", "ReserveDebit"),
     ("Retrocharge", "BaseTax"),
     ("Retrocharge", "ShippingTax"),
     ("Retrocharge", "Other"),
     ("Retrocharge", "RetrochargeReversal"),
     ("MiscellaneousLedgerAdjustment", "Other"),
-    ("Transfer", "FundTransfer"),
 })
 
 

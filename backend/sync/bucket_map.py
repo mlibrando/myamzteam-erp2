@@ -196,6 +196,13 @@ def classify(
     if txn_type == "ProductAdsPayment" and breakdown_type in ("AdvertisingFee", "AdvertisingFeeRefund"):
         return BucketRule(PASSTHROUGH, f"ProductAdsPayment.{breakdown_type}", PASSTHROUGH)
 
+    # Bank movement and reserve bookkeeping — not P&L. Sellerise's `expenses`
+    # bucket doesn't include these; they're wash-out lines.
+    if txn_type == "Transfer" and breakdown_type == "FundTransfer":
+        return BucketRule(PASSTHROUGH, "Transfer.FundTransfer", PASSTHROUGH)
+    if txn_type == "Adjustment" and breakdown_type in ("ReserveCredit", "ReserveDebit"):
+        return BucketRule(PASSTHROUGH, f"Adjustment.{breakdown_type}", PASSTHROUGH)
+
     # Decision E — Shipment.Promo has no home in the Sellerise net taxonomy.
     # Sellerise builds refundsObject.Promotion from Refund.{OurPrice,Shipping}Discount
     # exactly; routing Promo into refundsObject.Promotion overshoots by the Promo
