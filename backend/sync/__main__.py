@@ -23,8 +23,7 @@ from dotenv import load_dotenv
 from .aggregate import aggregate_marketplace
 from .cogs import DuplicateSkuError, compute_monthly_cogs, import_cogs
 from .config import BACKFILL_START_ISO, MARKETPLACE_ALIASES, MARKETPLACE_TO_SHEET, US_MARKETPLACE_ID
-from .finances import _parse_iso, sync_marketplace
-from .sp_client import SPClient
+from .finances import _parse_iso, make_finances_client, sync_marketplace
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     log.info("Starting sync for marketplace=%s from %s", marketplace_id, start)
 
     # ── Phase 1: SP-API Finances ─────────────────────────────────────────────
-    with psycopg.connect(db_url) as conn, SPClient.for_marketplace(marketplace_id) as client:
+    with psycopg.connect(db_url) as conn, make_finances_client(marketplace_id) as client:
         fin_stats = sync_marketplace(
             conn, client, marketplace_id, start=start,
             debug_first_page=args.debug_first_page,
