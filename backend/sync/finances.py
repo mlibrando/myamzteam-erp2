@@ -147,20 +147,50 @@ def _save_state(conn: psycopg.Connection, key: str, *, last_posted_at: datetime 
 
 # ---------------- transaction upsert ----------------
 
-def _upsert_transaction(conn: psycopg.Connection, txn: dict[str, Any], marketplace_id: str, stats: SyncStats) -> None:
-    txn_id = txn["transactionId"]
-    posted_at = _parse_iso(txn["postedDate"])
-    total = txn.get("totalAmount") or {}
-    total_amt = Decimal(str(total["currencyAmount"])) if total.get("currencyAmount") is not None else None
-    currency = total.get("currencyCode")
+def _process_page(
+    conn: psycopg.Connection,
+    transactions: list[dict[str, Any]],
+    marketplace_id: str,
+    stats: SyncStats,
+) -> None:
+    """Batch-upsert all transactions from one API page in 5 queries total.
 
-    # marketplaceDetails.marketplaceId on the transaction is authoritative;
-    # fall back to the argument if missing.
-    md = txn.get("marketplaceDetails") or {}
-    txn_marketplace = md.get("marketplaceId") or marketplace_id
+    Per-transaction cursor loops took ~7.5 min/page over a remote DB (one round-trip
+    per transaction × ~100 ms latency). Batching reduces that to 5 round-trips
+    regardless of page size, keeping us safely under the nextToken TTL.
+    """
+    if not transactions:
+        return
+
+    txn_rows: list[tuple] = []
+    txn_ids: list[str] = []
+    breakdown_rows: list[tuple] = []
+    item_rows: list[tuple] = []
+
+    for txn in transactions:
+        txn_id = txn["transactionId"]
+        posted_at = _parse_iso(txn["postedDate"])
+        total = txn.get("totalAmount") or {}
+        total_amt = Decimal(str(total["currencyAmount"])) if total.get("currencyAmount") is not None else None
+        currency = total.get("currencyCode")
+        md = txn.get("marketplaceDetails") or {}
+        txn_marketplace = md.get("marketplaceId") or marketplace_id
+
+        txn_rows.append((txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn)))
+        txn_ids.append(txn_id)
+
+        leaves: list[tuple[str, Decimal, str | None]] = []
+        leaves.extend(_flatten_breakdowns(txn.get("breakdowns")))
+        for item in txn.get("items") or []:
+            leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
+        for bt, amt, cc in leaves:
+            breakdown_rows.append((txn_id, bt, amt, cc))
+
+        for sku, asin, qty in _extract_product_contexts(txn.get("items")):
+            item_rows.append((txn_id, sku, asin, qty))
 
     with conn.cursor() as cur:
-        cur.execute(
+        cur.executemany(
             """
             INSERT INTO sp_transactions (transaction_id, marketplace_id, posted_at, total_amount, currency, raw_json)
             VALUES (%s, %s, %s, %s, %s, %s::jsonb)
@@ -172,33 +202,24 @@ def _upsert_transaction(conn: psycopg.Connection, txn: dict[str, Any], marketpla
                 raw_json       = EXCLUDED.raw_json,
                 ingested_at    = now()
             """,
-            (txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn)),
+            txn_rows,
         )
-        # Replace children — idempotent even if a txn's breakdown shape changed.
-        cur.execute("DELETE FROM sp_breakdowns WHERE transaction_id = %s", (txn_id,))
-        cur.execute("DELETE FROM sp_transaction_items WHERE transaction_id = %s", (txn_id,))
-
-        # Leaves from transaction-level + item-level breakdowns.
-        leaves: list[tuple[str, Decimal, str | None]] = []
-        leaves.extend(_flatten_breakdowns(txn.get("breakdowns")))
-        for item in txn.get("items") or []:
-            leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
-        if leaves:
+        cur.execute("DELETE FROM sp_breakdowns WHERE transaction_id = ANY(%s)", (txn_ids,))
+        cur.execute("DELETE FROM sp_transaction_items WHERE transaction_id = ANY(%s)", (txn_ids,))
+        if breakdown_rows:
             cur.executemany(
                 "INSERT INTO sp_breakdowns (transaction_id, breakdown_type, breakdown_amount, currency) VALUES (%s, %s, %s, %s)",
-                [(txn_id, bt, amt, cc) for (bt, amt, cc) in leaves],
+                breakdown_rows,
             )
-            stats.breakdowns += len(leaves)
-
-        products = list(_extract_product_contexts(txn.get("items")))
-        if products:
+        if item_rows:
             cur.executemany(
                 "INSERT INTO sp_transaction_items (transaction_id, sku, asin, quantity_shipped) VALUES (%s, %s, %s, %s)",
-                [(txn_id, sku, asin, qty) for (sku, asin, qty) in products],
+                item_rows,
             )
-            stats.items += len(products)
 
-    stats.transactions += 1
+    stats.transactions += len(txn_rows)
+    stats.breakdowns += len(breakdown_rows)
+    stats.items += len(item_rows)
 
 
 # ---------------- main entrypoint ----------------
@@ -266,12 +287,16 @@ def sync_marketplace(
 
             payload = resp.get("payload") or resp  # some SP-API endpoints omit the envelope
             transactions = payload.get("transactions") or []
-            for txn in transactions:
-                _upsert_transaction(conn, txn, marketplace_id, stats)
+            _process_page(conn, transactions, marketplace_id, stats)
             conn.commit()
 
             next_token = payload.get("nextToken")
-            _save_state(conn, state_key, last_posted_at=w_end, next_token=next_token)
+            # If the token is still live (more pages in this window), record w_start so
+            # that an expired-token restart re-fetches the whole window (safe: idempotent
+            # upserts). Once the window is fully drained, advance to w_end.
+            _save_state(conn, state_key,
+                        last_posted_at=w_start if next_token else w_end,
+                        next_token=next_token)
 
             log.info(
                 "  page %d: %d txns (running total: %d); next_token=%s",
