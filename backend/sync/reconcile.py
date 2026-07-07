@@ -45,6 +45,8 @@ from typing import Any
 import psycopg
 from dotenv import load_dotenv
 
+from .attribution import load_order_purchase_dates, order_id_from_related, resolve_attribution_ym, ym as _ym
+from .bucket_map import EXPENSES, NET, classify
 from .config import MARKETPLACE_ALIASES
 
 log = logging.getLogger(__name__)
@@ -112,6 +114,134 @@ def load_pnl(conn: psycopg.Connection, marketplace_id: str) -> dict[str, dict[st
     for ym, bucket, sub_line, amount in rows:
         out[ym][bucket][sub_line] = Decimal(str(amount))
     return out
+
+
+def compute_pnl_in_memory(
+    conn: psycopg.Connection,
+    marketplace_id: str,
+    *,
+    shipment_basis: str,   # "posted" or "purchase"
+    refund_basis: str,     # "posted" or "purchase"
+) -> dict[str, dict[str, dict[str, Decimal]]]:
+    """Compute Sellerise-shaped pnl totals in memory under a specified attribution basis.
+
+    shipment_basis="posted"  and refund_basis="posted"  → legacy baseline (all postedDate)
+    shipment_basis="purchase"                          → Shipment on order PurchaseDate
+    refund_basis="purchase"                            → also re-attribute Refunds
+
+    Non-order transactions (ServiceFee, adjustments, transfers, etc.) always use
+    postedDate under any basis. Falls back to postedDate whenever the order id is
+    missing from the map — those fallbacks stay silent here; the aggregator logs
+    them separately.
+    """
+    order_map = load_order_purchase_dates(conn, marketplace_id) if (
+        shipment_basis == "purchase" or refund_basis == "purchase"
+    ) else {}
+
+    # Pass 1 — attribution_ym per txn.
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT t.transaction_id,
+                   t.posted_at,
+                   COALESCE(t.transaction_status, t.raw_json->>'transactionStatus'),
+                   t.raw_json->>'transactionType',
+                   t.raw_json->'relatedIdentifiers'
+            FROM sp_transactions t
+            WHERE t.marketplace_id = %s
+              AND t.is_deferred_release_event = false
+            """,
+            (marketplace_id,),
+        )
+        rows = cur.fetchall()
+
+    txn_meta: dict[str, tuple[str, str, str]] = {}
+    for txn_id, posted_at, status, txn_type, related in rows:
+        oid = order_id_from_related(related or [])
+        # Force shipment_basis behavior by pretending non-Shipment txns follow
+        # the same rule structure. We do this by passing txn_type unchanged and
+        # relying on resolve_attribution_ym() to keep non-order on postedDate.
+        # For the "posted" baseline, we skip the order lookup entirely.
+        if shipment_basis == "posted":
+            # Legacy: everything postedDate. resolve_attribution_ym does that
+            # when refund_basis="posted" and txn_type not in (Shipment, Refund),
+            # so short-circuit by not passing an order id.
+            att_ym = _ym(posted_at)
+        else:
+            att_ym, _ = resolve_attribution_ym(
+                txn_type=txn_type or "Unknown",
+                posted_at=posted_at,
+                order_id=oid,
+                order_map=order_map,
+                refund_basis=refund_basis,
+            )
+        txn_meta[txn_id] = (att_ym, txn_type or "Unknown", status or "")
+
+    # Pass 2 — aggregate breakdowns via classify().
+    out: dict[str, dict[str, dict[str, Decimal]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: Decimal("0"))))
+    with conn.cursor(name="recon_breakdowns") as cur:
+        cur.itersize = 5000
+        cur.execute(
+            """
+            SELECT b.transaction_id, b.breakdown_type, b.breakdown_amount
+            FROM sp_breakdowns b
+            JOIN sp_transactions t ON t.transaction_id = b.transaction_id
+            WHERE t.marketplace_id = %s
+              AND t.is_deferred_release_event = false
+            """,
+            (marketplace_id,),
+        )
+        for txn_id, breakdown_type, amount in cur:
+            meta = txn_meta.get(txn_id)
+            if meta is None:
+                continue
+            att_ym, txn_type, txn_status = meta
+            rule = classify(txn_type, breakdown_type, txn_status)
+            if rule is None:
+                continue
+            out[att_ym][rule.bucket][rule.sub_line] += Decimal(str(amount))
+
+    # Materialize (freeze defaults into plain dicts).
+    return {ym: {b: dict(subs) for b, subs in bd.items()} for ym, bd in out.items()}
+
+
+def compute_cog_by_basis(
+    conn: psycopg.Connection,
+    marketplace_id: str,
+    *,
+    basis: str,   # "posted" or "purchase"
+) -> dict[str, Decimal]:
+    """Return {year_month: cog_magnitude} using the specified attribution."""
+    date_expr = (
+        "COALESCE(opd.purchase_date, t.posted_at)"
+        if basis == "purchase" else "t.posted_at"
+    )
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT to_char({date_expr} AT TIME ZONE 'UTC', 'YYYY-MM') AS ym,
+                   SUM(i.quantity_shipped * c.cogs)                    AS amt
+            FROM sp_transaction_items i
+            JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+            JOIN cogs_per_sku c
+              ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+            LEFT JOIN LATERAL (
+                SELECT ri->>'relatedIdentifierValue' AS order_id
+                FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                WHERE ri->>'relatedIdentifierName' = 'ORDER_ID'
+                LIMIT 1
+            ) rel ON true
+            LEFT JOIN order_purchase_date opd
+              ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+            WHERE t.marketplace_id = %s
+              AND t.is_deferred_release_event = false
+              AND (t.raw_json->>'transactionType') = 'Shipment'
+              AND i.quantity_shipped > 0
+            GROUP BY 1
+            """,
+            (marketplace_id,),
+        )
+        return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
 
 
 def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, Decimal]:
@@ -210,19 +340,117 @@ def _compute_net_theirs(sellerise_month: dict) -> Decimal:
 
 # ── report generation ──────────────────────────────────────────────────────
 
+def _refund_delta_totals(pnl_all, sellerise_all, months) -> Decimal:
+    """Total absolute delta on refundsObject sub-lines across all months (skip trailing DEFERRED lines)."""
+    total = Decimal("0")
+    trailing = months[-1] if months else None
+    for ym in months:
+        theirs_obj = sellerise_all[ym].get("refundsObject") or {}
+        ours_obj = pnl_all.get(ym, {}).get("refundsObject", {})
+        for sub_line in set(theirs_obj) | set(ours_obj):
+            theirs = Decimal(str(theirs_obj.get(sub_line, 0)))
+            ours = ours_obj.get(sub_line, Decimal("0"))
+            total += abs(ours - theirs)
+    return total
+
+
 def reconcile(
     conn: psycopg.Connection,
     marketplace_id: str,
     sellerise_path: pathlib.Path = SELLERISE_JSON,
 ) -> dict:
     sellerise_all = load_sellerise(sellerise_path)
-    pnl_all = load_pnl(conn, marketplace_id)
     ad_all = load_ad_spend(conn, marketplace_id)
 
-    # Trailing month = latest month present in Sellerise data. Only its
-    # ReferralFee / FBAFees deltas are marked EXPECTED.
+    # ── Compute pnl under each candidate attribution basis (in-memory) ──────
+    pnl_before = compute_pnl_in_memory(
+        conn, marketplace_id, shipment_basis="posted", refund_basis="posted",
+    )
+    pnl_after_refund_posted = compute_pnl_in_memory(
+        conn, marketplace_id, shipment_basis="purchase", refund_basis="posted",
+    )
+    pnl_after_refund_purchase = compute_pnl_in_memory(
+        conn, marketplace_id, shipment_basis="purchase", refund_basis="purchase",
+    )
+    cog_before = compute_cog_by_basis(conn, marketplace_id, basis="posted")
+    cog_after = compute_cog_by_basis(conn, marketplace_id, basis="purchase")
+
     months = sorted(sellerise_all.keys())
     trailing = months[-1] if months else None
+
+    # ── Refund-basis empirical test: which minimises total |Δ| on refundsObject? ──
+    refund_posted_delta = _refund_delta_totals(pnl_after_refund_posted, sellerise_all, months)
+    refund_purchase_delta = _refund_delta_totals(pnl_after_refund_purchase, sellerise_all, months)
+    refund_winner = "posted" if refund_posted_delta <= refund_purchase_delta else "purchase"
+    pnl_after = pnl_after_refund_posted if refund_winner == "posted" else pnl_after_refund_purchase
+
+    # cog is scalar under Sellerise; we compute one number per month per basis.
+    def cog_scalar_before(ym: str) -> Decimal: return cog_before.get(ym, Decimal("0"))
+    def cog_scalar_after(ym: str) -> Decimal:  return cog_after.get(ym, Decimal("0"))
+
+    # ── Before/after summary rows (for the report's headline table) ──────────
+    before_after: list[dict] = []
+    for ym in months:
+        sm = sellerise_all[ym]
+        pb = pnl_before.get(ym, {})
+        pa = pnl_after.get(ym, {})
+        ad_total = ad_all.get(ym, Decimal("0"))
+        for bucket, sub in [("chargesObject", "Principal"),
+                             ("feesObject", "Commission"),
+                             ("fbaObject", "FBAPerUnitFulfillmentFee")]:
+            theirs = Decimal(str((sm.get(bucket) or {}).get(sub, 0)))
+            ours_b = pb.get(bucket, {}).get(sub, Decimal("0"))
+            ours_a = pa.get(bucket, {}).get(sub, Decimal("0"))
+            before_after.append({
+                "year_month": ym, "cell": f"{bucket}.{sub}",
+                "before": float(ours_b), "after": float(ours_a), "theirs": float(theirs),
+                "delta_before": float(ours_b - theirs), "delta_after": float(ours_a - theirs),
+            })
+        # cog scalar
+        theirs = Decimal(str(sm.get("cog", 0)))
+        ours_b = cog_scalar_before(ym); ours_a = cog_scalar_after(ym)
+        before_after.append({
+            "year_month": ym, "cell": "cog",
+            "before": float(ours_b), "after": float(ours_a), "theirs": float(theirs),
+            "delta_before": float(ours_b - theirs), "delta_after": float(ours_a - theirs),
+        })
+        # net (whole formula)
+        theirs_net = _compute_net_theirs(sm)
+        ours_b_net = _compute_net_ours(pb, ad_total, ours_b if isinstance(ours_b, Decimal) else Decimal(str(ours_b)))
+        ours_a_net = _compute_net_ours(pa, ad_total, ours_a if isinstance(ours_a, Decimal) else Decimal(str(ours_a)))
+        before_after.append({
+            "year_month": ym, "cell": "net",
+            "before": float(ours_b_net), "after": float(ours_a_net), "theirs": float(theirs_net),
+            "delta_before": float(ours_b_net - theirs_net), "delta_after": float(ours_a_net - theirs_net),
+        })
+
+    # Aggregate before/after magnitude for the verdict
+    sum_abs_before = sum(abs(r["delta_before"]) for r in before_after if r["cell"] != "net")
+    sum_abs_after = sum(abs(r["delta_after"]) for r in before_after if r["cell"] != "net")
+    net_delta_before = sum(r["delta_before"] for r in before_after if r["cell"] == "net")
+    net_delta_after = sum(r["delta_after"] for r in before_after if r["cell"] == "net")
+    total_sellerise_net = sum(r["theirs"] for r in before_after if r["cell"] == "net")
+
+    # ── Refund basis test rows ────────────────────────────────────────────────
+    refund_test: list[dict] = []
+    for ym in months:
+        theirs_obj = sellerise_all[ym].get("refundsObject") or {}
+        posted_obj = pnl_after_refund_posted.get(ym, {}).get("refundsObject", {})
+        purchase_obj = pnl_after_refund_purchase.get(ym, {}).get("refundsObject", {})
+        theirs_sum = sum((Decimal(str(v)) for v in theirs_obj.values()), start=Decimal("0"))
+        posted_sum = sum(posted_obj.values(), start=Decimal("0"))
+        purchase_sum = sum(purchase_obj.values(), start=Decimal("0"))
+        refund_test.append({
+            "year_month": ym,
+            "ours_refund_posted": float(posted_sum),
+            "ours_refund_purchase": float(purchase_sum),
+            "theirs": float(theirs_sum),
+            "delta_posted": float(posted_sum - theirs_sum),
+            "delta_purchase": float(purchase_sum - theirs_sum),
+        })
+
+    # ── Main per-cell diff (using AFTER = chosen basis) ──────────────────────
+    pnl_all = pnl_after  # for legacy naming below
 
     diffs: list[dict] = []
 
@@ -281,8 +509,9 @@ def reconcile(
             "delta": float(ours - theirs), "status": _status(ours - theirs, False),
         })
 
-        # cog (scalar; magnitude on both sides)
-        ours_cog = _ours_scalar(pnl_month, "cog")
+        # cog (scalar; magnitude on both sides). We compute cog in-memory under
+        # the chosen basis and use that instead of anything stored in pnl_month.
+        ours_cog = cog_after.get(ym, Decimal("0"))
         theirs_cog = _theirs_scalar(sellerise_month, "cog")
         diffs.append({
             "year_month": ym, "bucket": "cog", "sub_line": "(scalar)",
@@ -308,6 +537,10 @@ def reconcile(
             "ours": float(ours_net), "theirs": float(theirs_net),
             "delta": float(ours_net - theirs_net), "status": _status(ours_net - theirs_net, False),
         })
+
+    # storageFee handling in the earlier loop calls _ours_scalar which sums the
+    # storageFee dict. compute_pnl_in_memory does populate that bucket (it's a
+    # NET rule in bucket_map), so the sign flip inside _ours_scalar still holds.
 
     # Locked-target results.
     locked_results = []
@@ -337,6 +570,16 @@ def reconcile(
 
     return {
         "diffs": diffs, "locked": locked_results, "ad_audit": ad_audit,
+        "before_after": before_after,
+        "refund_test": refund_test,
+        "refund_basis_chosen": refund_winner,
+        "refund_posted_delta": float(refund_posted_delta),
+        "refund_purchase_delta": float(refund_purchase_delta),
+        "sum_abs_before": float(sum_abs_before),
+        "sum_abs_after": float(sum_abs_after),
+        "net_delta_before": float(net_delta_before),
+        "net_delta_after": float(net_delta_after),
+        "total_sellerise_net": float(total_sellerise_net),
         "trailing": trailing, "months": months,
     }
 
@@ -366,6 +609,57 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
     for status in ("PASS", "FAIL", "EXPECTED", "OURS_MISSING"):
         if counts[status]:
             lines.append(f"- **{status}**: {counts[status]} / {total}")
+    lines.append("")
+
+    # ── Attribution-basis decision ───────────────────────────────────────
+    lines.append("## Attribution basis")
+    lines.append("")
+    lines.append("Shipment revenue + nested fees + `cog` re-attributed to **order PurchaseDate**")
+    lines.append(f"(from `order_purchase_date`). Non-order transactions stay on `postedDate`.")
+    lines.append(f"Refund basis chosen empirically: **{result['refund_basis_chosen']}Date** "
+                 f"(refundsObject Σ|Δ|: posted-basis ${result['refund_posted_delta']:,.2f}, "
+                 f"purchase-basis ${result['refund_purchase_delta']:,.2f}).")
+    lines.append("")
+    lines.append(f"**Before → After improvement** (`chargesObject.Principal` + `feesObject.Commission` + "
+                 f"`fbaObject.FBAPerUnitFulfillmentFee` + `cog`):")
+    lines.append(f"- Σ|Δ| before (all `postedDate`): **${result['sum_abs_before']:,.2f}**")
+    lines.append(f"- Σ|Δ| after  (Shipment on `PurchaseDate`): **${result['sum_abs_after']:,.2f}**")
+    lines.append(f"- Reduction: **${result['sum_abs_before'] - result['sum_abs_after']:,.2f}** "
+                 f"({(1 - result['sum_abs_after'] / max(result['sum_abs_before'], 1)) * 100:+.1f}%)")
+    lines.append("")
+    lines.append(f"- Cumulative Jan–Jun `net` delta before: **${result['net_delta_before']:+,.2f}** "
+                 f"({result['net_delta_before'] / max(result['total_sellerise_net'], 1) * 100:+.2f}% of Sellerise net)")
+    lines.append(f"- Cumulative Jan–Jun `net` delta after:  **${result['net_delta_after']:+,.2f}** "
+                 f"({result['net_delta_after'] / max(result['total_sellerise_net'], 1) * 100:+.2f}% of Sellerise net)")
+    lines.append("")
+
+    # ── Before / after per key bucket per month ──────────────────────────
+    lines.append("## Before / After (per key bucket per month)")
+    lines.append("")
+    lines.append("| month | cell | before (ours) | after (ours) | Sellerise | Δ before | Δ after |")
+    lines.append("|---|---|---:|---:|---:|---:|---:|")
+    for r in result["before_after"]:
+        lines.append(
+            f"| {r['year_month']} | `{r['cell']}` | "
+            f"{_fmt_amt(r['before'])} | {_fmt_amt(r['after'])} | {_fmt_amt(r['theirs'])} | "
+            f"{_fmt_amt(r['delta_before'])} | {_fmt_amt(r['delta_after'])} |"
+        )
+    lines.append("")
+
+    # ── Refund-basis empirical test ──────────────────────────────────────
+    lines.append("## Refund-basis empirical test")
+    lines.append("")
+    lines.append("Sum of Refund transactions bucketed by `postedDate` vs `PurchaseDate`, per month.")
+    lines.append(f"Winner: **{result['refund_basis_chosen']}Date** (smaller Σ|Δ| against Sellerise's `refundsObject`).")
+    lines.append("")
+    lines.append("| month | ours (posted) | ours (purchase) | Sellerise Σ | Δ posted | Δ purchase |")
+    lines.append("|---|---:|---:|---:|---:|---:|")
+    for r in result["refund_test"]:
+        lines.append(
+            f"| {r['year_month']} | {_fmt_amt(r['ours_refund_posted'])} | "
+            f"{_fmt_amt(r['ours_refund_purchase'])} | {_fmt_amt(r['theirs'])} | "
+            f"{_fmt_amt(r['delta_posted'])} | {_fmt_amt(r['delta_purchase'])} |"
+        )
     lines.append("")
 
     # ── Locked validation targets ────────────────────────────────────────

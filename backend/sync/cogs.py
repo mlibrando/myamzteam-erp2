@@ -141,16 +141,29 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
 
     with conn.cursor() as cur:
         # Monthly COGS: sum(quantity_shipped × unit_cogs) joined to cogs_per_sku on SKU.
-        # Only Shipment transactions count (not refunds, removals, reimbursements).
+        # Only Shipment transactions count. Attribution: PurchaseDate month (from
+        # order_purchase_date) — falls back to postedDate when the order isn't in
+        # the map. Keeps revenue and COGS in the same month per the plan.
         cur.execute(
             """
             SELECT
-                to_char(t.posted_at AT TIME ZONE 'UTC', 'YYYY-MM') AS year_month,
-                SUM(i.quantity_shipped * c.cogs)                    AS cogs_amount
+                to_char(
+                    COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC',
+                    'YYYY-MM'
+                )                                                AS year_month,
+                SUM(i.quantity_shipped * c.cogs)                 AS cogs_amount
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
             JOIN cogs_per_sku c
               ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+            LEFT JOIN LATERAL (
+                SELECT ri->>'relatedIdentifierValue' AS order_id
+                FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                WHERE ri->>'relatedIdentifierName' = 'ORDER_ID'
+                LIMIT 1
+            ) rel ON true
+            LEFT JOIN order_purchase_date opd
+              ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
               AND (t.raw_json->>'transactionType') = 'Shipment'

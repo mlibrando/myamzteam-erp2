@@ -1,15 +1,78 @@
 # Reconciliation report — marketplace ATVPDKIKX0DER
 
-Generated 2026-07-06 08:36:10Z.
+Generated 2026-07-06 12:34:23Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
 ## Summary
 
-- **PASS**: 28 / 162
-- **FAIL**: 126 / 162
+- **PASS**: 32 / 162
+- **FAIL**: 122 / 162
 - **EXPECTED**: 2 / 162
 - **OURS_MISSING**: 6 / 162
+
+## Attribution basis
+
+Shipment revenue + nested fees + `cog` re-attributed to **order PurchaseDate**
+(from `order_purchase_date`). Non-order transactions stay on `postedDate`.
+Refund basis chosen empirically: **postedDate** (refundsObject Σ|Δ|: posted-basis $1,699.51, purchase-basis $10,332.00).
+
+**Before → After improvement** (`chargesObject.Principal` + `feesObject.Commission` + `fbaObject.FBAPerUnitFulfillmentFee` + `cog`):
+- Σ|Δ| before (all `postedDate`): **$39,659.85**
+- Σ|Δ| after  (Shipment on `PurchaseDate`): **$13,119.63**
+- Reduction: **$26,540.22** (+66.9%)
+
+- Cumulative Jan–Jun `net` delta before: **$+110,675.86** (+52.83% of Sellerise net)
+- Cumulative Jan–Jun `net` delta after:  **$+108,509.97** (+51.80% of Sellerise net)
+
+## Before / After (per key bucket per month)
+
+| month | cell | before (ours) | after (ours) | Sellerise | Δ before | Δ after |
+|---|---|---:|---:|---:|---:|---:|
+| 2026-01 | `chargesObject.Principal` |   160,030.19 |   166,439.37 |   167,137.89 |    -7,107.70 |      -698.52 |
+| 2026-01 | `feesObject.Commission` |   -23,616.21 |   -24,600.97 |   -24,709.34 |     1,093.13 |       108.37 |
+| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` |   -15,867.17 |   -16,497.25 |   -16,558.03 |       690.86 |        60.78 |
+| 2026-01 | `cog` |    44,755.84 |    46,756.14 |    45,968.20 |    -1,212.36 |       787.94 |
+| 2026-01 | `net` |    61,112.66 |    64,060.83 |    34,059.22 |    27,053.44 |    30,001.61 |
+| 2026-02 | `chargesObject.Principal` |   144,947.88 |   137,786.86 |   136,806.23 |     8,141.65 |       980.63 |
+| 2026-02 | `feesObject.Commission` |   -21,714.04 |   -20,639.83 |   -20,490.89 |    -1,223.15 |      -148.94 |
+| 2026-02 | `fbaObject.FBAPerUnitFulfillmentFee` |   -14,036.62 |   -13,277.46 |   -13,075.82 |      -960.80 |      -201.64 |
+| 2026-02 | `cog` |    39,032.01 |    36,414.64 |    34,647.26 |     4,384.75 |     1,767.38 |
+| 2026-02 | `net` |    60,039.74 |    57,330.81 |    35,557.95 |    24,481.79 |    21,772.86 |
+| 2026-03 | `chargesObject.Principal` |   124,499.06 |   122,342.47 |   121,824.06 |     2,675.00 |       518.41 |
+| 2026-03 | `feesObject.Commission` |   -18,645.28 |   -18,324.02 |   -18,246.12 |      -399.16 |       -77.90 |
+| 2026-03 | `fbaObject.FBAPerUnitFulfillmentFee` |   -10,991.16 |   -10,940.79 |   -10,942.68 |       -48.48 |         1.89 |
+| 2026-03 | `cog` |    31,443.07 |    31,183.77 |    29,423.96 |     2,019.11 |     1,759.81 |
+| 2026-03 | `net` |    54,257.84 |    52,746.85 |    35,435.13 |    18,822.71 |    17,311.72 |
+| 2026-04 | `chargesObject.Principal` |   118,624.58 |   118,226.96 |   117,555.08 |     1,069.50 |       671.88 |
+| 2026-04 | `feesObject.Commission` |   -17,783.19 |   -17,722.99 |   -17,622.34 |      -160.85 |      -100.65 |
+| 2026-04 | `fbaObject.FBAPerUnitFulfillmentFee` |   -11,368.69 |   -11,246.70 |   -11,298.00 |       -70.69 |        51.30 |
+| 2026-04 | `cog` |    32,356.34 |    32,151.26 |    30,790.78 |     1,565.56 |     1,360.48 |
+| 2026-04 | `net` |    52,298.16 |    52,284.13 |    40,313.13 |    11,985.03 |    11,971.00 |
+| 2026-05 | `chargesObject.Principal` |   108,811.83 |   109,289.49 |   110,260.80 |    -1,448.97 |      -971.31 |
+| 2026-05 | `feesObject.Commission` |   -16,303.67 |   -16,321.33 |   -16,464.03 |       160.36 |       142.70 |
+| 2026-05 | `fbaObject.FBAPerUnitFulfillmentFee` |   -10,462.84 |   -10,448.69 |   -10,548.50 |        85.66 |        99.81 |
+| 2026-05 | `cog` |    27,923.18 |    28,241.87 |    27,180.01 |       743.17 |     1,061.86 |
+| 2026-05 | `net` |    47,992.03 |    48,063.55 |    33,879.82 |    14,112.21 |    14,183.73 |
+| 2026-06 | `chargesObject.Principal` |   100,008.13 |    97,953.93 |    98,691.38 |     1,316.75 |      -737.45 |
+| 2026-06 | `feesObject.Commission` |   -11,842.53 |   -10,788.93 |   -10,639.72 |    -1,202.81 |      -149.21 |
+| 2026-06 | `fbaObject.FBAPerUnitFulfillmentFee` |    -7,810.12 |    -7,132.71 |    -7,065.53 |      -744.59 |       -67.18 |
+| 2026-06 | `cog` |    26,425.77 |    25,884.57 |    25,290.98 |     1,134.79 |       593.59 |
+| 2026-06 | `net` |    44,463.90 |    43,512.27 |    30,243.22 |    14,220.68 |    13,269.05 |
+
+## Refund-basis empirical test
+
+Sum of Refund transactions bucketed by `postedDate` vs `PurchaseDate`, per month.
+Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
+
+| month | ours (posted) | ours (purchase) | Sellerise Σ | Δ posted | Δ purchase |
+|---|---:|---:|---:|---:|---:|
+| 2026-01 |    -9,644.40 |    -7,864.46 |    -9,617.42 |       -26.98 |     1,752.96 |
+| 2026-02 |    -8,745.40 |    -7,806.49 |    -8,727.61 |       -17.79 |       921.12 |
+| 2026-03 |    -7,795.65 |    -7,132.60 |    -7,631.16 |      -164.49 |       498.56 |
+| 2026-04 |    -3,984.75 |    -4,565.87 |    -3,870.95 |      -113.80 |      -694.92 |
+| 2026-05 |    -5,384.48 |    -4,549.27 |    -5,645.49 |       261.01 |     1,096.22 |
+| 2026-06 |    -3,821.97 |    -1,793.79 |    -3,286.51 |      -535.46 |     1,492.72 |
 
 ## Locked validation targets (Step 3 assertions)
 
@@ -27,9 +90,9 @@ Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month esti
 | E | `refundsObject.Promotion` | 2026-02 |       146.99 |       146.99 |         0.00 | PASS |
 | E | `refundsObject.Promotion` | 2026-03 |        44.87 |        46.87 |         2.00 | FAIL |
 | E | `refundsObject.Promotion` | 2026-06 |         3.99 |         4.99 |         1.00 | FAIL |
-| E | `chargesObject.Promotion` | 2026-02 |      -811.14 |      -816.15 |        -5.01 | FAIL |
-| E | `chargesObject.Promotion` | 2026-03 |      -610.03 |      -669.25 |       -59.22 | FAIL |
-| E | `chargesObject.Promotion` | 2026-06 |      -496.12 |      -517.35 |       -21.23 | FAIL |
+| E | `chargesObject.Promotion` | 2026-02 |      -811.14 |      -819.10 |        -7.96 | FAIL |
+| E | `chargesObject.Promotion` | 2026-03 |      -610.03 |      -613.51 |        -3.48 | FAIL |
+| E | `chargesObject.Promotion` | 2026-06 |      -496.12 |      -505.04 |        -8.92 | FAIL |
 
 **Locked targets: 9 / 15 PASS**
 
@@ -54,18 +117,18 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `adExpenses` | `(aggregate)` |        -0.00 |    31,369.26 |   -31,369.26 | OURS_MISSING |
 | `chargesObject` | `GiftWrap` |         4.49 |         4.49 |         0.00 | PASS |
 | `chargesObject` | `GiftWrapTax` |         0.31 |         0.31 |         0.00 | PASS |
-| `chargesObject` | `Principal` |   160,030.19 |   167,137.89 |    -7,107.70 | FAIL |
-| `chargesObject` | `Promotion` |    -2,135.60 |    -1,997.42 |      -138.18 | FAIL |
-| `chargesObject` | `ShippingCharge` |       809.58 |       924.98 |      -115.40 | FAIL |
-| `chargesObject` | `ShippingTax` |         5.18 |        13.82 |        -8.64 | FAIL |
-| `chargesObject` | `Tax` |     8,588.44 |     9,107.87 |      -519.43 | FAIL |
-| `cog` | `(scalar)` |    44,755.84 |    45,968.20 |    -1,212.36 | FAIL |
+| `chargesObject` | `Principal` |   166,439.37 |   167,137.89 |      -698.52 | FAIL |
+| `chargesObject` | `Promotion` |    -2,019.31 |    -1,997.42 |       -21.89 | FAIL |
+| `chargesObject` | `ShippingCharge` |       847.26 |       924.98 |       -77.72 | FAIL |
+| `chargesObject` | `ShippingTax` |         5.20 |        13.82 |        -8.62 | FAIL |
+| `chargesObject` | `Tax` |     9,027.50 |     9,107.87 |       -80.37 | FAIL |
+| `cog` | `(scalar)` |    46,756.14 |    45,968.20 |       787.94 | FAIL |
 | `expenses` | `(aggregate)` |   -10,288.49 |    -9,743.45 |      -545.04 | FAIL |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -15,867.17 |   -16,558.03 |       690.86 | FAIL |
-| `feesObject` | `Commission` |   -23,616.21 |   -24,709.34 |     1,093.13 | FAIL |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -16,497.25 |   -16,558.03 |        60.78 | FAIL |
+| `feesObject` | `Commission` |   -24,600.97 |   -24,709.34 |       108.37 | FAIL |
 | `feesObject` | `GiftwrapChargeback` |        -4.49 |        -4.49 |         0.00 | PASS |
-| `feesObject` | `ShippingChargeback` |      -233.43 |      -309.52 |        76.09 | FAIL |
-| `net` | `(derived)` |    61,112.66 |    34,059.22 |    27,053.44 | FAIL |
+| `feesObject` | `ShippingChargeback` |      -233.27 |      -309.52 |        76.25 | FAIL |
+| `net` | `(derived)` |    64,060.83 |    34,059.22 |    30,001.61 | FAIL |
 | `refundsObject` | `Commission` |     1,649.22 |     1,644.62 |         4.60 | FAIL |
 | `refundsObject` | `Principal` |   -11,169.10 |   -11,138.44 |       -30.66 | FAIL |
 | `refundsObject` | `Promotion` |       188.10 |       188.10 |         0.00 | PASS |
@@ -75,7 +138,7 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -0.42 |        -0.45 |         0.03 | FAIL |
 | `refundsObject` | `Tax` |      -740.06 |      -741.17 |         1.11 | FAIL |
 | `refundsObject` | `Tax Withheld` |       740.48 |       741.62 |        -1.14 | FAIL |
-| `salesTaxes` | `(derived)` |     8,593.93 |     9,122.00 |      -528.07 | FAIL |
+| `salesTaxes` | `(derived)` |     9,033.01 |     9,122.00 |       -88.99 | FAIL |
 | `storageFee` | `(scalar)` |     3,474.46 |     3,474.46 |         0.00 | PASS |
 
 ## 2026-02
@@ -83,19 +146,19 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
 | `adExpenses` | `(aggregate)` |        -0.00 |    22,929.02 |   -22,929.02 | OURS_MISSING |
-| `chargesObject` | `Principal` |   144,947.88 |   136,806.23 |     8,141.65 | FAIL |
-| `chargesObject` | `Promotion` |      -816.15 |      -811.14 |        -5.01 | FAIL |
-| `chargesObject` | `ShippingCharge` |       956.79 |       956.45 |         0.34 | FAIL |
-| `chargesObject` | `ShippingTax` |        14.84 |         6.63 |         8.21 | FAIL |
-| `chargesObject` | `Tax` |     7,622.30 |     7,053.27 |       569.03 | FAIL |
-| `cog` | `(scalar)` |    39,032.01 |    34,647.26 |     4,384.75 | FAIL |
+| `chargesObject` | `Principal` |   137,786.86 |   136,806.23 |       980.63 | FAIL |
+| `chargesObject` | `Promotion` |      -819.10 |      -811.14 |        -7.96 | FAIL |
+| `chargesObject` | `ShippingCharge` |     1,035.68 |       956.45 |        79.23 | FAIL |
+| `chargesObject` | `ShippingTax` |        14.58 |         6.63 |         7.95 | FAIL |
+| `chargesObject` | `Tax` |     7,128.51 |     7,053.27 |        75.24 | FAIL |
+| `cog` | `(scalar)` |    36,414.64 |    34,647.26 |     1,767.38 | FAIL |
 | `expenses` | `(aggregate)` |     6,068.78 |     5,528.52 |       540.26 | FAIL |
 | `fbaObject` | `FBAFees` |         0.00 |        -3.95 |         3.95 | FAIL |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -14,036.62 |   -13,075.82 |      -960.80 | FAIL |
-| `feesObject` | `Commission` |   -21,714.04 |   -20,490.89 |    -1,223.15 | FAIL |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -13,277.46 |   -13,075.82 |      -201.64 | FAIL |
+| `feesObject` | `Commission` |   -20,639.83 |   -20,490.89 |      -148.94 | FAIL |
 | `feesObject` | `ReferralFee` |         0.00 |        -2.99 |         2.99 | FAIL |
-| `feesObject` | `ShippingChargeback` |      -318.14 |      -313.48 |        -4.66 | FAIL |
-| `net` | `(derived)` |    60,039.74 |    35,557.95 |    24,481.79 | FAIL |
+| `feesObject` | `ShippingChargeback` |      -392.73 |      -313.48 |       -79.25 | FAIL |
+| `net` | `(derived)` |    57,330.81 |    35,557.95 |    21,772.86 | FAIL |
 | `refundsObject` | `Commission` |     1,503.14 |     1,500.11 |         3.03 | FAIL |
 | `refundsObject` | `Principal` |   -10,116.35 |   -10,096.14 |       -20.21 | FAIL |
 | `refundsObject` | `Promotion` |       146.99 |       146.99 |         0.00 | PASS |
@@ -106,7 +169,7 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -0.63 |        -0.60 |        -0.03 | FAIL |
 | `refundsObject` | `Tax` |      -690.54 |      -688.92 |        -1.62 | FAIL |
 | `refundsObject` | `Tax Withheld` |       691.17 |       689.52 |         1.65 | FAIL |
-| `salesTaxes` | `(derived)` |     7,637.14 |     7,059.90 |       577.24 | FAIL |
+| `salesTaxes` | `(derived)` |     7,143.09 |     7,059.90 |        83.19 | FAIL |
 | `storageFee` | `(scalar)` |     1,202.57 |     1,202.57 |         0.00 | PASS |
 
 ## 2026-03
@@ -116,18 +179,18 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `adExpenses` | `(aggregate)` |        -0.00 |    18,792.62 |   -18,792.62 | OURS_MISSING |
 | `chargesObject` | `GiftWrap` |         8.48 |         8.48 |         0.00 | PASS |
 | `chargesObject` | `GiftWrapTax` |         0.78 |         0.78 |         0.00 | PASS |
-| `chargesObject` | `Principal` |   124,499.06 |   121,824.06 |     2,675.00 | FAIL |
-| `chargesObject` | `Promotion` |      -669.25 |      -610.03 |       -59.22 | FAIL |
-| `chargesObject` | `ShippingCharge` |       782.86 |       681.44 |       101.42 | FAIL |
-| `chargesObject` | `ShippingTax` |         2.91 |         2.21 |         0.70 | FAIL |
-| `chargesObject` | `Tax` |     6,789.53 |     6,673.91 |       115.62 | FAIL |
-| `cog` | `(scalar)` |    31,443.07 |    29,423.96 |     2,019.11 | FAIL |
+| `chargesObject` | `Principal` |   122,342.47 |   121,824.06 |       518.41 | FAIL |
+| `chargesObject` | `Promotion` |      -613.51 |      -610.03 |        -3.48 | FAIL |
+| `chargesObject` | `ShippingCharge` |       692.90 |       681.44 |        11.46 | FAIL |
+| `chargesObject` | `ShippingTax` |         2.88 |         2.21 |         0.67 | FAIL |
+| `chargesObject` | `Tax` |     6,735.36 |     6,673.91 |        61.45 | FAIL |
+| `cog` | `(scalar)` |    31,183.77 |    29,423.96 |     1,759.81 | FAIL |
 | `expenses` | `(aggregate)` |    -2,096.10 |    -3,787.43 |     1,691.33 | FAIL |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -10,991.16 |   -10,942.68 |       -48.48 | FAIL |
-| `feesObject` | `Commission` |   -18,645.28 |   -18,246.12 |      -399.16 | FAIL |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -10,940.79 |   -10,942.68 |         1.89 | FAIL |
+| `feesObject` | `Commission` |   -18,324.02 |   -18,246.12 |       -77.90 | FAIL |
 | `feesObject` | `GiftwrapChargeback` |        -8.48 |        -8.48 |         0.00 | PASS |
-| `feesObject` | `ShippingChargeback` |      -301.72 |      -245.85 |       -55.87 | FAIL |
-| `net` | `(derived)` |    54,257.84 |    35,435.13 |    18,822.71 | FAIL |
+| `feesObject` | `ShippingChargeback` |      -252.83 |      -245.85 |        -6.98 | FAIL |
+| `net` | `(derived)` |    52,746.85 |    35,435.13 |    17,311.72 | FAIL |
 | `refundsObject` | `Commission` |     1,333.93 |     1,305.88 |        28.05 | FAIL |
 | `refundsObject` | `GiftWrap` |        -3.99 |        -3.99 |         0.00 | PASS |
 | `refundsObject` | `GiftWrapTax` |        -0.32 |        -0.32 |         0.00 | PASS |
@@ -140,7 +203,7 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -0.67 |        -0.67 |         0.00 | PASS |
 | `refundsObject` | `Tax` |      -583.02 |      -570.76 |       -12.26 | FAIL |
 | `refundsObject` | `Tax Withheld` |       584.01 |       571.75 |        12.26 | FAIL |
-| `salesTaxes` | `(derived)` |     6,793.22 |     6,676.90 |       116.32 | FAIL |
+| `salesTaxes` | `(derived)` |     6,739.02 |     6,676.90 |        62.12 | FAIL |
 | `storageFee` | `(scalar)` |     1,177.95 |     1,177.95 |         0.00 | PASS |
 
 ## 2026-04
@@ -148,17 +211,17 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
 | `adExpenses` | `(aggregate)` |        -0.00 |    12,823.75 |   -12,823.75 | OURS_MISSING |
-| `chargesObject` | `Principal` |   118,624.58 |   117,555.08 |     1,069.50 | FAIL |
-| `chargesObject` | `Promotion` |      -515.75 |      -515.99 |         0.24 | FAIL |
-| `chargesObject` | `ShippingCharge` |       750.43 |       735.26 |        15.17 | FAIL |
-| `chargesObject` | `ShippingTax` |        10.97 |        10.93 |         0.04 | FAIL |
-| `chargesObject` | `Tax` |     6,106.80 |     6,050.24 |        56.56 | FAIL |
-| `cog` | `(scalar)` |    32,356.34 |    30,790.78 |     1,565.56 | FAIL |
+| `chargesObject` | `Principal` |   118,226.96 |   117,555.08 |       671.88 | FAIL |
+| `chargesObject` | `Promotion` |      -515.66 |      -515.99 |         0.33 | FAIL |
+| `chargesObject` | `ShippingCharge` |       733.93 |       735.26 |        -1.33 | FAIL |
+| `chargesObject` | `ShippingTax` |        10.93 |        10.93 |         0.00 | PASS |
+| `chargesObject` | `Tax` |     6,077.62 |     6,050.24 |        27.38 | FAIL |
+| `cog` | `(scalar)` |    32,151.26 |    30,790.78 |     1,360.48 | FAIL |
 | `expenses` | `(aggregate)` |    -6,120.81 |    -4,885.45 |    -1,235.36 | FAIL |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -11,368.69 |   -11,298.00 |       -70.69 | FAIL |
-| `feesObject` | `Commission` |   -17,783.19 |   -17,622.34 |      -160.85 | FAIL |
-| `feesObject` | `ShippingChargeback` |      -297.30 |      -284.57 |       -12.73 | FAIL |
-| `net` | `(derived)` |    52,298.16 |    40,313.13 |    11,985.03 | FAIL |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -11,246.70 |   -11,298.00 |        51.30 | FAIL |
+| `feesObject` | `Commission` |   -17,722.99 |   -17,622.34 |      -100.65 | FAIL |
+| `feesObject` | `ShippingChargeback` |      -284.57 |      -284.57 |         0.00 | PASS |
+| `net` | `(derived)` |    52,284.13 |    40,313.13 |    11,971.00 | FAIL |
 | `refundsObject` | `Commission` |       682.52 |       662.98 |        19.54 | FAIL |
 | `refundsObject` | `Principal` |    -4,585.73 |    -4,457.43 |      -128.30 | FAIL |
 | `refundsObject` | `Promotion` |        52.45 |        49.94 |         2.51 | FAIL |
@@ -169,7 +232,7 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -0.67 |        -0.67 |         0.00 | PASS |
 | `refundsObject` | `Tax` |      -276.22 |      -268.75 |        -7.47 | FAIL |
 | `refundsObject` | `Tax Withheld` |       276.89 |       269.42 |         7.47 | FAIL |
-| `salesTaxes` | `(derived)` |     6,117.77 |     6,061.17 |        56.60 | FAIL |
+| `salesTaxes` | `(derived)` |     6,088.55 |     6,061.17 |        27.38 | FAIL |
 | `storageFee` | `(scalar)` |       770.83 |       770.83 |         0.00 | PASS |
 
 ## 2026-05
@@ -177,22 +240,22 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
 | `adExpenses` | `(aggregate)` |        -0.00 |    15,732.57 |   -15,732.57 | OURS_MISSING |
-| `chargesObject` | `Principal` |   108,811.83 |   110,260.80 |    -1,448.97 | FAIL |
-| `chargesObject` | `Promotion` |      -572.56 |      -584.52 |        11.96 | FAIL |
+| `chargesObject` | `Principal` |   109,289.49 |   110,260.80 |      -971.31 | FAIL |
+| `chargesObject` | `Promotion` |      -576.93 |      -584.52 |         7.59 | FAIL |
 | `chargesObject` | `Shipping` |         0.00 |        36.62 |       -36.62 | FAIL |
-| `chargesObject` | `ShippingCharge` |       855.14 |       837.74 |        17.40 | FAIL |
-| `chargesObject` | `ShippingTax` |         2.57 |         2.63 |        -0.06 | FAIL |
-| `chargesObject` | `Tax` |     5,584.35 |     5,584.90 |        -0.55 | FAIL |
-| `cog` | `(scalar)` |    27,923.18 |    27,180.01 |       743.17 | FAIL |
+| `chargesObject` | `ShippingCharge` |       859.78 |       837.74 |        22.04 | FAIL |
+| `chargesObject` | `ShippingTax` |         2.63 |         2.63 |         0.00 | PASS |
+| `chargesObject` | `Tax` |     5,513.37 |     5,584.90 |       -71.53 | FAIL |
+| `cog` | `(scalar)` |    28,241.87 |    27,180.01 |     1,061.86 | FAIL |
 | `expenses` | `(aggregate)` |    -3,623.80 |    -2,906.24 |      -717.56 | FAIL |
-| `fbaObject` | `FBAFees` |         0.00 |       -33.99 |        33.99 | FAIL |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -10,462.84 |   -10,548.50 |        85.66 | FAIL |
-| `feesObject` | `Commission` |   -16,303.67 |   -16,464.03 |       160.36 | FAIL |
+| `fbaObject` | `FBAFees` |       -29.64 |       -33.99 |         4.35 | FAIL |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |   -10,448.69 |   -10,548.50 |        99.81 | FAIL |
+| `feesObject` | `Commission` |   -16,321.33 |   -16,464.03 |       142.70 | FAIL |
 | `feesObject` | `POAServiceFee` |         0.00 |        -0.90 |         0.90 | FAIL |
 | `feesObject` | `PoAPerUnitFulfillmentFee` |         0.00 |        -9.19 |         9.19 | FAIL |
-| `feesObject` | `ReferralFee` |         0.00 |       -56.97 |        56.97 | FAIL |
-| `feesObject` | `ShippingChargeback` |      -396.45 |      -367.41 |       -29.04 | FAIL |
-| `net` | `(derived)` |    47,992.03 |    33,879.82 |    14,112.21 | FAIL |
+| `feesObject` | `ReferralFee` |       -53.98 |       -56.97 |         2.99 | FAIL |
+| `feesObject` | `ShippingChargeback` |      -397.04 |      -367.41 |       -29.63 | FAIL |
+| `net` | `(derived)` |    48,063.55 |    33,879.82 |    14,183.73 | FAIL |
 | `refundsObject` | `Commission` |       919.06 |       963.66 |       -44.60 | FAIL |
 | `refundsObject` | `Goodwill` |       -17.09 |       -17.09 |         0.00 | PASS |
 | `refundsObject` | `Principal` |    -6,126.90 |    -6,424.25 |       297.35 | FAIL |
@@ -203,7 +266,7 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -1.00 |        -1.00 |         0.00 | PASS |
 | `refundsObject` | `Tax` |      -384.54 |      -403.65 |        19.11 | FAIL |
 | `refundsObject` | `Tax Withheld` |       385.54 |       404.65 |       -19.11 | FAIL |
-| `salesTaxes` | `(derived)` |     5,586.92 |     5,587.53 |        -0.61 | FAIL |
+| `salesTaxes` | `(derived)` |     5,516.00 |     5,587.53 |       -71.53 | FAIL |
 | `storageFee` | `(scalar)` |       631.76 |       631.76 |         0.00 | PASS |
 
 ## 2026-06 (trailing DEFERRED month)
@@ -211,20 +274,20 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
 | `adExpenses` | `(aggregate)` |        -0.00 |    15,049.63 |   -15,049.63 | OURS_MISSING |
-| `chargesObject` | `Principal` |   100,008.13 |    98,691.38 |     1,316.75 | FAIL |
-| `chargesObject` | `Promotion` |      -517.35 |      -496.12 |       -21.23 | FAIL |
+| `chargesObject` | `Principal` |    97,953.93 |    98,691.38 |      -737.45 | FAIL |
+| `chargesObject` | `Promotion` |      -505.04 |      -496.12 |        -8.92 | FAIL |
 | `chargesObject` | `Shipping` |         0.00 |       174.08 |      -174.08 | FAIL |
-| `chargesObject` | `ShippingCharge` |       640.47 |       397.11 |       243.36 | FAIL |
-| `chargesObject` | `ShippingTax` |         6.00 |         6.47 |        -0.47 | FAIL |
-| `chargesObject` | `Tax` |     4,805.08 |     4,901.27 |       -96.19 | FAIL |
-| `cog` | `(scalar)` |    26,425.77 |    25,290.98 |     1,134.79 | FAIL |
+| `chargesObject` | `ShippingCharge` |       587.10 |       397.11 |       189.99 | FAIL |
+| `chargesObject` | `ShippingTax` |         6.47 |         6.47 |         0.00 | PASS |
+| `chargesObject` | `Tax` |     4,904.21 |     4,901.27 |         2.94 | FAIL |
+| `cog` | `(scalar)` |    25,884.57 |    25,290.98 |       593.59 | FAIL |
 | `expenses` | `(aggregate)` |    -4,454.06 |    -4,603.20 |       149.14 | FAIL |
-| `fbaObject` | `FBAFees` |    -1,960.03 |    -2,509.14 |       549.11 | EXPECTED |
-| `fbaObject` | `FBAPerUnitFulfillmentFee` |    -7,810.12 |    -7,065.53 |      -744.59 | FAIL |
-| `feesObject` | `Commission` |   -11,842.53 |   -10,639.72 |    -1,202.81 | FAIL |
-| `feesObject` | `ReferralFee` |    -3,136.60 |    -4,148.65 |     1,012.05 | EXPECTED |
-| `feesObject` | `ShippingChargeback` |      -266.29 |      -129.03 |      -137.26 | FAIL |
-| `net` | `(derived)` |    44,463.90 |    30,243.22 |    14,220.68 | FAIL |
+| `fbaObject` | `FBAFees` |    -2,388.38 |    -2,509.14 |       120.76 | EXPECTED |
+| `fbaObject` | `FBAPerUnitFulfillmentFee` |    -7,132.71 |    -7,065.53 |       -67.18 | FAIL |
+| `feesObject` | `Commission` |   -10,788.93 |   -10,639.72 |      -149.21 | FAIL |
+| `feesObject` | `ReferralFee` |    -3,882.89 |    -4,148.65 |       265.76 | EXPECTED |
+| `feesObject` | `ShippingChargeback` |      -220.23 |      -129.03 |       -91.20 | FAIL |
+| `net` | `(derived)` |    43,512.27 |    30,243.22 |    13,269.05 | FAIL |
 | `refundsObject` | `Commission` |       653.28 |       561.72 |        91.56 | FAIL |
 | `refundsObject` | `Goodwill` |       -13.23 |       -13.23 |         0.00 | PASS |
 | `refundsObject` | `Principal` |    -4,357.32 |    -3,745.89 |      -611.43 | FAIL |
@@ -236,5 +299,5 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `refundsObject` | `ShippingTax` |        -2.39 |        -2.02 |        -0.37 | FAIL |
 | `refundsObject` | `Tax` |      -281.83 |      -243.21 |       -38.62 | FAIL |
 | `refundsObject` | `Tax Withheld` |       284.22 |       245.23 |        38.99 | FAIL |
-| `salesTaxes` | `(derived)` |     4,811.08 |     4,907.74 |       -96.66 | FAIL |
+| `salesTaxes` | `(derived)` |     4,910.68 |     4,907.74 |         2.94 | FAIL |
 | `storageFee` | `(scalar)` |       404.04 |       404.04 |         0.00 | PASS |
