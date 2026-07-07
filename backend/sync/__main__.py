@@ -1,7 +1,15 @@
 """CLI entrypoint: `python -m sync [--marketplace US] [--debug-first-page]`.
 
-Loads .env from the repo root, opens Postgres, and runs the US Finances backfill.
-Phase 1 scope: SP-API Finances only. Later phases add ads / sales / aggregation.
+Full pipeline:
+  1. SP-API Finances backfill  → sp_transactions / sp_breakdowns / sp_transaction_items
+  2. Orders sweep              → order_purchase_date (for PurchaseDate re-attribution)
+  3. P&L aggregation           → pnl_monthly (Sellerise-shaped, PurchaseDate basis)
+  4. COGS import + computation → cogs_per_sku / pnl_monthly cog rows
+
+Usage:
+    python -m sync [--marketplace US] [--start 2026-01-01T00:00:00Z]
+                   [--orders-start 2025-12-01T00:00:00Z] [--skip-orders]
+                   [--log-level INFO]
 """
 
 from __future__ import annotations
@@ -15,23 +23,23 @@ import sys
 import psycopg
 from dotenv import load_dotenv
 
-from .config import BACKFILL_START_ISO, US_MARKETPLACE_ID
-from .finances import _parse_iso, sync_marketplace
-from .sp_client import SPClient
+from .aggregate import aggregate_marketplace
+from .cogs import DuplicateSkuError, compute_monthly_cogs, import_cogs
+from .config import BACKFILL_START_ISO, MARKETPLACE_ALIASES, MARKETPLACE_TO_SHEET, US_MARKETPLACE_ID
+from .finances import _parse_iso, make_finances_client, sync_marketplace
+from .orders import make_orders_client, sweep_orders
 
-
-MARKETPLACE_ALIASES = {
-    "US": "ATVPDKIKX0DER",
-    "CA": "A2EUQ1WTGCTBG2",
-    "UK": "A1F83G8C2ARO7P",
-    "AU": "A39IBJ37TRP1C6",
-}
+log = logging.getLogger(__name__)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="sync")
     parser.add_argument("--marketplace", default="US", help="Alias (US/CA/UK/AU) or literal marketplaceId")
-    parser.add_argument("--start", default=BACKFILL_START_ISO, help="ISO 8601 start (default: 2026-01-01T00:00:00Z)")
+    parser.add_argument("--start", default=BACKFILL_START_ISO, help="Finances ISO 8601 start (default: 2026-01-01T00:00:00Z)")
+    parser.add_argument("--orders-start", default="2025-12-01T00:00:00Z",
+                        help="Orders sweep CreatedAfter (default: 2025-12-01, Dec buffer)")
+    parser.add_argument("--skip-orders", action="store_true",
+                        help="Skip the Orders sweep (use existing order_purchase_date)")
     parser.add_argument("--debug-first-page", action="store_true", help="Log the shape of the first response")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
@@ -48,34 +56,70 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     marketplace_id = MARKETPLACE_ALIASES.get(args.marketplace.upper(), args.marketplace)
-    if marketplace_id != US_MARKETPLACE_ID:
-        logging.getLogger(__name__).warning(
-            "Phase 1 targets US only. Marketplace %s will be attempted but is not covered by acceptance tests yet.",
-            marketplace_id,
-        )
-
     start = _parse_iso(args.start)
 
-    logging.getLogger(__name__).info("Starting sync for marketplace=%s from %s", marketplace_id, start)
+    log.info("Starting sync for marketplace=%s from %s", marketplace_id, start)
 
-    with psycopg.connect(db_url) as conn, SPClient.for_marketplace(marketplace_id) as client:
-        stats = sync_marketplace(
-            conn,
-            client,
-            marketplace_id,
-            start=start,
+    # ── Phase 1: SP-API Finances ─────────────────────────────────────────────
+    with psycopg.connect(db_url) as conn, make_finances_client(marketplace_id) as client:
+        fin_stats = sync_marketplace(
+            conn, client, marketplace_id, start=start,
             debug_first_page=args.debug_first_page,
         )
 
-    logging.getLogger(__name__).info(
-        "Done: %d transactions, %d breakdowns, %d items, over %d windows / %d pages",
-        stats.transactions,
-        stats.breakdowns,
-        stats.items,
-        stats.windows,
-        stats.pages,
+    log.info(
+        "Finances done: %d transactions, %d breakdowns, %d items, over %d windows / %d pages",
+        fin_stats.transactions, fin_stats.breakdowns, fin_stats.items,
+        fin_stats.windows, fin_stats.pages,
     )
-    return 0
+
+    # ── Phase 1.5: Orders sweep (PurchaseDate map) ──────────────────────────
+    if not args.skip_orders:
+        orders_start = _parse_iso(args.orders_start)
+        with psycopg.connect(db_url) as conn, make_orders_client(marketplace_id) as client:
+            orders_stats = sweep_orders(conn, client, marketplace_id, start=orders_start)
+        log.info(
+            "Orders done: %d windows, %d pages, %d orders written",
+            orders_stats.windows, orders_stats.pages, orders_stats.orders_written,
+        )
+    else:
+        log.info("Skipping Orders sweep — using existing order_purchase_date rows.")
+
+    # ── Phase 2: P&L aggregation ─────────────────────────────────────────────
+    with psycopg.connect(db_url) as conn:
+        agg_stats = aggregate_marketplace(conn, marketplace_id)
+
+    log.info(
+        "Aggregate done: %d groups → %d mapped, %d unmapped pairs, %d pnl rows",
+        agg_stats["groups"], agg_stats["mapped"],
+        agg_stats["unmapped_pairs"], agg_stats["pnl_rows"],
+    )
+
+    # ── Phase 3: COGS ────────────────────────────────────────────────────────
+    sheet_name = MARKETPLACE_TO_SHEET.get(marketplace_id)
+    if sheet_name:
+        with psycopg.connect(db_url) as conn:
+            try:
+                cogs_imported = import_cogs(conn, marketplace_id, sheet_name)
+            except DuplicateSkuError as exc:
+                log.error("COGS import aborted: %s", exc)
+                return 1
+
+            cogs_stats = compute_monthly_cogs(conn, marketplace_id)
+
+        log.info(
+            "COGS done: %d SKUs imported, %d months, %d missing SKUs",
+            cogs_imported, cogs_stats["months"], cogs_stats["missing_skus"],
+        )
+    else:
+        log.warning("No COGS sheet mapping for marketplace %s — skipping COGS", marketplace_id)
+
+    rc = 0
+    if agg_stats["unmapped_pairs"]:
+        rc = 2
+    elif sheet_name and cogs_stats["missing_skus"]:
+        rc = 2
+    return rc
 
 
 if __name__ == "__main__":

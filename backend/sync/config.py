@@ -1,41 +1,31 @@
-"""Static config: marketplace → region → SP-API host + env var name."""
+"""Static config: marketplace metadata + credential mapping for python-amazon-sp-api.
+
+Regional routing (host + AWS region) is handled by the library's `Marketplaces`
+enum — we just map our marketplace_id string to the corresponding enum member.
+
+Refresh tokens are grouped per region (one token covers every marketplace in
+that region), so we keep a small marketplace_id → refresh_token_env mapping.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import os
+import pathlib
 
+from sp_api.base import Marketplaces
 
-@dataclass(frozen=True)
-class RegionConfig:
-    name: str
-    host: str
-    refresh_token_env: str
-    marketplace_ids: tuple[str, ...]
+_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
+# COGS workbook path (relative to repo root).
+COGS_XLSX = _REPO_ROOT / "reference" / "data" / "COGS_Magical_Butter_1.xlsx"
 
-NA = RegionConfig(
-    name="NA",
-    host="https://sellingpartnerapi-na.amazon.com",
-    refresh_token_env="AMAZON_SP_REFRESH_TOKEN_NA",
-    marketplace_ids=("ATVPDKIKX0DER", "A2EUQ1WTGCTBG2"),  # US, CA
-)
-EU = RegionConfig(
-    name="EU",
-    host="https://sellingpartnerapi-eu.amazon.com",
-    refresh_token_env="AMAZON_SP_REFRESH_TOKEN_EU",
-    marketplace_ids=("A1F83G8C2ARO7P",),  # UK
-)
-FE = RegionConfig(
-    name="FE",
-    host="https://sellingpartnerapi-fe.amazon.com",
-    refresh_token_env="AMAZON_SP_REFRESH_TOKEN_FE",
-    marketplace_ids=("A39IBJ37TRP1C6",),  # AU
-)
+US_MARKETPLACE_ID = "ATVPDKIKX0DER"
 
-REGIONS: tuple[RegionConfig, ...] = (NA, EU, FE)
-
-MARKETPLACE_TO_REGION: dict[str, RegionConfig] = {
-    mid: region for region in REGIONS for mid in region.marketplace_ids
+MARKETPLACE_ALIASES: dict[str, str] = {
+    "US": "ATVPDKIKX0DER",
+    "CA": "A2EUQ1WTGCTBG2",
+    "UK": "A1F83G8C2ARO7P",
+    "AU": "A39IBJ37TRP1C6",
 }
 
 # Marketplace → native currency (per the "no FX conversion" decision).
@@ -46,7 +36,51 @@ MARKETPLACE_CURRENCY: dict[str, str] = {
     "A39IBJ37TRP1C6": "AUD",
 }
 
-US_MARKETPLACE_ID = "ATVPDKIKX0DER"
+# COGS workbook sheet name per marketplace.
+MARKETPLACE_TO_SHEET: dict[str, str] = {
+    "ATVPDKIKX0DER": "US",
+    "A2EUQ1WTGCTBG2": "CA",
+    "A1F83G8C2ARO7P": "UK",
+    "A39IBJ37TRP1C6": "AU",
+}
+
+# Our marketplace_id → sp_api Marketplaces enum. The library uses "GB" for the
+# UK marketplace_id (A1F83G8C2ARO7P) as the canonical name; `.UK` is an alias.
+MARKETPLACE_TO_ENUM: dict[str, Marketplaces] = {
+    "ATVPDKIKX0DER": Marketplaces.US,
+    "A2EUQ1WTGCTBG2": Marketplaces.CA,
+    "A1F83G8C2ARO7P": Marketplaces.GB,
+    "A39IBJ37TRP1C6": Marketplaces.AU,
+}
+
+# Refresh tokens are region-scoped (NA covers US+CA, EU covers UK, FE covers AU).
+MARKETPLACE_TO_REFRESH_ENV: dict[str, str] = {
+    "ATVPDKIKX0DER": "AMAZON_SP_REFRESH_TOKEN_NA",
+    "A2EUQ1WTGCTBG2": "AMAZON_SP_REFRESH_TOKEN_NA",
+    "A1F83G8C2ARO7P": "AMAZON_SP_REFRESH_TOKEN_EU",
+    "A39IBJ37TRP1C6": "AMAZON_SP_REFRESH_TOKEN_FE",
+}
 
 # Backfill start (per project decision — matches the Sellerise sheet).
 BACKFILL_START_ISO = "2026-01-01T00:00:00Z"
+
+
+def credentials_for(marketplace_id: str) -> dict[str, str]:
+    """Return a credentials dict in the shape python-amazon-sp-api expects.
+
+    Reads our AMAZON_SP_* env vars and re-keys them to lwa_app_id / lwa_client_secret
+    / refresh_token so the library's FromCodeCredentialProvider picks them up.
+    """
+    refresh_env = MARKETPLACE_TO_REFRESH_ENV[marketplace_id]
+    return {
+        "lwa_app_id": _require_env("AMAZON_SP_CLIENT_ID"),
+        "lwa_client_secret": _require_env("AMAZON_SP_CLIENT_SECRET"),
+        "refresh_token": _require_env(refresh_env),
+    }
+
+
+def _require_env(name: str) -> str:
+    val = os.environ.get(name)
+    if not val:
+        raise RuntimeError(f"Missing required env var: {name}")
+    return val

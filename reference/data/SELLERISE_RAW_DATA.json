@@ -1,0 +1,409 @@
+{
+    "20260101": {
+        "_id": 20260101,
+        "revenue": 175191.94,
+        "net": 34059.22,
+        "refunds": 9617.42,
+        "fees": 25023.35,
+        "promos": 1997.42,
+        "fba": 16558.03,
+        "cog": 45968.2,
+        "orders": 2385,
+        "salesTaxes": 9122,
+        "storageFee": 3474.46,
+        "chargesObject": {
+            "Principal": 167137.89,
+            "Tax": 9107.87,
+            "Promotion": -1997.42,
+            "ShippingCharge": 924.98,
+            "ShippingTax": 13.82,
+            "GiftWrap": 4.49,
+            "GiftWrapTax": 0.31
+        },
+        "feesObject": {
+            "Commission": -24709.34,
+            "ShippingChargeback": -309.52,
+            "GiftwrapChargeback": -4.49
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -16558.03
+        },
+        "refundsObject": {
+            "Tax": -741.17,
+            "Tax Withheld": 741.62,
+            "Principal": -11138.44,
+            "Commission": 1644.62,
+            "RefundCommission": -297.72,
+            "Promotion": 188.1,
+            "ShippingCharge": -46.8,
+            "ShippingChargeback": 32.82,
+            "ShippingTax": -0.45
+        },
+        "units": 1,
+        "expenses": {
+            "Inbound Transportation Fee": -5416.06,
+            "REVERSAL_REIMBURSEMENT": 1632.97,
+            "AmazonFees": -1114.82,
+            "FBA Inbound Placement Service Fee": -793.72,
+            "Premium Services Fee": -2215.95,
+            "MISSING_FROM_INBOUND": 1098.15,
+            "Subscription Fee": -12.39,
+            "COMPENSATED_CLAWBACK": -956.36,
+            "WAREHOUSE_DAMAGE": 343.93,
+            "FBAFees": -5.2,
+            "DisposalComplete": -1.04,
+            "RemovalComplete": -697.19,
+            "MISSING_FROM_INBOUND_CLAWBACK": -80.8,
+            "StorageRenewalBilling": -1495.79,
+            "Inbound Transportation Fee - Adjustment": -286.47,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 107.9,
+            "WAREHOUSE_LOST": 149.39
+        },
+        "adExpenses": {
+            "hsaCost": 1333.68,
+            "sdCost": 280,
+            "hsaVideoCost": 4925.96,
+            "stvCost": 0,
+            "adCost": 24829.62
+        }
+    },
+    "20260201": {
+        "_id": 20260201,
+        "revenue": 144011.44,
+        "net": 35557.95,
+        "refunds": 8727.61,
+        "fees": 20807.36,
+        "promos": 811.14,
+        "fba": 13079.77,
+        "cog": 34647.26,
+        "orders": 1928,
+        "salesTaxes": 7059.9,
+        "storageFee": 1202.57,
+        "chargesObject": {
+            "Principal": 136806.23,
+            "ShippingCharge": 956.45,
+            "Promotion": -811.14,
+            "Tax": 7053.27,
+            "ShippingTax": 6.63
+        },
+        "feesObject": {
+            "Commission": -20490.89,
+            "ShippingChargeback": -313.48,
+            "ReferralFee": -2.99
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -13075.82,
+            "FBAFees": -3.95
+        },
+        "refundsObject": {
+            "Tax": -688.92,
+            "Tax Withheld": 689.52,
+            "ShippingCharge": -162.56,
+            "Principal": -10096.14,
+            "Commission": 1500.11,
+            "RefundCommission": -265.65,
+            "Promotion": 146.99,
+            "ShippingTax": -0.6,
+            "ShippingChargeback": 96.7,
+            "RestockingFee": 52.94
+        },
+        "expenses": {
+            "REVERSAL_REIMBURSEMENT": 1474.51,
+            "MISSING_FROM_INBOUND": 7418.72,
+            "WAREHOUSE_LOST": 221.68,
+            "Retrocharge": 0,
+            "FBA Inbound Placement Service Fee": -496.63,
+            "COMPENSATED_CLAWBACK": -255.22,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 250.61,
+            "Subscription Fee": -12.28,
+            "RemovalComplete": -192.91,
+            "Inbound Transportation Fee": -1405.33,
+            "WAREHOUSE_DAMAGE": 80.96,
+            "StorageRenewalBilling": -1526.8,
+            "MISSING_FROM_INBOUND_CLAWBACK": -28.79
+        },
+        "adExpenses": {
+            "hsaCost": 1315.11,
+            "sdCost": 75.73,
+            "hsaVideoCost": 1936.75,
+            "stvCost": 0,
+            "adCost": 19601.43
+        }
+    },
+    "20260301": {
+        "_id": 20260301,
+        "revenue": 128580.85,
+        "net": 35435.13,
+        "refunds": 7631.16,
+        "fees": 18500.45,
+        "promos": 610.03,
+        "fba": 10942.68,
+        "cog": 29423.96,
+        "orders": 1569,
+        "salesTaxes": 6676.9,
+        "storageFee": 1177.95,
+        "chargesObject": {
+            "Principal": 121824.06,
+            "Tax": 6673.91,
+            "Promotion": -610.03,
+            "ShippingCharge": 681.44,
+            "ShippingTax": 2.21,
+            "GiftWrap": 8.48,
+            "GiftWrapTax": 0.78
+        },
+        "feesObject": {
+            "Commission": -18246.12,
+            "ShippingChargeback": -245.85,
+            "GiftwrapChargeback": -8.48
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -10942.68
+        },
+        "refundsObject": {
+            "Tax": -570.76,
+            "Tax Withheld": 571.75,
+            "Principal": -8741.99,
+            "Commission": 1305.88,
+            "RefundCommission": -231.24,
+            "Promotion": 44.87,
+            "ShippingTax": -0.67,
+            "ShippingCharge": -17.07,
+            "ShippingChargeback": 8.39,
+            "GiftWrap": -3.99,
+            "GiftWrapTax": -0.32,
+            "GiftwrapChargeback": 3.99
+        },
+        "units": 2,
+        "expenses": {
+            "WAREHOUSE_LOST": 119.6,
+            "REVERSAL_REIMBURSEMENT": 1316.6,
+            "FBA Inbound Placement Service Fee": -1262.43,
+            "RemovalComplete": -1818.82,
+            "COMPENSATED_CLAWBACK": -518.25,
+            "Subscription Fee": -12.27,
+            "Liquidations": 0.92,
+            "WAREHOUSE_DAMAGE": 80.9,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 335.35,
+            "Inbound Transportation Fee": -1603.75,
+            "Inbound Transportation Fee - Adjustment": -12.54,
+            "StorageRenewalBilling": -1557.35,
+            "MISSING_FROM_INBOUND": 1144.61
+        },
+        "adExpenses": {
+            "hsaCost": 1265.68,
+            "sdCost": 11.11,
+            "hsaVideoCost": 1282.38,
+            "stvCost": 0,
+            "adCost": 16233.45
+        }
+    },
+    "20260401": {
+        "_id": 20260401,
+        "revenue": 123835.52,
+        "net": 40313.13,
+        "refunds": 3870.95,
+        "fees": 17906.91,
+        "promos": 515.99,
+        "fba": 11298,
+        "cog": 30790.78,
+        "orders": 1588,
+        "salesTaxes": 6061.17,
+        "storageFee": 770.83,
+        "chargesObject": {
+            "Principal": 117555.08,
+            "Tax": 6050.24,
+            "ShippingCharge": 735.26,
+            "Promotion": -515.99,
+            "ShippingTax": 10.93
+        },
+        "feesObject": {
+            "Commission": -17622.34,
+            "ShippingChargeback": -284.57
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -11298
+        },
+        "refundsObject": {
+            "Principal": -4457.43,
+            "Commission": 662.98,
+            "RefundCommission": -118.58,
+            "Promotion": 49.94,
+            "Tax": -268.75,
+            "Tax Withheld": 269.42,
+            "RestockingFee": 4.59,
+            "ShippingCharge": -21.36,
+            "ShippingTax": -0.67,
+            "ShippingChargeback": 8.91
+        },
+        "notAllCog": true,
+        "units": 4,
+        "expenses": {
+            "RemovalComplete": -3389.99,
+            "WAREHOUSE_LOST": 328.9,
+            "REVERSAL_REIMBURSEMENT": 1353.32,
+            "Inbound Transportation Fee": -2816.21,
+            "FBA Inbound Placement Service Fee": -549,
+            "MISSING_FROM_INBOUND_CLAWBACK": -288.72,
+            "Liquidations": 592.79,
+            "Subscription Fee": -12.41,
+            "FBAFees": -15.6,
+            "MISSING_FROM_INBOUND": 619.35,
+            "REMOVAL_ORDER_LOST": 0.31,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 161.33,
+            "Retrocharge": 0,
+            "StorageRenewalBilling": -1249.36,
+            "COMPENSATED_CLAWBACK": -228.76,
+            "RetrochargeReversal": 0,
+            "Amazon Fees": -123.76,
+            "Product Charges": 824.5,
+            "FBA Fees": -92.14
+        },
+        "adExpenses": {
+            "hsaCost": 939.08,
+            "sdCost": 7.5,
+            "hsaVideoCost": 831.71,
+            "stvCost": 0,
+            "adCost": 11045.46
+        }
+    },
+    "20260501": {
+        "_id": 20260501,
+        "revenue": 116138.17,
+        "net": 33879.82,
+        "refunds": 5645.49,
+        "fees": 16898.5,
+        "promos": 584.52,
+        "fba": 10582.49,
+        "cog": 27180.01,
+        "orders": 1545,
+        "salesTaxes": 5587.53,
+        "storageFee": 631.76,
+        "chargesObject": {
+            "Principal": 110260.8,
+            "Tax": 5584.9,
+            "ShippingCharge": 837.74,
+            "Promotion": -584.52,
+            "ShippingTax": 2.63,
+            "Shipping": 36.62
+        },
+        "feesObject": {
+            "Commission": -16464.03,
+            "ShippingChargeback": -367.41,
+            "ReferralFee": -56.97,
+            "POAServiceFee": -0.9,
+            "PoAPerUnitFulfillmentFee": -9.19
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -10548.5,
+            "FBAFees": -33.99
+        },
+        "refundsObject": {
+            "Tax": -403.65,
+            "Tax Withheld": 404.65,
+            "Principal": -6424.25,
+            "Commission": 963.66,
+            "RefundCommission": -167.81,
+            "ShippingTax": -1,
+            "ShippingCharge": -74.83,
+            "ShippingChargeback": 46.64,
+            "Promotion": 28.19,
+            "Goodwill": -17.09
+        },
+        "units": 4,
+        "expenses": {
+            "RemovalComplete": -606.05,
+            "WAREHOUSE_LOST": 90.97,
+            "COMPENSATED_CLAWBACK": -763.95,
+            "Liquidations": 449.52,
+            "Product Charges": 194,
+            "FBA Inbound Placement Service Fee": -576.92,
+            "Amazon Fees": -29.12,
+            "FBA Fees": -21.68,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 458.58,
+            "LiquidationAdjustments": 0.34,
+            "Subscription Fee": -12.12,
+            "Inbound Transportation Fee": -2226.23,
+            "DisposalComplete": -391.56,
+            "REVERSAL_REIMBURSEMENT": 677.68,
+            "WAREHOUSE_DAMAGE": 161.31,
+            "MISSING_FROM_INBOUND": 10.31,
+            "StorageRenewalBilling": -78.38,
+            "MISSING_FROM_INBOUND_CLAWBACK": -242.94
+        },
+        "adExpenses": {
+            "hsaCost": 522.61,
+            "sdCost": 27.15,
+            "hsaVideoCost": 2540.23,
+            "stvCost": 0,
+            "adCost": 12642.58
+        }
+    },
+    "20260601": {
+        "_id": 20260601,
+        "revenue": 103235.08,
+        "net": 30105.21,
+        "refunds": 3286.51,
+        "fees": 14857.31,
+        "promos": 499.51,
+        "fba": 9542.05,
+        "cog": 25073.27,
+        "orders": 1350,
+        "salesTaxes": 4919.22,
+        "storageFee": 404.04,
+        "chargesObject": {
+            "Principal": 98244.18,
+            "Promotion": -499.51,
+            "Tax": 4912.75,
+            "ShippingCharge": 405.3,
+            "Shipping": 165.89,
+            "ShippingTax": 6.47
+        },
+        "feesObject": {
+            "Commission": -11076.77,
+            "ReferralFee": -3644.52,
+            "ShippingChargeback": -136.02
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -7383.71,
+            "FBAFees": -2158.34
+        },
+        "refundsObject": {
+            "ShippingCharge": -60.26,
+            "ShippingChargeback": 57.27,
+            "Tax": -243.21,
+            "Tax Withheld": 245.23,
+            "Goodwill": -13.23,
+            "Principal": -3745.89,
+            "Commission": 561.72,
+            "RefundCommission": -99.81,
+            "ShippingTax": -2.02,
+            "Promotion": 3.99,
+            "RestockingFee": 9.7
+        },
+        "notAllCog": true,
+        "units": 1,
+        "expenses": {
+            "RemovalComplete": -263.22,
+            "REVERSAL_REIMBURSEMENT": 1201.73,
+            "DisposalComplete": -707.95,
+            "FBA Inbound Placement Service Fee": -395.14,
+            "Inbound Transportation Fee": -3264.63,
+            "WAREHOUSE_DAMAGE": 236.83,
+            "FREE_REPLACEMENT_REFUND_ITEMS": 448.28,
+            "Fee Adjustment": 0.74,
+            "Subscription Fee": -12.3,
+            "COMPENSATED_CLAWBACK": -1485.77,
+            "MISSING_FROM_INBOUND": 12.78,
+            "WAREHOUSE_LOST": 31.93,
+            "StorageRenewalBilling": -111.94,
+            "FBAFees": -294.54
+        },
+        "adExpenses": {
+            "hsaCost": 580.51,
+            "sdCost": 14.2,
+            "hsaVideoCost": 1998.97,
+            "stvCost": 0,
+            "adCost": 12453.79
+        }
+    }
+}

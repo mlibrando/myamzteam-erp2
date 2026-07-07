@@ -1,0 +1,349 @@
+{
+    "20260101": {
+        "_id": 20260101,
+        "revenue": 13485.77,
+        "net": 1632,
+        "refunds": 1459.71,
+        "fees": 2064.07,
+        "promos": 151.35,
+        "fba": 674.22,
+        "cog": 3145.54,
+        "orders": 205,
+        "salesTaxes": 2127.82,
+        "storageFee": 178.82,
+        "chargesObject": {
+            "Principal": 11349.95,
+            "Tax": 2115.01,
+            "ShippingCharge": 154.36,
+            "ShippingTax": 12.31,
+            "Promotion": -151.35,
+            "GiftWrap": 2.49,
+            "GiftWrapTax": 0.5,
+            "Shipping": 2.5
+        },
+        "feesObject": {
+            "Commission": -1873.48,
+            "DigitalServicesFee": -52.02,
+            "ShippingChargeback": -100.85,
+            "GiftwrapChargeback": -2.49,
+            "ReferralFee": -35.23
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -665.51,
+            "FBAFees": -8.71
+        },
+        "refundsObject": {
+            "Tax": -339.81,
+            "Tax Withheld": 340.11,
+            "ShippingTax": -0.3,
+            "ShippingCharge": -1.45,
+            "Principal": -1698.9,
+            "Commission": 262.18,
+            "RefundCommission": -56.62,
+            "ShippingChargeback": 0.83,
+            "DigitalServicesFee": 4.68,
+            "Promotion": 29.57
+        },
+        "expenses": {
+            "Inbound Transportation Fee": -346.14,
+            "COMPENSATED_CLAWBACK": -24.45,
+            "WAREHOUSE_DAMAGE": 19,
+            "Subscription Fee": -7.74,
+            "DisposalComplete": -214.2,
+            "MISSING_FROM_INBOUND": 1172.68,
+            "AmazonFees": -36.95,
+            "REVERSAL_REIMBURSEMENT": 137.59
+        },
+        "adExpenses": {
+            "hsaCost": 31.36,
+            "sdCost": 95.82,
+            "hsaVideoCost": 437.83,
+            "stvCost": 0,
+            "adCost": 1638.58
+        }
+    },
+    "20260201": {
+        "_id": 20260201,
+        "revenue": 15485.86,
+        "net": 2941.74,
+        "refunds": 1124.17,
+        "fees": 2439.01,
+        "promos": 76.21,
+        "fba": 595.62,
+        "cog": 3859.36,
+        "orders": 195,
+        "salesTaxes": 2487.16,
+        "storageFee": 146.73,
+        "chargesObject": {
+            "Principal": 12965.58,
+            "Tax": 2467.06,
+            "ShippingCharge": 109.33,
+            "ShippingTax": 20.1,
+            "Promotion": -76.21
+        },
+        "feesObject": {
+            "Commission": -2271.38,
+            "DigitalServicesFee": -55.82,
+            "ShippingChargeback": -44.35,
+            "ReferralFee": -67.46
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -577.78,
+            "FBAFees": -17.84
+        },
+        "refundsObject": {
+            "Tax": -231.93,
+            "Tax Withheld": 234.08,
+            "Principal": -1317.74,
+            "Commission": 237.17,
+            "RefundCommission": -43.78,
+            "DigitalServicesFee": 5.49,
+            "ShippingTax": -2.15,
+            "ShippingCharge": -48.82,
+            "Promotion": 6.23,
+            "ShippingChargeback": 37.28
+        },
+        "expenses": {
+            "DisposalComplete": -226.28,
+            "MISSING_FROM_INBOUND": 1182.05,
+            "Subscription Fee": -7.68,
+            "REVERSAL_REIMBURSEMENT": 151.16,
+            "WAREHOUSE_LOST": 59.83
+        },
+        "adExpenses": {
+            "hsaCost": 9.21,
+            "sdCost": 35.65,
+            "hsaVideoCost": 135.49,
+            "stvCost": 0,
+            "adCost": 1711.72
+        }
+    },
+    "20260301": {
+        "_id": 20260301,
+        "revenue": 13604.36,
+        "net": 1597,
+        "refunds": 1846.25,
+        "fees": 2177.46,
+        "promos": 49.46,
+        "fba": 541.28,
+        "cog": 3300.51,
+        "orders": 175,
+        "salesTaxes": 2227.05,
+        "storageFee": 148.08,
+        "chargesObject": {
+            "Principal": 11287.24,
+            "Tax": 2201.16,
+            "ShippingCharge": 138.67,
+            "ShippingTax": 25.89,
+            "Promotion": -49.46,
+            "Shipping": 0.86
+        },
+        "feesObject": {
+            "Commission": -1979.75,
+            "DigitalServicesFee": -49.48,
+            "ShippingChargeback": -96.47,
+            "DigitalServicesFeeFBA": -0.06,
+            "ReferralFee": -51.7
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -532.35,
+            "FBAFees": -8.93
+        },
+        "refundsObject": {
+            "Tax": -435.25,
+            "Tax Withheld": 436.67,
+            "Principal": -2175.97,
+            "Commission": 391.64,
+            "RefundCommission": -71.07,
+            "DigitalServicesFee": 7.83,
+            "ShippingTax": -1.42,
+            "ShippingCharge": -7.12,
+            "Promotion": 7.92,
+            "ShippingChargeback": 0.52
+        },
+        "expenses": {
+            "DisposalComplete": -104.51,
+            "REVERSAL_REIMBURSEMENT": 408.29,
+            "WAREHOUSE_DAMAGE": 64.58,
+            "Subscription Fee": -7.67,
+            "WAREHOUSE_LOST": 9.5
+        },
+        "adExpenses": {
+            "hsaCost": 12.21,
+            "sdCost": 0,
+            "hsaVideoCost": 115.45,
+            "stvCost": 0,
+            "adCost": 1639.07
+        }
+    },
+    "20260401": {
+        "_id": 20260401,
+        "revenue": 11994.52,
+        "net": 2710.38,
+        "refunds": 772.99,
+        "fees": 1879.32,
+        "promos": 50.76,
+        "fba": 391.13,
+        "cog": 3295.13,
+        "orders": 118,
+        "salesTaxes": 1982.07,
+        "storageFee": 105.78,
+        "chargesObject": {
+            "Principal": 9978.5,
+            "Tax": 1966.85,
+            "ShippingCharge": 84.71,
+            "ShippingTax": 15.22,
+            "Promotion": -50.76
+        },
+        "feesObject": {
+            "Commission": -1795.87,
+            "DigitalServicesFee": -42.5,
+            "ShippingChargeback": -40.95
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -391.13
+        },
+        "refundsObject": {
+            "Tax": -119.95,
+            "Tax Withheld": 121,
+            "ShippingTax": -1.05,
+            "ShippingCharge": -22.06,
+            "Principal": -916.33,
+            "Commission": 163.91,
+            "RefundCommission": -28.85,
+            "DigitalServicesFee": 3.57,
+            "Promotion": 11.38,
+            "ShippingChargeback": 15.39
+        },
+        "units": 1,
+        "expenses": {
+            "DisposalComplete": -69.53,
+            "REVERSAL_REIMBURSEMENT": 400.79,
+            "Subscription Fee": -7.76,
+            "MISSING_FROM_INBOUND": 1290.03,
+            "Inbound Transportation Fee": -25.2
+        },
+        "adExpenses": {
+            "hsaCost": 10.5,
+            "sdCost": 0,
+            "hsaVideoCost": 10.31,
+            "stvCost": 0,
+            "adCost": 836.91
+        }
+    },
+    "20260501": {
+        "_id": 20260501,
+        "revenue": 6432.36,
+        "net": 1246.93,
+        "refunds": 563.88,
+        "fees": 1012.42,
+        "promos": 42.08,
+        "fba": 198.55,
+        "cog": 1645,
+        "orders": 72,
+        "salesTaxes": 1054.34,
+        "storageFee": 0,
+        "chargesObject": {
+            "Principal": 5358.57,
+            "Tax": 1043.78,
+            "ShippingCharge": 61.53,
+            "Promotion": -42.08,
+            "ShippingTax": 10.56
+        },
+        "feesObject": {
+            "Commission": -957.64,
+            "DigitalServicesFee": -23.04,
+            "ShippingChargeback": -25,
+            "ReferralFee": -6.74
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -195.45,
+            "FBAFees": -3.1
+        },
+        "refundsObject": {
+            "Tax": -132.78,
+            "Tax Withheld": 133.44,
+            "Principal": -663.88,
+            "Commission": 119.48,
+            "RefundCommission": -22.51,
+            "DigitalServicesFee": 2.37,
+            "ShippingTax": -0.66,
+            "ShippingCharge": -3.32,
+            "Promotion": 3.98
+        },
+        "expenses": {
+            "Subscription Fee": -7.58,
+            "FBAFees": -77.6,
+            "Inbound Transportation Fee": -18.9,
+            "Liquidations": 13.74,
+            "WAREHOUSE_LOST": 64.75,
+            "DisposalComplete": -58.94,
+            "REVERSAL_REIMBURSEMENT": 124.32,
+            "other-transaction": -113.68
+        },
+        "adExpenses": {
+            "hsaCost": 6.97,
+            "sdCost": 0,
+            "hsaVideoCost": 5.11,
+            "stvCost": 0,
+            "adCost": 699.16
+        }
+    },
+    "20260601": {
+        "_id": 20260601,
+        "revenue": 8192.04,
+        "net": 1771.58,
+        "refunds": 693.07,
+        "fees": 1283.06,
+        "promos": 24.85,
+        "fba": 251.09,
+        "cog": 2121.51,
+        "orders": 79,
+        "salesTaxes": 1320.16,
+        "storageFee": 0,
+        "chargesObject": {
+            "Principal": 6853.44,
+            "Tax": 1313.64,
+            "ShippingCharge": 43.29,
+            "ShippingTax": 6.52,
+            "Promotion": -24.85
+        },
+        "feesObject": {
+            "Commission": -1174.32,
+            "DigitalServicesFee": -28.13,
+            "ShippingChargeback": -20.79,
+            "ReferralFee": -59.82
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -237.19,
+            "FBAFees": -13.9
+        },
+        "refundsObject": {
+            "Tax": -166.72,
+            "Tax Withheld": 167.47,
+            "Principal": -817.2,
+            "Commission": 147.08,
+            "RefundCommission": -26.63,
+            "DigitalServicesFee": 2.93,
+            "ShippingTax": -0.75,
+            "ShippingCharge": -3.74,
+            "Promotion": 4.49
+        },
+        "expenses": {
+            "COMPENSATED_CLAWBACK": -64.75,
+            "DisposalComplete": -3.61,
+            "REVERSAL_REIMBURSEMENT": 89.48,
+            "Subscription Fee": -7.69,
+            "FBAFees": -59.68,
+            "Liquidations": 45.24,
+            "other-transaction": -132.85
+        },
+        "adExpenses": {
+            "hsaCost": 6.37,
+            "sdCost": 0,
+            "hsaVideoCost": 2.54,
+            "stvCost": 0,
+            "adCost": 742.66
+        }
+    }
+}

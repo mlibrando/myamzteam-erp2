@@ -1,12 +1,16 @@
 """SP-API Finances listTransactions sync (v2024-06-19).
 
+Fetch/auth/pagination goes through python-amazon-sp-api (FinancesV20240619).
+The library handles LWA token refresh, regional host selection (via the
+Marketplaces enum), and returns the raw Amazon payload unchanged.
+
 - 180-day windowed backfill from BACKFILL_START_ISO to now() - 48h.
 - Cursored resume via sync_state.
 - Idempotent upsert on transaction_id.
 - Flattens the nested breakdowns tree to LEAVES for sp_breakdowns.
 - Extracts ProductContext (sku, asin, quantityShipped) from item.contexts.
 
-Reference schema (fetched from developer-docs.amazon.com/sp-api/docs/finances-api-v2024-06-19-reference):
+Reference schema (developer-docs.amazon.com/sp-api/docs/finances-api-v2024-06-19-reference):
 
   GET /finances/2024-06-19/transactions
   Response: { payload: { nextToken, transactions: [...] } }
@@ -24,18 +28,19 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Iterable, Iterator
 
 import psycopg
+from sp_api.api import FinancesV20240619
+from sp_api.base.exceptions import SellingApiRequestThrottledException
 
-from .sp_client import SPClient
+from .config import MARKETPLACE_TO_ENUM, credentials_for
 
 log = logging.getLogger(__name__)
-
-FINANCES_PATH = "/finances/2024-06-19/transactions"
 
 # Amazon docs: postedAfter/postedBefore span must be ≤ 180 days.
 # We use 179 to stay safely under the boundary.
@@ -43,6 +48,19 @@ WINDOW_DAYS = 179
 
 # Don't sync into the last 48 hours (data may be incomplete per Amazon).
 LAG_HOURS = 48
+
+# listTransactions is 0.5 rps + burst 10. Fall back to 2s if the response
+# headers don't expose x-amzn-RateLimit-Limit.
+_THROTTLE_MAX_RETRIES = 6
+_THROTTLE_BASE_DELAY = 2.0
+
+
+def make_finances_client(marketplace_id: str) -> FinancesV20240619:
+    """Build a FinancesV20240619 client scoped to one marketplace."""
+    return FinancesV20240619(
+        marketplace=MARKETPLACE_TO_ENUM[marketplace_id],
+        credentials=credentials_for(marketplace_id),
+    )
 
 
 @dataclass
@@ -78,22 +96,66 @@ def _iter_windows(start: datetime, end: datetime) -> Iterator[tuple[datetime, da
 
 # ---------------- response walking ----------------
 
-def _flatten_breakdowns(breakdowns: list[dict[str, Any]] | None) -> Iterable[tuple[str, Decimal, str | None]]:
-    """Yield (breakdown_type, amount, currency) for LEAF breakdowns only.
+def _flatten_breakdowns(
+    breakdowns: list[dict[str, Any]] | None,
+    *,
+    _parent_type: str | None = None,
+) -> Iterable[tuple[str, Decimal, str | None]]:
+    """Yield (breakdown_type, amount, currency) for classifiable leaf breakdowns.
 
-    A parent breakdown's amount equals the sum of its children, so flattening to
-    leaves avoids double-counting during aggregation.
+    Two invariants enforced here:
+
+    1. Parent nodes (Sales, Expenses, AmazonFees, PromoRebates, Shipping, …) with
+       non-empty children are never emitted directly — only their leaves are.
+
+    2. Amazon uses "Base" as a generic internal leaf under named fee nodes
+       (FBAPerUnitFulfillmentFee, Commission, FBAStorageFee, …). Emitting "Base"
+       directly loses the context needed for bucket mapping, so we substitute the
+       immediate parent's type instead.
     """
     for b in breakdowns or []:
-        children = b.get("breakdowns") or []
+        bt = b["breakdownType"]
+        children = b.get("breakdowns") or []  # null and [] both mean no children
         if children:
-            yield from _flatten_breakdowns(children)
+            yield from _flatten_breakdowns(children, _parent_type=bt)
             continue
         amt = b.get("breakdownAmount") or {}
         raw = amt.get("currencyAmount")
         if raw is None:
             continue
-        yield (b["breakdownType"], Decimal(str(raw)), amt.get("currencyCode"))
+        emit_type = _parent_type if (bt == "Base" and _parent_type) else bt
+        yield (emit_type, Decimal(str(raw)), amt.get("currencyCode"))
+
+
+def breakdown_leaves_for_txn(txn: dict[str, Any]) -> list[tuple[str, Decimal, str | None]]:
+    """Return the canonical set of (breakdown_type, amount, currency) leaves for a transaction.
+
+    Strategy:
+    - Prefer item-level breakdowns (more granular: OurPricePrincipal, FBAPerUnitFulfillmentFee,
+      Commission, etc.).
+    - Fall back to transaction-level when item-level yields ONLY anonymous "Base" roots (e.g.
+      AdvertisingFee transactions where the item breakdown is just [{Base}] — the named type
+      only appears in the transaction tree) OR when there are no item breakdowns at all
+      (FundTransfer, ReserveCredit/Debit, etc.).
+    """
+    item_leaves: list[tuple[str, Decimal, str | None]] = []
+    for item in txn.get("items") or []:
+        item_leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
+
+    has_named = any(bt != "Base" for bt, _, _ in item_leaves)
+    if has_named:
+        return item_leaves
+
+    # Fallback: RECONCILIATION.md decision C — for Shipment transactions this
+    # surfaces as AmazonFees / FBAFees, which bucket_map routes to real fee
+    # buckets. Log so the count stays visible in ops.
+    if txn.get("transactionType") == "Shipment" and item_leaves:
+        log.info(
+            "breakdown fallback (Shipment): items[] yielded only Base roots — "
+            "using transaction-level breakdowns for %s",
+            txn.get("transactionId"),
+        )
+    return list(_flatten_breakdowns(txn.get("breakdowns")))
 
 
 def _extract_product_contexts(items: list[dict[str, Any]] | None) -> Iterable[tuple[str | None, str | None, int | None]]:
@@ -176,13 +238,20 @@ def _process_page(
         md = txn.get("marketplaceDetails") or {}
         txn_marketplace = md.get("marketplaceId") or marketplace_id
 
-        txn_rows.append((txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn)))
+        txn_status = txn.get("transactionStatus")
+        # RELEASED Shipment transactions that carry DEFERRED_TRANSACTION_ID are pure
+        # release events — the actual order amount is already captured in the
+        # corresponding DEFERRED_RELEASED transaction at the original shipment date.
+        # Counting both would double the revenue for that order.
+        is_release_event = txn_status == "RELEASED" and any(
+            ri.get("relatedIdentifierName") == "DEFERRED_TRANSACTION_ID"
+            for ri in (txn.get("relatedIdentifiers") or [])
+        )
+
+        txn_rows.append((txn_id, txn_marketplace, posted_at, total_amt, currency, json.dumps(txn), txn_status, is_release_event))
         txn_ids.append(txn_id)
 
-        leaves: list[tuple[str, Decimal, str | None]] = []
-        leaves.extend(_flatten_breakdowns(txn.get("breakdowns")))
-        for item in txn.get("items") or []:
-            leaves.extend(_flatten_breakdowns(item.get("breakdowns")))
+        leaves = breakdown_leaves_for_txn(txn)
         for bt, amt, cc in leaves:
             breakdown_rows.append((txn_id, bt, amt, cc))
 
@@ -192,15 +261,19 @@ def _process_page(
     with conn.cursor() as cur:
         cur.executemany(
             """
-            INSERT INTO sp_transactions (transaction_id, marketplace_id, posted_at, total_amount, currency, raw_json)
-            VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+            INSERT INTO sp_transactions
+                (transaction_id, marketplace_id, posted_at, total_amount, currency, raw_json,
+                 transaction_status, is_deferred_release_event)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s)
             ON CONFLICT (transaction_id) DO UPDATE SET
-                marketplace_id = EXCLUDED.marketplace_id,
-                posted_at      = EXCLUDED.posted_at,
-                total_amount   = EXCLUDED.total_amount,
-                currency       = EXCLUDED.currency,
-                raw_json       = EXCLUDED.raw_json,
-                ingested_at    = now()
+                marketplace_id             = EXCLUDED.marketplace_id,
+                posted_at                  = EXCLUDED.posted_at,
+                total_amount               = EXCLUDED.total_amount,
+                currency                   = EXCLUDED.currency,
+                raw_json                   = EXCLUDED.raw_json,
+                transaction_status         = EXCLUDED.transaction_status,
+                is_deferred_release_event  = EXCLUDED.is_deferred_release_event,
+                ingested_at                = now()
             """,
             txn_rows,
         )
@@ -224,9 +297,26 @@ def _process_page(
 
 # ---------------- main entrypoint ----------------
 
+def _list_transactions_with_retry(
+    client: FinancesV20240619, params: dict[str, Any]
+) -> Any:
+    """Call list_transactions with exponential backoff on 429s."""
+    delay = _THROTTLE_BASE_DELAY
+    for attempt in range(_THROTTLE_MAX_RETRIES):
+        try:
+            return client.list_transactions(**params)
+        except SellingApiRequestThrottledException:
+            if attempt == _THROTTLE_MAX_RETRIES - 1:
+                raise
+            log.warning("Throttled on list_transactions; sleeping %.1fs", delay)
+            time.sleep(delay)
+            delay = min(60.0, delay * 2)
+    raise RuntimeError("unreachable")
+
+
 def sync_marketplace(
     conn: psycopg.Connection,
-    client: SPClient,
+    client: FinancesV20240619,
     marketplace_id: str,
     *,
     start: datetime,
@@ -267,30 +357,31 @@ def sync_marketplace(
         while first_call or next_token:
             first_call = False
             if next_token:
-                params = {"nextToken": next_token}
+                params: dict[str, Any] = {"nextToken": next_token}
             else:
                 params = {
                     "postedAfter": _iso(w_start),
                     "postedBefore": _iso(w_end),
                     "marketplaceId": marketplace_id,
                 }
-            resp = client.get(FINANCES_PATH, params=params)
+            resp = _list_transactions_with_retry(client, params)
             stats.pages += 1
 
+            payload = resp.payload or {}
+
             if debug_first_page and stats.pages == 1:
-                log.info("First-page raw response keys: %s", list(resp.keys()))
-                payload_preview = resp.get("payload", {})
-                log.info("Payload keys: %s", list(payload_preview.keys()))
-                sample = (payload_preview.get("transactions") or [None])[0]
+                log.info("First-page payload keys: %s", list(payload.keys()))
+                sample = (payload.get("transactions") or [None])[0]
                 if sample is not None:
                     log.info("Sample transaction keys: %s", list(sample.keys()))
+                if resp.rate_limit:
+                    log.info("Rate limit header: %s", resp.rate_limit)
 
-            payload = resp.get("payload") or resp  # some SP-API endpoints omit the envelope
             transactions = payload.get("transactions") or []
             _process_page(conn, transactions, marketplace_id, stats)
             conn.commit()
 
-            next_token = payload.get("nextToken")
+            next_token = resp.next_token
             # If the token is still live (more pages in this window), record w_start so
             # that an expired-token restart re-fetches the whole window (safe: idempotent
             # upserts). Once the window is fully drained, advance to w_end.
