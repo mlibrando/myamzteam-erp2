@@ -1,13 +1,13 @@
 # Reconciliation report — marketplace A2EUQ1WTGCTBG2
 
-Generated 2026-07-07 07:51:26Z.
+Generated 2026-07-07 09:03:56Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
 ## Summary
 
-- **PASS**: 67 / 119
-- **FAIL**: 49 / 119
+- **PASS**: 69 / 119
+- **FAIL**: 48 / 119
 - **EXPECTED**: 2 / 119
 
 ## Attribution basis
@@ -17,12 +17,12 @@ Shipment revenue + nested fees + `cog` re-attributed to **order PurchaseDate**
 Refund basis chosen empirically: **postedDate** (refundsObject Σ|Δ|: posted-basis $61.28, purchase-basis $1,866.58).
 
 **Before → After improvement** (`chargesObject.Principal` + `feesObject.Commission` + `fbaObject.FBAPerUnitFulfillmentFee` + `cog`):
-- Σ|Δ| before (all `postedDate`): **$6,302.04**
-- Σ|Δ| after  (Shipment on `PurchaseDate`): **$3,395.69**
-- Reduction: **$2,906.35** (+46.1%)
+- Σ|Δ| before (all `postedDate`): **$3,505.26**
+- Σ|Δ| after  (Shipment on `PurchaseDate`): **$1,708.10**
+- Reduction: **$1,797.16** (+51.3%)
 
-- Cumulative Jan–Jun `net` delta before: **$-3,208.50** (-29.95% of Sellerise net)
-- Cumulative Jan–Jun `net` delta after:  **$-1,095.94** (-10.23% of Sellerise net)
+- Cumulative Jan–Jun `net` delta before: **$-2,089.59** (-19.50% of Sellerise net)
+- Cumulative Jan–Jun `net` delta after:  **$-374.48** (-3.50% of Sellerise net)
 
 ## Before / After (per key bucket per month)
 
@@ -31,33 +31,33 @@ Refund basis chosen empirically: **postedDate** (refundsObject Σ|Δ|: posted-ba
 | 2026-01 | `chargesObject.Principal` |     9,482.03 |     9,584.03 |     9,559.08 |       -77.05 |        24.95 |
 | 2026-01 | `feesObject.Commission` |    -1,413.20 |    -1,432.96 |    -1,429.22 |        16.02 |        -3.74 |
 | 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` |    -1,289.90 |    -1,351.32 |    -1,303.57 |        13.67 |       -47.75 |
-| 2026-01 | `cog` |     2,524.39 |     1,925.07 |     1,587.21 |       937.18 |       337.86 |
-| 2026-01 | `net` |       820.40 |     1,470.47 |     1,793.24 |      -972.84 |      -322.77 |
+| 2026-01 | `cog` |     1,914.14 |     1,445.51 |     1,587.21 |       326.93 |      -141.70 |
+| 2026-01 | `net` |     1,430.65 |     1,950.03 |     1,793.24 |      -362.59 |       156.79 |
 | 2026-02 | `chargesObject.Principal` |     9,234.43 |     8,711.18 |     8,910.68 |       323.75 |      -199.50 |
 | 2026-02 | `feesObject.Commission` |    -1,385.07 |    -1,306.61 |    -1,336.54 |       -48.53 |        29.93 |
 | 2026-02 | `fbaObject.FBAPerUnitFulfillmentFee` |      -989.39 |      -861.58 |      -843.31 |      -146.08 |       -18.27 |
-| 2026-02 | `cog` |     2,585.27 |     2,225.85 |     1,881.36 |       703.91 |       344.49 |
-| 2026-02 | `net` |     2,267.54 |     2,309.98 |     2,842.09 |      -574.55 |      -532.11 |
+| 2026-02 | `cog` |     1,992.17 |     1,676.52 |     1,881.36 |       110.81 |      -204.84 |
+| 2026-02 | `net` |     2,860.64 |     2,859.31 |     2,842.09 |        18.55 |        17.22 |
 | 2026-03 | `chargesObject.Principal` |     8,737.30 |     8,866.85 |     8,667.35 |        69.95 |       199.50 |
 | 2026-03 | `feesObject.Commission` |    -1,310.56 |    -1,330.00 |    -1,300.07 |       -10.49 |       -29.93 |
 | 2026-03 | `fbaObject.FBAPerUnitFulfillmentFee` |      -836.54 |      -846.26 |      -854.71 |        18.17 |         8.45 |
-| 2026-03 | `cog` |     2,380.38 |     2,054.66 |     1,454.84 |       925.54 |       599.82 |
-| 2026-03 | `net` |     1,765.19 |     2,191.30 |     2,612.81 |      -847.62 |      -421.51 |
+| 2026-03 | `cog` |     1,900.86 |     1,622.51 |     1,454.84 |       446.02 |       167.67 |
+| 2026-03 | `net` |     2,244.71 |     2,623.45 |     2,612.81 |      -368.10 |        10.64 |
 | 2026-04 | `chargesObject.Principal` |     4,926.07 |     4,955.32 |     4,955.32 |       -29.25 |         0.00 |
 | 2026-04 | `feesObject.Commission` |      -710.15 |      -714.53 |      -714.53 |         4.38 |         0.00 |
 | 2026-04 | `fbaObject.FBAPerUnitFulfillmentFee` |      -510.20 |      -512.77 |      -502.18 |        -8.02 |       -10.59 |
-| 2026-04 | `cog` |     1,356.85 |       911.80 |       653.28 |       703.57 |       258.52 |
-| 2026-04 | `net` |      -695.04 |      -227.69 |        41.22 |      -736.26 |      -268.91 |
+| 2026-04 | `cog` |     1,045.81 |       643.95 |       653.28 |       392.53 |        -9.33 |
+| 2026-04 | `net` |      -384.00 |        40.16 |        41.22 |      -425.22 |        -1.06 |
 | 2026-05 | `chargesObject.Principal` |     6,683.90 |     6,455.15 |     6,455.15 |       228.75 |         0.00 |
 | 2026-05 | `feesObject.Commission` |      -974.27 |      -939.96 |      -939.96 |       -34.31 |         0.00 |
 | 2026-05 | `fbaObject.FBAPerUnitFulfillmentFee` |      -681.48 |      -661.48 |      -650.52 |       -30.96 |       -10.96 |
-| 2026-05 | `cog` |     1,799.80 |     1,318.83 |       894.10 |       905.70 |       424.73 |
-| 2026-05 | `net` |     1,909.38 |     2,215.91 |     1,721.49 |       187.89 |       494.42 |
+| 2026-05 | `cog` |     1,615.26 |     1,222.02 |       894.10 |       721.16 |       327.92 |
+| 2026-05 | `net` |     1,163.97 |     1,382.77 |     1,721.49 |      -557.52 |      -338.72 |
 | 2026-06 | `chargesObject.Principal` |     6,898.18 |     6,898.18 |     7,097.68 |      -199.50 |      -199.50 |
 | 2026-06 | `feesObject.Commission` |      -920.47 |      -920.47 |      -920.47 |         0.00 |         0.00 |
 | 2026-06 | `fbaObject.FBAPerUnitFulfillmentFee` |      -562.94 |      -562.94 |      -547.22 |       -15.72 |       -15.72 |
-| 2026-06 | `cog` |     2,384.70 |     2,164.64 |     1,533.16 |       851.54 |       631.48 |
-| 2026-06 | `net` |     1,437.37 |     1,657.43 |     1,702.49 |      -265.12 |       -45.06 |
+| 2026-06 | `cog` |     1,766.37 |     1,591.01 |     1,533.16 |       233.21 |        57.85 |
+| 2026-06 | `net` |     1,307.78 |     1,483.14 |     1,702.49 |      -394.71 |      -219.35 |
 
 ## Refund-basis empirical test
 
@@ -73,19 +73,10 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |      -589.82 |      -213.02 |      -589.82 |         0.00 |       376.80 |
 | 2026-06 |      -584.53 |      -529.13 |      -584.53 |         0.00 |        55.40 |
 
-## Drift-guard: 4 INVESTIGATE / 19 TRAILING / 118 WITHIN_DRIFT
+## Drift-guard: 0 INVESTIGATE / 21 TRAILING / 120 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
 `WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.
-
-### 🚨 INVESTIGATE — beyond settled-month band
-
-| month | bucket · sub_line | Δ | band (±) |
-|---|---|---:|---:|
-| 2026-05 | `adExpenses.TOTAL` |      -929.95 |        30.00 |
-| 2026-05 | `adExpenses.adCost (Sponsored Products)` |      -929.35 |        10.00 |
-| 2026-06 | `adExpenses.TOTAL` |      -747.92 |        30.00 |
-| 2026-06 | `adExpenses.adCost (Sponsored Products)` |      -747.92 |        10.00 |
 
 ### Per-month summary
 
@@ -95,34 +86,13 @@ Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
 | 2026-02 | 22 | 0 | 0 |
 | 2026-03 | 26 | 0 | 0 |
 | 2026-04 | 23 | 0 | 0 |
-| 2026-05 | 21 | 0 | 2 |
-| 2026-06 | 0 | 19 | 2 |
+| 2026-05 | 23 | 0 | 0 |
+| 2026-06 | 0 | 21 | 0 |
 
-## Drift-guard vs prior pull: 16 INVESTIGATE / 21 TRAILING / 104 WITHIN_DRIFT
+## Drift-guard vs prior pull: 0 INVESTIGATE / 21 TRAILING / 120 WITHIN_DRIFT
 
-Prior pull: `2026-07-07T07:48:05.873417+00:00`. Current pull: `2026-07-07T07:51:25.748868+00:00`.
+Prior pull: `2026-07-07T09:03:16.794087+00:00`. Current pull: `2026-07-07T09:03:56.100109+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
-
-### 🚨 INVESTIGATE — moved beyond pull-to-pull band
-
-| month | bucket · sub_line | current | Δ (current − prior) | band (±) |
-|---|---|---:|---:|---:|
-| 2026-01 | `adExpenses.TOTAL` |     2,919.63 |     2,919.63 |        10.00 |
-| 2026-01 | `adExpenses.adCost (Sponsored Products)` |     2,262.10 |     2,262.10 |         3.00 |
-| 2026-01 | `adExpenses.hsaCost+hsaVideoCost (SB merged)` |       643.19 |       643.19 |         3.00 |
-| 2026-01 | `adExpenses.sdCost (Sponsored Display)` |        14.34 |        14.34 |         3.00 |
-| 2026-01 | `net.(derived)` |     1,470.47 |    -2,919.63 |       500.00 |
-| 2026-02 | `adExpenses.TOTAL` |     1,547.96 |     1,547.96 |        10.00 |
-| 2026-02 | `adExpenses.adCost (Sponsored Products)` |     1,251.92 |     1,251.92 |         3.00 |
-| 2026-02 | `adExpenses.hsaCost+hsaVideoCost (SB merged)` |       291.64 |       291.64 |         3.00 |
-| 2026-02 | `adExpenses.sdCost (Sponsored Display)` |         4.40 |         4.40 |         3.00 |
-| 2026-02 | `net.(derived)` |     2,309.98 |    -1,547.96 |       500.00 |
-| 2026-03 | `adExpenses.TOTAL` |     1,156.13 |     1,156.13 |        10.00 |
-| 2026-03 | `adExpenses.adCost (Sponsored Products)` |     1,153.55 |     1,153.55 |         3.00 |
-| 2026-03 | `net.(derived)` |     2,191.30 |    -1,156.13 |       500.00 |
-| 2026-04 | `adExpenses.TOTAL` |     1,191.49 |     1,191.49 |        10.00 |
-| 2026-04 | `adExpenses.adCost (Sponsored Products)` |     1,190.30 |     1,190.30 |         3.00 |
-| 2026-04 | `net.(derived)` |      -227.69 |    -1,191.49 |       500.00 |
 
 ## Locked validation targets (Step 3 assertions)
 
@@ -135,7 +105,7 @@ Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pul
 
 Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's five `adExpenses` lines. Restatement drift up to ±$5.00 shows as `PASS_DRIFT` (small, expected — Amazon revises reports after Sellerise's snapshot). Trailing month is `EXPECTED_DRIFT`.
 
-`as_of` timestamps per month: {'2026-01': '2026-07-07T07:49:17.420406+00:00', '2026-02': '2026-07-07T07:49:21.027972+00:00', '2026-03': '2026-07-07T07:49:23.962940+00:00', '2026-04': '2026-07-07T07:49:26.575112+00:00'}
+`as_of` timestamps per month: {'2026-06': '2026-07-07T08:29:09.567470+00:00', '2026-01': '2026-07-07T07:49:17.420406+00:00', '2026-02': '2026-07-07T07:49:21.027972+00:00', '2026-03': '2026-07-07T07:49:23.962940+00:00', '2026-05': '2026-07-07T08:29:14.293871+00:00', '2026-04': '2026-07-07T07:49:26.575112+00:00'}
 
 | month | line | ours (USD) | Sellerise | Δ | status |
 |---|---|---:|---:|---:|---|
@@ -159,16 +129,16 @@ Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's fi
 | 2026-04 | sdCost (Sponsored Display) |         0.00 |         0.00 |         0.00 | PASS |
 | 2026-04 | stvCost (Sponsored TV) |         0.00 |         0.00 |         0.00 | PASS |
 | 2026-04 | TOTAL |     1,191.49 |     1,191.49 |         0.00 | PASS |
-| 2026-05 | adCost (Sponsored Products) |         0.00 |       929.35 |      -929.35 | FAIL |
-| 2026-05 | hsaCost+hsaVideoCost (SB merged) |         0.00 |         0.60 |        -0.60 | PASS_DRIFT |
+| 2026-05 | adCost (Sponsored Products) |       929.35 |       929.35 |         0.00 | PASS |
+| 2026-05 | hsaCost+hsaVideoCost (SB merged) |         0.60 |         0.60 |         0.00 | PASS |
 | 2026-05 | sdCost (Sponsored Display) |         0.00 |         0.00 |         0.00 | PASS |
 | 2026-05 | stvCost (Sponsored TV) |         0.00 |         0.00 |         0.00 | PASS |
-| 2026-05 | TOTAL |         0.00 |       929.95 |      -929.95 | FAIL |
-| 2026-06 | adCost (Sponsored Products) |         0.00 |       747.92 |      -747.92 | EXPECTED_DRIFT |
+| 2026-05 | TOTAL |       929.95 |       929.95 |         0.00 | PASS |
+| 2026-06 | adCost (Sponsored Products) |       747.92 |       747.92 |         0.00 | PASS |
 | 2026-06 | hsaCost+hsaVideoCost (SB merged) |         0.00 |         0.00 |         0.00 | PASS |
 | 2026-06 | sdCost (Sponsored Display) |         0.00 |         0.00 |         0.00 | PASS |
 | 2026-06 | stvCost (Sponsored TV) |         0.00 |         0.00 |         0.00 | PASS |
-| 2026-06 | TOTAL |         0.00 |       747.92 |      -747.92 | EXPECTED_DRIFT |
+| 2026-06 | TOTAL |       747.92 |       747.92 |         0.00 | PASS |
 
 ## Net before / after wiring `adExpenses` (Phase 4 Step 2c)
 
@@ -176,13 +146,13 @@ Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's fi
 
 | month | net_before (ours) | net_after (ours) | Sellerise net | Δ before | Δ after |
 |---|---:|---:|---:|---:|---:|
-| 2026-01 |     4,390.10 |     1,470.47 |     1,793.24 |     2,596.86 |      -322.77 |
-| 2026-02 |     3,857.94 |     2,309.98 |     2,842.09 |     1,015.85 |      -532.11 |
-| 2026-03 |     3,347.43 |     2,191.30 |     2,612.81 |       734.62 |      -421.51 |
-| 2026-04 |       963.80 |      -227.69 |        41.22 |       922.58 |      -268.91 |
-| 2026-05 |     2,215.91 |     2,215.91 |     1,721.49 |       494.42 |       494.42 |
-| 2026-06 |     1,657.43 |     1,657.43 |     1,702.49 |       -45.06 |       -45.06 |
-| **Σ** | | | | **    5,719.27** | **   -1,095.94** |
+| 2026-01 |     4,869.66 |     1,950.03 |     1,793.24 |     3,076.42 |       156.79 |
+| 2026-02 |     4,407.27 |     2,859.31 |     2,842.09 |     1,565.18 |        17.22 |
+| 2026-03 |     3,779.58 |     2,623.45 |     2,612.81 |     1,166.77 |        10.64 |
+| 2026-04 |     1,231.65 |        40.16 |        41.22 |     1,190.43 |        -1.06 |
+| 2026-05 |     2,312.72 |     1,382.77 |     1,721.49 |       591.23 |      -338.72 |
+| 2026-06 |     2,231.06 |     1,483.14 |     1,702.49 |       528.57 |      -219.35 |
+| **Σ** | | | | **    8,118.60** | **     -374.48** |
 
 ## Advertising audit cross-check (decision B)
 
@@ -195,8 +165,8 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | 2026-02 |    -1,462.72 |     1,547.96 |        85.24 |
 | 2026-03 |    -1,464.60 |     1,156.13 |      -308.47 |
 | 2026-04 |      -241.29 |     1,191.49 |       950.20 |
-| 2026-05 |      -691.93 |         0.00 |      -691.93 |
-| 2026-06 |      -917.20 |         0.00 |      -917.20 |
+| 2026-05 |      -691.93 |       929.95 |       238.02 |
+| 2026-06 |      -917.20 |       747.92 |      -169.28 |
 
 ## 2026-01
 
@@ -208,12 +178,12 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `chargesObject` | `ShippingCharge` |       107.86 |       107.86 |         0.00 | PASS |
 | `chargesObject` | `ShippingTax` |         1.56 |         1.56 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       889.10 |       889.10 |         0.00 | PASS |
-| `cog` | `(scalar)` |     1,925.07 |     1,587.21 |       337.86 | FAIL |
+| `cog` | `(scalar)` |     1,445.51 |     1,587.21 |      -141.70 | FAIL |
 | `expenses` | `(aggregate)` |       196.10 |       196.37 |        -0.27 | FAIL |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |    -1,351.32 |    -1,303.57 |       -47.75 | FAIL |
 | `feesObject` | `Commission` |    -1,432.96 |    -1,429.22 |        -3.74 | FAIL |
 | `feesObject` | `ShippingChargeback` |       -60.71 |       -60.71 |         0.00 | PASS |
-| `net` | `(derived)` |     1,470.47 |     1,793.24 |      -322.77 | FAIL |
+| `net` | `(derived)` |     1,950.03 |     1,793.24 |       156.79 | FAIL |
 | `refundsObject` | `Commission` |        72.37 |        79.45 |        -7.08 | FAIL |
 | `refundsObject` | `DigitalServicesFee` |         0.00 |         0.14 |        -0.14 | FAIL |
 | `refundsObject` | `Principal` |      -518.85 |      -568.75 |        49.90 | FAIL |
@@ -234,11 +204,11 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `chargesObject` | `Promotion` |       -46.34 |       -46.34 |         0.00 | PASS |
 | `chargesObject` | `ShippingCharge` |        46.34 |        46.34 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       917.22 |       927.20 |        -9.98 | FAIL |
-| `cog` | `(scalar)` |     2,225.85 |     1,881.36 |       344.49 | FAIL |
+| `cog` | `(scalar)` |     1,676.52 |     1,881.36 |      -204.84 | FAIL |
 | `expenses` | `(aggregate)` |        60.41 |        60.63 |        -0.22 | FAIL |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |      -861.58 |      -843.31 |       -18.27 | FAIL |
 | `feesObject` | `Commission` |    -1,306.61 |    -1,336.54 |        29.93 | FAIL |
-| `net` | `(derived)` |     2,309.98 |     2,842.09 |      -532.11 | FAIL |
+| `net` | `(derived)` |     2,859.31 |     2,842.09 |        17.22 | FAIL |
 | `refundsObject` | `Commission` |        49.11 |        49.11 |         0.00 | PASS |
 | `refundsObject` | `Principal` |      -357.35 |      -357.35 |         0.00 | PASS |
 | `refundsObject` | `Promotion` |        29.93 |        29.93 |         0.00 | PASS |
@@ -258,12 +228,12 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `chargesObject` | `ShippingCharge` |        64.31 |        64.31 |         0.00 | PASS |
 | `chargesObject` | `ShippingTax` |         3.39 |         3.39 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       999.58 |       989.60 |         9.98 | FAIL |
-| `cog` | `(scalar)` |     2,054.66 |     1,454.84 |       599.82 | FAIL |
+| `cog` | `(scalar)` |     1,622.51 |     1,454.84 |       167.67 | FAIL |
 | `expenses` | `(aggregate)` |       355.68 |       355.97 |        -0.29 | FAIL |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |      -846.26 |      -854.71 |         8.45 | FAIL |
 | `feesObject` | `Commission` |    -1,330.00 |    -1,300.07 |       -29.93 | FAIL |
 | `feesObject` | `ShippingChargeback` |       -29.21 |       -29.21 |         0.00 | PASS |
-| `net` | `(derived)` |     2,191.30 |     2,612.81 |      -421.51 | FAIL |
+| `net` | `(derived)` |     2,623.45 |     2,612.81 |        10.64 | FAIL |
 | `refundsObject` | `Commission` |       171.65 |       171.65 |         0.00 | PASS |
 | `refundsObject` | `DigitalServicesFee` |         0.54 |         0.54 |         0.00 | PASS |
 | `refundsObject` | `Goodwill` |        -9.09 |        -9.09 |         0.00 | PASS |
@@ -284,11 +254,11 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 | `chargesObject` | `Promotion` |      -230.31 |      -230.31 |         0.00 | PASS |
 | `chargesObject` | `ShippingCharge` |        38.82 |        38.82 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       442.10 |       442.10 |         0.00 | PASS |
-| `cog` | `(scalar)` |       911.80 |       653.28 |       258.52 | FAIL |
+| `cog` | `(scalar)` |       643.95 |       653.28 |        -9.33 | FAIL |
 | `expenses` | `(aggregate)` |       148.73 |       148.93 |        -0.20 | FAIL |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |      -512.77 |      -502.18 |       -10.59 | FAIL |
 | `feesObject` | `Commission` |      -714.53 |      -714.53 |         0.00 | PASS |
-| `net` | `(derived)` |      -227.69 |        41.22 |      -268.91 | FAIL |
+| `net` | `(derived)` |        40.16 |        41.22 |        -1.06 | FAIL |
 | `refundsObject` | `Commission` |       187.07 |       187.07 |         0.00 | PASS |
 | `refundsObject` | `Principal` |    -1,266.95 |    -1,266.95 |         0.00 | PASS |
 | `refundsObject` | `Promotion` |        34.08 |        34.08 |         0.00 | PASS |
@@ -303,16 +273,16 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
-| `adExpenses` | `(aggregate)` |         0.00 |       929.95 |      -929.95 | FAIL |
+| `adExpenses` | `(aggregate)` |       929.95 |       929.95 |         0.00 | PASS |
 | `chargesObject` | `Principal` |     6,455.15 |     6,455.15 |         0.00 | PASS |
 | `chargesObject` | `Promotion` |      -206.26 |      -206.26 |         0.00 | PASS |
 | `chargesObject` | `ShippingCharge` |        17.70 |        17.70 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       542.98 |       542.98 |         0.00 | PASS |
-| `cog` | `(scalar)` |     1,318.83 |       894.10 |       424.73 | FAIL |
+| `cog` | `(scalar)` |     1,222.02 |       894.10 |       327.92 | FAIL |
 | `expenses` | `(aggregate)` |       599.31 |       599.47 |        -0.16 | FAIL |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |      -661.48 |      -650.52 |       -10.96 | FAIL |
 | `feesObject` | `Commission` |      -939.96 |      -939.96 |         0.00 | PASS |
-| `net` | `(derived)` |     2,215.91 |     1,721.49 |       494.42 | FAIL |
+| `net` | `(derived)` |     1,382.77 |     1,721.49 |      -338.72 | FAIL |
 | `refundsObject` | `Commission` |       100.72 |       100.72 |         0.00 | PASS |
 | `refundsObject` | `Principal` |      -731.40 |      -731.40 |         0.00 | PASS |
 | `refundsObject` | `Promotion` |        65.75 |        65.75 |         0.00 | PASS |
@@ -327,17 +297,17 @@ Informational: SP-API bills the money, Ads-API attributes it. Ads-side is Phase 
 
 | bucket | sub_line | ours | theirs | delta | status |
 |---|---|---:|---:|---:|---|
-| `adExpenses` | `(aggregate)` |         0.00 |       747.92 |      -747.92 | EXPECTED_DRIFT |
+| `adExpenses` | `(aggregate)` |       747.92 |       747.92 |         0.00 | PASS |
 | `chargesObject` | `Principal` |     6,898.18 |     7,097.68 |      -199.50 | FAIL |
 | `chargesObject` | `Promotion` |      -432.49 |      -432.49 |         0.00 | PASS |
 | `chargesObject` | `Tax` |       797.49 |       823.43 |       -25.94 | FAIL |
-| `cog` | `(scalar)` |     2,164.64 |     1,533.16 |       631.48 | FAIL |
+| `cog` | `(scalar)` |     1,591.01 |     1,533.16 |        57.85 | FAIL |
 | `expenses` | `(aggregate)` |       387.19 |       387.40 |        -0.21 | FAIL |
 | `fbaObject` | `FBAFees` |       -40.00 |       -58.10 |        18.10 | EXPECTED |
 | `fbaObject` | `FBAPerUnitFulfillmentFee` |      -562.94 |      -547.22 |       -15.72 | FAIL |
 | `feesObject` | `Commission` |      -920.47 |      -920.47 |         0.00 | PASS |
 | `feesObject` | `ReferralFee` |       -49.42 |       -84.83 |        35.41 | EXPECTED |
-| `net` | `(derived)` |     1,657.43 |     1,702.49 |       -45.06 | FAIL |
+| `net` | `(derived)` |     1,483.14 |     1,702.49 |      -219.35 | FAIL |
 | `refundsObject` | `Commission` |       100.18 |       100.18 |         0.00 | PASS |
 | `refundsObject` | `Principal` |      -690.70 |      -690.70 |         0.00 | PASS |
 | `refundsObject` | `Promotion` |        22.88 |        22.88 |         0.00 | PASS |

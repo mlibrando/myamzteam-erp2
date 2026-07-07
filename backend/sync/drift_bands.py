@@ -11,6 +11,11 @@ margin so a small additional Amazon restatement between pulls does not cry
 wolf.
 
 Design:
+- **Per marketplace.** US/CA/UK have different scale, different Sellerise
+  classification quirks, and different tax/fee families. Copying US $ bands to
+  CA (≈1/10 US scale) would make the guard blind to CA-scale regressions; UK
+  has Sellerise-only cells (ReferralFee split, FBAFees split) that need wider
+  bands than US. Every marketplace's bands come from its own observed drift.
 - **Settled** month bands: apply to Jan-May (in current data). Anything outside
   the band on a settled bucket is `INVESTIGATE`.
 - **Trailing** month bands: apply to the latest Sellerise-covered month (Jun in
@@ -26,23 +31,17 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-# ── Per (bucket, sub_line) drift band for a SETTLED month ───────────────────
-# Format: (bucket, sub_line) → decimal_max_abs_delta_before_INVESTIGATE
-#
-# Basis for each band:
-# - "obs max <VALUE>" = maximum |Δ| observed across settled months Jan-May
-#   in `net_residual_diagnosis.md` (post-refund-COGS-fix state)
-# - Multiplier of 1.5x-2x margin for extra restatement drift between pulls
-# - Small "matches-to-cent" cells (storageFee, GiftWrap*, RestockingFee, etc.)
-#   get $5 bands — if they move by more, something is wrong.
-SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
+# ── US bands ────────────────────────────────────────────────────────────────
+# Basis: max |Δ| observed across settled months Jan-May (post-refund-COGS-fix),
+# 1.5x-2x margin. Match-to-cent cells get $5.
+_US_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     # chargesObject
     ("chargesObject", "Principal"):            Decimal("1500"),   # obs max 981
     ("chargesObject", "Tax"):                  Decimal("200"),    # obs max 80
     ("chargesObject", "ShippingCharge"):       Decimal("200"),    # obs max 79
     ("chargesObject", "ShippingTax"):          Decimal("20"),     # obs max 8
     ("chargesObject", "Promotion"):            Decimal("60"),     # decision-E residual
-    ("chargesObject", "GiftWrap"):             Decimal("5"),      # matches to cent
+    ("chargesObject", "GiftWrap"):             Decimal("5"),
     ("chargesObject", "GiftWrapTax"):          Decimal("5"),
     ("chargesObject", "Shipping"):             Decimal("200"),    # Sellerise-only line
     # feesObject
@@ -50,8 +49,8 @@ SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     ("feesObject", "ShippingChargeback"):      Decimal("120"),    # obs max 79
     ("feesObject", "GiftwrapChargeback"):      Decimal("5"),
     ("feesObject", "ReferralFee"):             Decimal("5"),      # decision A: 0 settled
-    ("feesObject", "POAServiceFee"):           Decimal("5"),      # Sellerise-only
-    ("feesObject", "PoAPerUnitFulfillmentFee"): Decimal("15"),    # Sellerise-only
+    ("feesObject", "POAServiceFee"):           Decimal("5"),
+    ("feesObject", "PoAPerUnitFulfillmentFee"): Decimal("15"),
     # fbaObject
     ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("400"),    # obs max 202
     ("fbaObject", "FBAFees"):                  Decimal("5"),      # decision A: 0 settled
@@ -68,22 +67,147 @@ SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     ("refundsObject", "GiftWrap"):             Decimal("5"),
     ("refundsObject", "GiftWrapTax"):          Decimal("5"),
     ("refundsObject", "GiftwrapChargeback"):   Decimal("5"),
-    ("refundsObject", "RestockingFee"):        Decimal("5"),      # decision D — matches
-    ("refundsObject", "Goodwill"):             Decimal("5"),      # decision D — matches
+    ("refundsObject", "RestockingFee"):        Decimal("5"),
+    ("refundsObject", "Goodwill"):             Decimal("5"),
     # scalars / derived
-    ("storageFee", "(scalar)"):                Decimal("5"),      # matches to cent
-    ("salesTaxes", "(derived)"):               Decimal("250"),    # sum of tax lines
-    # cog: Jan pre-backfill boundary = $2019 (structural, documented); we
-    # accept up to $2500 for settled to accommodate that documented residual.
-    # If we ever extend the backfill and it collapses, this band should tighten.
+    ("storageFee", "(scalar)"):                Decimal("5"),
+    ("salesTaxes", "(derived)"):               Decimal("250"),
+    # cog: Jan pre-backfill boundary = $2019 (documented structural).
     ("cog", "(scalar)"):                       Decimal("2500"),
 }
 
-# Ad-line bands (per line, per month). Ad drift is sub-dollar to few-dollar per
-# line (max observed $5.75 on May TOTAL). Widen to $10 per line, $30 for TOTAL,
-# to allow for further restatement between pulls.
-AD_LINE_BAND    = Decimal("10")
-AD_TOTAL_BAND   = Decimal("30")
+# ── CA bands ────────────────────────────────────────────────────────────────
+# CA is ~1/10 US scale. Basis: observed |Δ| over Jan-Jun after the CA cog
+# fix (MARKETPLACE_COG_SOURCE_OVERRIDE routes CA cog to US per-SKU values —
+# the CA sheet's US×1.35 markup was a spurious FX-like multiplier that
+# produced a same-signed $258-$632/mo residual, resolved by
+# RESOLVE_CA_COG_RESIDUAL.md). Post-fix CA cog |Δ| max = $328 (May),
+# median ~$180, mixed-sign — same class as UK small drift.
+_CA_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
+    # chargesObject
+    ("chargesObject", "Principal"):            Decimal("300"),    # obs max 199.50
+    ("chargesObject", "Tax"):                  Decimal("25"),     # obs max 9.98
+    ("chargesObject", "Promotion"):            Decimal("10"),
+    ("chargesObject", "ShippingCharge"):       Decimal("20"),
+    ("chargesObject", "ShippingTax"):          Decimal("5"),
+    # feesObject
+    ("feesObject", "Commission"):              Decimal("60"),     # obs max 29.93
+    ("feesObject", "ShippingChargeback"):      Decimal("10"),
+    # fbaObject
+    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("100"),    # obs max 47.75
+    ("fbaObject", "FBAFees"):                  Decimal("30"),     # trailing-DEFERRED margin
+    # refundsObject
+    ("refundsObject", "Principal"):            Decimal("100"),    # obs max 49.90
+    ("refundsObject", "Commission"):           Decimal("20"),     # obs max 7.08
+    ("refundsObject", "DigitalServicesFee"):   Decimal("5"),
+    ("refundsObject", "Promotion"):            Decimal("10"),
+    ("refundsObject", "RefundCommission"):     Decimal("5"),
+    ("refundsObject", "ShippingCharge"):       Decimal("5"),
+    ("refundsObject", "Tax"):                  Decimal("5"),
+    ("refundsObject", "Tax Withheld"):         Decimal("5"),
+    # scalars / derived
+    ("storageFee", "(scalar)"):                Decimal("5"),      # matches to cent
+    ("salesTaxes", "(derived)"):               Decimal("25"),     # obs max 9.98
+    # cog: post-fix obs max 327.92 (May), median ~180 mixed-sign. Band 500 =
+    # ~1.5x margin, matching UK. Down from 1000 which was compensation for
+    # the now-fixed US×1.35 cost-basis bug (see RESOLVE_CA_COG_RESIDUAL.md).
+    ("cog", "(scalar)"):                       Decimal("500"),
+    ("expenses", "(aggregate)"):               Decimal("5"),
+}
+
+# ── UK bands ────────────────────────────────────────────────────────────────
+# UK is ~1/6 US scale. Basis: observed |Δ| Jan-Apr from
+# reference/data/reconcile_report_UK.md. UK has Sellerise-only cells that we
+# don't emit (feesObject.ReferralFee, fbaObject.FBAFees split) — those need
+# wider bands than US. May/Jun storageFee=77.60/59.68 is a documented
+# reclassification (Sellerise moves ServiceFee.FBAStorageFee into
+# expenses.FBAFees), band widened.
+_UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
+    # chargesObject
+    ("chargesObject", "Principal"):            Decimal("20"),     # matches to cent
+    ("chargesObject", "Tax"):                  Decimal("20"),
+    ("chargesObject", "Promotion"):            Decimal("50"),     # obs max 24.88
+    ("chargesObject", "ShippingCharge"):       Decimal("10"),     # obs max 2.08
+    ("chargesObject", "ShippingTax"):          Decimal("5"),
+    ("chargesObject", "Shipping"):             Decimal("10"),     # Sellerise-only, obs max 2.50
+    ("chargesObject", "GiftWrap"):             Decimal("5"),
+    ("chargesObject", "GiftWrapTax"):          Decimal("5"),
+    # feesObject
+    ("feesObject", "Commission"):              Decimal("300"),    # obs max 153.28
+    ("feesObject", "ShippingChargeback"):      Decimal("10"),
+    ("feesObject", "DigitalServicesFee"):      Decimal("5"),
+    ("feesObject", "DigitalServicesFeeFBA"):   Decimal("5"),
+    ("feesObject", "GiftwrapChargeback"):      Decimal("5"),
+    # UK-only Sellerise-side split: they classify some Commission into
+    # ReferralFee, we don't. Same $ appears twice — negative on Commission,
+    # positive here. Not a bug.
+    ("feesObject", "ReferralFee"):             Decimal("150"),    # obs max 67.46
+    # fbaObject
+    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("250"),    # obs max 135.09
+    # Same UK-only Sellerise split for FBA: they carve out some fees into
+    # FBAFees that we don't split out. Obs max 17.84.
+    ("fbaObject", "FBAFees"):                  Decimal("50"),
+    # refundsObject
+    ("refundsObject", "Principal"):            Decimal("250"),    # obs max 134.55
+    ("refundsObject", "Commission"):           Decimal("30"),     # obs max 15.06
+    ("refundsObject", "DigitalServicesFee"):   Decimal("5"),
+    ("refundsObject", "Promotion"):            Decimal("10"),
+    ("refundsObject", "RefundCommission"):     Decimal("10"),
+    ("refundsObject", "ShippingCharge"):       Decimal("5"),
+    ("refundsObject", "ShippingChargeback"):   Decimal("5"),
+    ("refundsObject", "ShippingTax"):          Decimal("5"),
+    ("refundsObject", "Tax"):                  Decimal("60"),     # obs max 26.91
+    # Tax Withheld tracks DEFERRED refund lag — wider band per obs 63.50.
+    ("refundsObject", "Tax Withheld"):         Decimal("150"),
+    # scalars / derived
+    # UK storageFee: Sellerise reclassifies ServiceFee.FBAStorageFee into
+    # expenses.FBAFees for some months (May: 77.60, Jun: 59.68 in raw data).
+    # Widened to accommodate. Non-reclassified months match to cent.
+    ("storageFee", "(scalar)"):                Decimal("100"),
+    ("salesTaxes", "(derived)"):               Decimal("20"),
+    ("cog", "(scalar)"):                       Decimal("500"),    # obs max 242.84
+    ("expenses", "(aggregate)"):               Decimal("80"),     # obs max 45.24
+}
+
+# Backward-compat alias — the legacy single-marketplace name still used by
+# any callers that haven't been migrated. New code should call band_for(...)
+# with a marketplace_id.
+SETTLED_BANDS = _US_SETTLED_BANDS
+
+DRIFT_BANDS_BY_MARKETPLACE: dict[str, dict[tuple[str, str], Decimal]] = {
+    "ATVPDKIKX0DER":  _US_SETTLED_BANDS,
+    "A2EUQ1WTGCTBG2": _CA_SETTLED_BANDS,
+    "A1F83G8C2ARO7P": _UK_SETTLED_BANDS,
+    # AU is quarantined — no Sellerise target, no bands defined.
+}
+
+# ── Ad-line bands (per marketplace) ─────────────────────────────────────────
+# Ads reconcile to the cent for CA/UK Jan-Apr; keep tight. US ads observe
+# ±$5.75 max, hence $10/line, $30/TOTAL bands.
+_US_AD_LINE_BAND  = Decimal("10")
+_US_AD_TOTAL_BAND = Decimal("30")
+# CA/UK ads are ~1/2-1/3 of US ad scale; keep the same $10/$30 for headroom
+# but the observed |Δ| is $0.00 in Jan-Apr.
+_CA_AD_LINE_BAND  = Decimal("10")
+_CA_AD_TOTAL_BAND = Decimal("30")
+_UK_AD_LINE_BAND  = Decimal("10")
+_UK_AD_TOTAL_BAND = Decimal("30")
+
+# Legacy names kept for backward compat.
+AD_LINE_BAND    = _US_AD_LINE_BAND
+AD_TOTAL_BAND   = _US_AD_TOTAL_BAND
+
+_AD_BANDS_BY_MARKETPLACE: dict[str, tuple[Decimal, Decimal]] = {
+    "ATVPDKIKX0DER":  (_US_AD_LINE_BAND, _US_AD_TOTAL_BAND),
+    "A2EUQ1WTGCTBG2": (_CA_AD_LINE_BAND, _CA_AD_TOTAL_BAND),
+    "A1F83G8C2ARO7P": (_UK_AD_LINE_BAND, _UK_AD_TOTAL_BAND),
+}
+
+
+def ad_bands_for(marketplace_id: str | None) -> tuple[Decimal, Decimal]:
+    """Return (per_line_band, total_band) for the marketplace, US as default."""
+    return _AD_BANDS_BY_MARKETPLACE.get(marketplace_id or "", (_US_AD_LINE_BAND, _US_AD_TOTAL_BAND))
+
 
 # Net formula sum can amplify per-bucket bands; the net-line band accepts up
 # to the sum of the bucket bands touching it, capped.
@@ -94,9 +218,16 @@ NET_BAND        = Decimal("5000")
 TRAILING_MULTIPLIER = Decimal("3")
 
 
-def band_for(bucket: str, sub_line: str, is_trailing: bool) -> Decimal:
-    """Return the drift band for one cell, adjusting for trailing regime."""
-    base = SETTLED_BANDS.get((bucket, sub_line))
+def band_for(bucket: str, sub_line: str, is_trailing: bool,
+             marketplace_id: str | None = None) -> Decimal:
+    """Return the drift band for one cell, adjusting for trailing regime.
+
+    Per-marketplace bands come from DRIFT_BANDS_BY_MARKETPLACE. Callers
+    should pass `marketplace_id`; if omitted (legacy call sites) falls back
+    to US bands.
+    """
+    bands = DRIFT_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_SETTLED_BANDS)
+    base = bands.get((bucket, sub_line))
     if base is None:
         # A cell without a defined band — default very generous so we don't
         # cry wolf on unmapped things (they'd get logged separately as
@@ -126,8 +257,9 @@ def classify(delta: Decimal, band: Decimal, is_trailing: bool) -> str:
 # because they absorb our-vs-them attribution residuals like the Jan
 # pre-backfill boundary; vs-prior-pull bands are our-now vs our-then and
 # absorb only true pull-to-pull movement.
-PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
-    # Match-to-cent cells — any movement between pulls is a signal, not noise
+#
+# CA/UK scale down from US bands: CA is ~1/10 US scale; UK is ~1/6.
+_US_PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
     ("storageFee", "(scalar)"):                Decimal("1"),
     ("chargesObject", "GiftWrap"):             Decimal("1"),
     ("chargesObject", "GiftWrapTax"):          Decimal("1"),
@@ -139,9 +271,7 @@ PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
     ("refundsObject", "GiftwrapChargeback"):   Decimal("1"),
     ("refundsObject", "RestockingFee"):        Decimal("1"),
     ("refundsObject", "Goodwill"):             Decimal("1"),
-    # Small refunds sub-lines
     ("refundsObject", "ShippingTax"):          Decimal("1"),
-    # Medium — small day-to-day restatements possible, catch anything larger
     ("chargesObject", "ShippingTax"):          Decimal("5"),
     ("chargesObject", "Promotion"):            Decimal("5"),
     ("feesObject", "ShippingChargeback"):      Decimal("10"),
@@ -151,8 +281,6 @@ PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
     ("refundsObject", "Tax Withheld"):         Decimal("10"),
     ("refundsObject", "ShippingCharge"):       Decimal("5"),
     ("refundsObject", "ShippingChargeback"):   Decimal("5"),
-    # Large aggregates — allow modest movement for genuine restatement, but
-    # anything bigger than a small fraction of monthly total is a signal.
     ("chargesObject", "Principal"):            Decimal("100"),
     ("chargesObject", "Tax"):                  Decimal("30"),
     ("chargesObject", "ShippingCharge"):       Decimal("20"),
@@ -161,7 +289,6 @@ PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
     ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("50"),
     ("refundsObject", "Principal"):            Decimal("50"),
     ("refundsObject", "Commission"):           Decimal("20"),
-    # Derived (net, salesTaxes) sum many cells — allow larger drift
     ("cog", "(scalar)"):                       Decimal("100"),
     ("salesTaxes", "(derived)"):               Decimal("30"),
     # net band chosen to still catch a ~$2.8k cog regression (the acceptance
@@ -169,17 +296,128 @@ PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
     ("net", "(derived)"):                      Decimal("500"),
 }
 
-# Ad-side vs-prior-pull bands
-PRIOR_PULL_AD_LINE_BAND  = Decimal("3")
-PRIOR_PULL_AD_TOTAL_BAND = Decimal("10")
+# CA vs-prior-pull: 1/10 US scale. Aggregates scaled proportionally so
+# perturbations sized to CA still fire; match-to-cent cells stay at $1.
+_CA_PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
+    ("storageFee", "(scalar)"):                Decimal("1"),
+    ("chargesObject", "GiftWrap"):             Decimal("1"),
+    ("chargesObject", "GiftWrapTax"):          Decimal("1"),
+    ("feesObject", "GiftwrapChargeback"):      Decimal("1"),
+    ("fbaObject", "FBAFees"):                  Decimal("1"),
+    ("refundsObject", "GiftWrap"):             Decimal("1"),
+    ("refundsObject", "GiftWrapTax"):          Decimal("1"),
+    ("refundsObject", "GiftwrapChargeback"):   Decimal("1"),
+    ("refundsObject", "RestockingFee"):        Decimal("1"),
+    ("refundsObject", "Goodwill"):             Decimal("1"),
+    ("refundsObject", "ShippingTax"):          Decimal("1"),
+    ("refundsObject", "DigitalServicesFee"):   Decimal("1"),
+    ("chargesObject", "ShippingTax"):          Decimal("2"),
+    ("chargesObject", "Promotion"):            Decimal("2"),
+    ("feesObject", "ShippingChargeback"):      Decimal("2"),
+    ("refundsObject", "RefundCommission"):     Decimal("2"),
+    ("refundsObject", "Promotion"):            Decimal("2"),
+    ("refundsObject", "Tax"):                  Decimal("2"),
+    ("refundsObject", "Tax Withheld"):         Decimal("2"),
+    ("refundsObject", "ShippingCharge"):       Decimal("2"),
+    ("refundsObject", "ShippingChargeback"):   Decimal("2"),
+    ("chargesObject", "Principal"):            Decimal("15"),
+    ("chargesObject", "Tax"):                  Decimal("5"),
+    ("chargesObject", "ShippingCharge"):       Decimal("2"),
+    ("feesObject", "Commission"):              Decimal("10"),
+    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("10"),
+    ("refundsObject", "Principal"):            Decimal("10"),
+    ("refundsObject", "Commission"):           Decimal("5"),
+    ("cog", "(scalar)"):                       Decimal("15"),
+    ("salesTaxes", "(derived)"):               Decimal("5"),
+    ("expenses", "(aggregate)"):               Decimal("2"),
+    # net band scaled to catch a ~$300 cog regression (CA-sized perturbation).
+    ("net", "(derived)"):                      Decimal("60"),
+}
+
+# UK vs-prior-pull: ~1/6 US scale. Wider than CA on cells UK actually uses,
+# tighter on Sellerise-only cells UK doesn't emit (ReferralFee, FBAFees).
+_UK_PRIOR_PULL_BANDS: dict[tuple[str, str], Decimal] = {
+    ("storageFee", "(scalar)"):                Decimal("1"),
+    ("chargesObject", "GiftWrap"):             Decimal("1"),
+    ("chargesObject", "GiftWrapTax"):          Decimal("1"),
+    ("feesObject", "GiftwrapChargeback"):      Decimal("1"),
+    ("feesObject", "ReferralFee"):             Decimal("1"),
+    ("feesObject", "DigitalServicesFee"):      Decimal("1"),
+    ("feesObject", "DigitalServicesFeeFBA"):   Decimal("1"),
+    ("fbaObject", "FBAFees"):                  Decimal("1"),
+    ("refundsObject", "GiftWrap"):             Decimal("1"),
+    ("refundsObject", "GiftwrapChargeback"):   Decimal("1"),
+    ("refundsObject", "ShippingTax"):          Decimal("1"),
+    ("refundsObject", "DigitalServicesFee"):   Decimal("1"),
+    ("chargesObject", "ShippingTax"):          Decimal("2"),
+    ("chargesObject", "Promotion"):            Decimal("3"),
+    ("chargesObject", "Shipping"):             Decimal("2"),
+    ("feesObject", "ShippingChargeback"):      Decimal("3"),
+    ("refundsObject", "RefundCommission"):     Decimal("2"),
+    ("refundsObject", "Promotion"):            Decimal("2"),
+    ("refundsObject", "Tax"):                  Decimal("3"),
+    ("refundsObject", "Tax Withheld"):         Decimal("3"),
+    ("refundsObject", "ShippingCharge"):       Decimal("2"),
+    ("refundsObject", "ShippingChargeback"):   Decimal("2"),
+    ("chargesObject", "Principal"):            Decimal("20"),
+    ("chargesObject", "Tax"):                  Decimal("10"),
+    ("chargesObject", "ShippingCharge"):       Decimal("5"),
+    ("feesObject", "Commission"):              Decimal("15"),
+    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("15"),
+    ("refundsObject", "Principal"):            Decimal("15"),
+    ("refundsObject", "Commission"):           Decimal("5"),
+    ("cog", "(scalar)"):                       Decimal("25"),
+    ("salesTaxes", "(derived)"):               Decimal("5"),
+    ("expenses", "(aggregate)"):               Decimal("5"),
+    # net band scaled to catch a ~$500 cog regression (UK-sized perturbation).
+    ("net", "(derived)"):                      Decimal("100"),
+}
+
+# Backward-compat alias.
+PRIOR_PULL_BANDS = _US_PRIOR_PULL_BANDS
+
+PRIOR_PULL_BANDS_BY_MARKETPLACE: dict[str, dict[tuple[str, str], Decimal]] = {
+    "ATVPDKIKX0DER":  _US_PRIOR_PULL_BANDS,
+    "A2EUQ1WTGCTBG2": _CA_PRIOR_PULL_BANDS,
+    "A1F83G8C2ARO7P": _UK_PRIOR_PULL_BANDS,
+}
+
+# Ad-side vs-prior-pull bands. Ads reproduce $0.00 pull-to-pull, so keep tight.
+# CA/UK smaller scale but observed drift is also $0.00 → same $3/$10.
+_US_PRIOR_PULL_AD_LINE_BAND  = Decimal("3")
+_US_PRIOR_PULL_AD_TOTAL_BAND = Decimal("10")
+_CA_PRIOR_PULL_AD_LINE_BAND  = Decimal("3")
+_CA_PRIOR_PULL_AD_TOTAL_BAND = Decimal("10")
+_UK_PRIOR_PULL_AD_LINE_BAND  = Decimal("3")
+_UK_PRIOR_PULL_AD_TOTAL_BAND = Decimal("10")
+
+PRIOR_PULL_AD_LINE_BAND  = _US_PRIOR_PULL_AD_LINE_BAND
+PRIOR_PULL_AD_TOTAL_BAND = _US_PRIOR_PULL_AD_TOTAL_BAND
+
+_PRIOR_PULL_AD_BANDS_BY_MARKETPLACE: dict[str, tuple[Decimal, Decimal]] = {
+    "ATVPDKIKX0DER":  (_US_PRIOR_PULL_AD_LINE_BAND, _US_PRIOR_PULL_AD_TOTAL_BAND),
+    "A2EUQ1WTGCTBG2": (_CA_PRIOR_PULL_AD_LINE_BAND, _CA_PRIOR_PULL_AD_TOTAL_BAND),
+    "A1F83G8C2ARO7P": (_UK_PRIOR_PULL_AD_LINE_BAND, _UK_PRIOR_PULL_AD_TOTAL_BAND),
+}
+
+
+def prior_pull_ad_bands_for(marketplace_id: str | None) -> tuple[Decimal, Decimal]:
+    """Return (per_line_band, total_band) prior-pull for the marketplace."""
+    return _PRIOR_PULL_AD_BANDS_BY_MARKETPLACE.get(
+        marketplace_id or "",
+        (_US_PRIOR_PULL_AD_LINE_BAND, _US_PRIOR_PULL_AD_TOTAL_BAND),
+    )
+
 
 # Default for cells not listed
 PRIOR_PULL_DEFAULT_BAND = Decimal("20")
 
 
-def prior_pull_band_for(bucket: str, sub_line: str, is_trailing: bool) -> Decimal:
+def prior_pull_band_for(bucket: str, sub_line: str, is_trailing: bool,
+                        marketplace_id: str | None = None) -> Decimal:
     """Return the vs-prior-pull drift band for one cell, trailing-aware."""
-    base = PRIOR_PULL_BANDS.get((bucket, sub_line), PRIOR_PULL_DEFAULT_BAND)
+    bands = PRIOR_PULL_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_PRIOR_PULL_BANDS)
+    base = bands.get((bucket, sub_line), PRIOR_PULL_DEFAULT_BAND)
     if is_trailing:
         return base * TRAILING_MULTIPLIER
     return base

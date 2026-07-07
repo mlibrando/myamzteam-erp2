@@ -76,6 +76,31 @@ MARKETPLACE_REFUND_COGS_BASIS: dict[str, str] = {
     "A39IBJ37TRP1C6": "purchase",  # AU — assumed until AU Sellerise target lands
 }
 
+# Per-marketplace cog *source* override — when set, cog lookups for the key
+# marketplace fall back to the target marketplace's `cogs_per_sku` values.
+#
+# Why CA→US: the CA sheet of `COGS_Magical_Butter_1.xlsx` has each SKU's cog
+# set to `US_cog × 1.35` — a mechanically derived FX-like markup, not real
+# CA-sourced per-unit costs. Empirically this produces a **same-signed
+# +$258-$632/month cog residual** vs Sellerise. Overriding to US cog values
+# (matching the UK sheet's approach, which uses US-parity values) collapses
+# the residual to **mixed-sign, magnitude comparable to UK's small drift band**
+# (Σ|Δ| 2597 → 909, mean/mo 433 → 152, all-negative → mixed-sign).
+#
+# This is a **provisional override** pending real CA-sourced per-unit cost
+# data landing in the CA sheet. When it does, remove this entry.
+MARKETPLACE_COG_SOURCE_OVERRIDE: dict[str, str] = {
+    "A2EUQ1WTGCTBG2": "ATVPDKIKX0DER",  # CA cog looks up in US table
+}
+
+
+def cog_source_marketplace(marketplace_id: str) -> str:
+    """Marketplace_id whose `cogs_per_sku` rows we should join for cog lookup.
+
+    Falls back to the marketplace itself when no override is set.
+    """
+    return MARKETPLACE_COG_SOURCE_OVERRIDE.get(marketplace_id, marketplace_id)
+
 # Backfill start (per project decision — matches the Sellerise sheet).
 BACKFILL_START_ISO = "2026-01-01T00:00:00Z"
 

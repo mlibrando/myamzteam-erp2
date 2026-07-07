@@ -256,6 +256,12 @@ def compute_cog_by_basis(
         refund_basis = basis
     ship_date = "COALESCE(opd.purchase_date, t.posted_at)" if basis == "purchase" else "t.posted_at"
     refund_date = "COALESCE(opd.purchase_date, t.posted_at)" if refund_basis == "purchase" else "t.posted_at"
+    # cog source override: for marketplaces whose workbook sheet has provisional
+    # cost values (e.g. CA sheet is US×1.35, not real CA sourcing), join
+    # cogs_per_sku on the override marketplace instead of the transaction's
+    # marketplace. See MARKETPLACE_COG_SOURCE_OVERRIDE in config.
+    from .config import cog_source_marketplace
+    cog_mp = cog_source_marketplace(marketplace_id)
     if not net_refunds:
         # Legacy pre-fix path
         with conn.cursor() as cur:
@@ -265,7 +271,7 @@ def compute_cog_by_basis(
                        SUM(i.quantity_shipped * c.cogs)                   AS amt
                 FROM sp_transaction_items i
                 JOIN sp_transactions t ON t.transaction_id = i.transaction_id
-                JOIN cogs_per_sku c ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+                JOIN cogs_per_sku c ON c.sku = i.sku AND c.marketplace_id = %s
                 LEFT JOIN LATERAL (
                     SELECT ri->>'relatedIdentifierValue' AS order_id
                     FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
@@ -279,7 +285,7 @@ def compute_cog_by_basis(
                   AND i.quantity_shipped > 0
                 GROUP BY 1
                 """,
-                (marketplace_id,),
+                (cog_mp, marketplace_id),
             )
             return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
     with conn.cursor() as cur:
@@ -317,7 +323,7 @@ def compute_cog_by_basis(
               ON c.sku = sr.sku AND c.marketplace_id = %s
             GROUP BY 1
             """,
-            (marketplace_id, marketplace_id),
+            (marketplace_id, cog_mp),
         )
         return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
 
@@ -830,16 +836,18 @@ def reconcile(
         # lines) — those are documented planned mismatches, not regressions.
         if d["bucket"] in ("adExpenses",) or d["status"] == "EXPECTED":
             continue
-        band = _drift.band_for(d["bucket"], d["sub_line"], is_trailing)
+        band = _drift.band_for(d["bucket"], d["sub_line"], is_trailing,
+                               marketplace_id=marketplace_id)
         status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing)
         drift_guard.append({
             "year_month": d["year_month"], "bucket": d["bucket"], "sub_line": d["sub_line"],
             "delta": d["delta"], "band": float(band), "status": status,
         })
     # Ad TOTAL / per-line drift
+    _ad_line_band, _ad_total_band = _drift.ad_bands_for(marketplace_id)
     for r in ad_lines:
         is_trailing = (r["year_month"] == trailing)
-        band = float(_drift.AD_TOTAL_BAND if r["line"] == "TOTAL" else _drift.AD_LINE_BAND)
+        band = float(_ad_total_band if r["line"] == "TOTAL" else _ad_line_band)
         status = _drift.classify(Decimal(str(r["delta"])), Decimal(str(band)), is_trailing)
         drift_guard.append({
             "year_month": r["year_month"], "bucket": "adExpenses", "sub_line": r["line"],
@@ -868,7 +876,8 @@ def reconcile(
             prior = prior_snapshot.get(key, Decimal("0"))
             delta = current - prior
             is_trailing = (d["year_month"] == trailing)
-            band = _drift.prior_pull_band_for(d["bucket"], d["sub_line"], is_trailing)
+            band = _drift.prior_pull_band_for(d["bucket"], d["sub_line"], is_trailing,
+                                               marketplace_id=marketplace_id)
             status = _drift.classify(delta, band, is_trailing)
             delta_pp = float(delta); band_pp = float(band)
         drift_vs_prior.append({
@@ -877,6 +886,7 @@ def reconcile(
             "delta": delta_pp, "band": band_pp, "status": status,
         })
     # Ad lines vs prior — key by ad line label
+    _pp_ad_line_band, _pp_ad_total_band = _drift.prior_pull_ad_bands_for(marketplace_id)
     for r in ad_lines:
         key = (r["year_month"], "adExpenses", r["line"])
         current = Decimal(str(r["ours"]))
@@ -886,8 +896,7 @@ def reconcile(
             prior = prior_snapshot.get(key, Decimal("0"))
             delta = current - prior
             is_trailing = (r["year_month"] == trailing)
-            band = (_drift.PRIOR_PULL_AD_TOTAL_BAND if r["line"] == "TOTAL"
-                    else _drift.PRIOR_PULL_AD_LINE_BAND)
+            band = _pp_ad_total_band if r["line"] == "TOTAL" else _pp_ad_line_band
             if is_trailing:
                 band = band * _drift.TRAILING_MULTIPLIER
             status = _drift.classify(delta, band, is_trailing)

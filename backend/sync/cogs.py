@@ -139,17 +139,20 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
     """
     stats = {"months": 0, "missing_skus": 0}
 
-    from .config import MARKETPLACE_REFUND_COGS_BASIS
+    from .config import MARKETPLACE_REFUND_COGS_BASIS, cog_source_marketplace
     refund_basis = MARKETPLACE_REFUND_COGS_BASIS.get(marketplace_id, "purchase")
     refund_date_expr = (
         "COALESCE(opd.purchase_date, t.posted_at)"
         if refund_basis == "purchase" else "t.posted_at"
     )
+    cog_mp = cog_source_marketplace(marketplace_id)
     with conn.cursor() as cur:
         # Monthly COGS: sum(quantity_shipped × unit_cogs) joined to cogs_per_sku on SKU.
         # Shipment attribution: PurchaseDate month (from order_purchase_date) with
         # postedDate fallback. Refunds NET OUT — CA uses postedDate for refund
         # netting; US/UK use purchase-date (per MARKETPLACE_REFUND_COGS_BASIS).
+        # Cog values may come from a different marketplace's sheet when
+        # MARKETPLACE_COG_SOURCE_OVERRIDE is set (CA sheet is US×1.35, wrong basis).
         cur.execute(
             f"""
             WITH ship_or_refund AS (
@@ -185,18 +188,20 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
               ON c.sku = sr.sku AND c.marketplace_id = %s
             GROUP BY 1 ORDER BY 1
             """,
-            (marketplace_id, marketplace_id),
+            (marketplace_id, cog_mp),
         )
         monthly_cogs = {r[0]: Decimal(str(r[1])) for r in cur.fetchall()}
 
-        # Find SKUs that have Shipment or Refund activity but no COGS row.
+        # Find SKUs that have Shipment or Refund activity but no COGS row in
+        # the effective cog source marketplace (may differ from transaction mp
+        # under MARKETPLACE_COG_SOURCE_OVERRIDE).
         cur.execute(
             """
             SELECT DISTINCT i.sku, i.asin, (t.raw_json->>'transactionType') AS txn_type
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
             LEFT JOIN cogs_per_sku c
-              ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+              ON c.sku = i.sku AND c.marketplace_id = %s
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
               AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
@@ -204,7 +209,7 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
               AND i.sku IS NOT NULL
               AND c.sku IS NULL
             """,
-            (marketplace_id,),
+            (cog_mp, marketplace_id),
         )
         missing_rows = cur.fetchall()
 
