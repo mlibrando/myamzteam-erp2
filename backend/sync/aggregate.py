@@ -264,6 +264,17 @@ _EXPECTED_EXPENSES: frozenset[tuple[str, str]] = frozenset({
     ("Retrocharge", "Other"),
     ("Retrocharge", "RetrochargeReversal"),
     ("MiscellaneousLedgerAdjustment", "Other"),
+    # UK/CA rollout — UK-specific ServiceFee leaves (EPR = Environmental
+    # Producer Responsibility, InboundTransportationProgramFee). Gate 3
+    # verified `expenses.other-transaction` = EPRChargebackEcoFee +
+    # EPRChargebackServiceFee + Tax exactly for UK May+Jun.
+    ("ServiceFee", "EPRChargebackEcoFee"),
+    ("ServiceFee", "EPRChargebackServiceFee"),
+    ("ServiceFee", "FBAInboundTransportationProgramFee"),
+    ("ServiceFee", "DealParticipationFee"),
+    ("ServiceFee", "DealPerformanceFee"),
+    # AU / UK ServiceFee small extras seen
+    ("ServiceFee", "Promo"),   # AU small Mar +$5.25
 })
 
 

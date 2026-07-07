@@ -55,11 +55,22 @@ log = logging.getLogger(__name__)
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 SELLERISE_JSON = _REPO_ROOT / "reference" / "data" / "SELLERISE_RAW_DATA.json"
 
+# Per-marketplace Sellerise-target files. `None` means no target file (US
+# reconciliation targets stay the default). `SELLERISE_JSON` is US.
+MARKETPLACE_SELLERISE: dict[str, pathlib.Path | None] = {
+    "ATVPDKIKX0DER": SELLERISE_JSON,  # US
+    "A2EUQ1WTGCTBG2": _REPO_ROOT / "reference" / "data" / "SELLERISE_RAW_DATA_CA.json",
+    "A1F83G8C2ARO7P": _REPO_ROOT / "reference" / "data" / "SELLERISE_RAW_DATA_UK.json",
+    # AU has no Sellerise target file — reconciliation blocked
+    "A39IBJ37TRP1C6": None,
+}
+
 TOLERANCE = Decimal("0.01")
 
-# Locked validation targets from RECONCILIATION.md Step 3.
-# (bucket, sub_line, year_month, expected, decision-letter)
-LOCKED_TARGETS: list[tuple[str, str, str, Decimal, str]] = [
+# Locked validation targets from RECONCILIATION.md Step 3 — US only. Other
+# markets have empty target lists until per-marketplace targets are set from
+# their own data.
+US_LOCKED_TARGETS: list[tuple[str, str, str, Decimal, str]] = [
     ("feesObject",    "ReferralFee",    "2026-02", Decimal("0.00"),   "A"),
     ("feesObject",    "ReferralFee",    "2026-03", Decimal("0.00"),   "A"),
     ("fbaObject",     "FBAFees",        "2026-02", Decimal("0.00"),   "A"),
@@ -76,6 +87,24 @@ LOCKED_TARGETS: list[tuple[str, str, str, Decimal, str]] = [
     ("chargesObject", "Promotion",      "2026-03", Decimal("-610.03"),"E"),
     ("chargesObject", "Promotion",      "2026-06", Decimal("-496.12"),"E"),
 ]
+
+# Per-marketplace locked targets (US only for now). Add per-marketplace entries
+# once the Sellerise-side targets are documented for CA/UK.
+LOCKED_TARGETS_BY_MARKETPLACE: dict[str, list] = {
+    "ATVPDKIKX0DER": US_LOCKED_TARGETS,
+    "A2EUQ1WTGCTBG2": [],   # CA — no locked targets yet
+    "A1F83G8C2ARO7P": [],   # UK — no locked targets yet
+    "A39IBJ37TRP1C6": [],   # AU
+}
+
+
+def _resolve_sellerise_path(marketplace_id: str, override: pathlib.Path | None = None) -> pathlib.Path:
+    if override is not None:
+        return override
+    p = MARKETPLACE_SELLERISE.get(marketplace_id)
+    if p is None:
+        raise ValueError(f"No Sellerise target file for marketplace {marketplace_id}")
+    return p
 
 _SALES_TAX_LINES = ("Tax", "ShippingTax", "GiftWrapTax")
 
@@ -210,59 +239,95 @@ def compute_cog_by_basis(
     conn: psycopg.Connection,
     marketplace_id: str,
     *,
-    basis: str,           # "posted" or "purchase"
+    basis: str,                # "posted" or "purchase" (shipment attribution)
     net_refunds: bool = True,
+    refund_basis: str | None = None,   # separate refund attribution; defaults to `basis`
 ) -> dict[str, Decimal]:
-    """Return {year_month: cog_magnitude} using the specified attribution.
+    """Return {year_month: cog_magnitude} using the specified attributions.
 
-    net_refunds=True subtracts Refund.quantity_shipped × cog under the same
-    attribution basis. Sellerise nets refunded units out of cog; not netting is
-    the systematic over-count diagnosed in `net_residual_diagnosis.md`.
-    Purchase-date basis + net-refunds is the empirical winner (REFUND_COG_FIX.md
-    Step 2: Σ|Δ| $5,249 vs $5,971 for posted-date, $8,042 without netting).
+    Shipment cog attribution uses `basis`. Refund cog netting uses
+    `refund_basis` (defaults to `basis` for backward compat). Empirical
+    winners per marketplace:
+    - US: shipment=purchase, refund=purchase
+    - UK: shipment=purchase, refund=purchase
+    - CA: shipment=purchase, refund=posted (config MARKETPLACE_REFUND_COGS_BASIS)
     """
-    date_expr = (
-        "COALESCE(opd.purchase_date, t.posted_at)"
-        if basis == "purchase" else "t.posted_at"
-    )
-    txn_types = "('Shipment', 'Refund')" if net_refunds else "('Shipment')"
-    net_qty_expr = (
-        "CASE (t.raw_json->>'transactionType') "
-        "WHEN 'Shipment' THEN i.quantity_shipped "
-        "WHEN 'Refund'   THEN -i.quantity_shipped END"
-        if net_refunds else "i.quantity_shipped"
-    )
+    if refund_basis is None:
+        refund_basis = basis
+    ship_date = "COALESCE(opd.purchase_date, t.posted_at)" if basis == "purchase" else "t.posted_at"
+    refund_date = "COALESCE(opd.purchase_date, t.posted_at)" if refund_basis == "purchase" else "t.posted_at"
+    if not net_refunds:
+        # Legacy pre-fix path
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT to_char({ship_date} AT TIME ZONE 'UTC', 'YYYY-MM') AS ym,
+                       SUM(i.quantity_shipped * c.cogs)                   AS amt
+                FROM sp_transaction_items i
+                JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+                JOIN cogs_per_sku c ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+                LEFT JOIN LATERAL (
+                    SELECT ri->>'relatedIdentifierValue' AS order_id
+                    FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                    WHERE ri->>'relatedIdentifierName' = 'ORDER_ID' LIMIT 1
+                ) rel ON true
+                LEFT JOIN order_purchase_date opd
+                  ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+                WHERE t.marketplace_id = %s
+                  AND t.is_deferred_release_event = false
+                  AND (t.raw_json->>'transactionType') = 'Shipment'
+                  AND i.quantity_shipped > 0
+                GROUP BY 1
+                """,
+                (marketplace_id,),
+            )
+            return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
     with conn.cursor() as cur:
         cur.execute(
             f"""
-            SELECT to_char({date_expr} AT TIME ZONE 'UTC', 'YYYY-MM') AS ym,
-                   SUM(({net_qty_expr}) * c.cogs)                    AS amt
-            FROM sp_transaction_items i
-            JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+            WITH ship_or_refund AS (
+                SELECT i.sku,
+                       CASE (t.raw_json->>'transactionType')
+                            WHEN 'Shipment' THEN i.quantity_shipped
+                            WHEN 'Refund'   THEN -i.quantity_shipped
+                       END AS net_qty,
+                       to_char(
+                           CASE (t.raw_json->>'transactionType')
+                               WHEN 'Shipment' THEN {ship_date}
+                               WHEN 'Refund'   THEN {refund_date}
+                           END AT TIME ZONE 'UTC', 'YYYY-MM'
+                       ) AS ym
+                FROM sp_transaction_items i
+                JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+                LEFT JOIN LATERAL (
+                    SELECT ri->>'relatedIdentifierValue' AS order_id
+                    FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                    WHERE ri->>'relatedIdentifierName' = 'ORDER_ID' LIMIT 1
+                ) rel ON true
+                LEFT JOIN order_purchase_date opd
+                  ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+                WHERE t.marketplace_id = %s
+                  AND t.is_deferred_release_event = false
+                  AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
+                  AND i.quantity_shipped > 0
+            )
+            SELECT sr.ym, SUM(sr.net_qty * c.cogs) AS amt
+            FROM ship_or_refund sr
             JOIN cogs_per_sku c
-              ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
-            LEFT JOIN LATERAL (
-                SELECT ri->>'relatedIdentifierValue' AS order_id
-                FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
-                WHERE ri->>'relatedIdentifierName' = 'ORDER_ID'
-                LIMIT 1
-            ) rel ON true
-            LEFT JOIN order_purchase_date opd
-              ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
-            WHERE t.marketplace_id = %s
-              AND t.is_deferred_release_event = false
-              AND (t.raw_json->>'transactionType') IN {txn_types}
-              AND i.quantity_shipped > 0
+              ON c.sku = sr.sku AND c.marketplace_id = %s
             GROUP BY 1
             """,
-            (marketplace_id,),
+            (marketplace_id, marketplace_id),
         )
         return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
 
 
 def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, Decimal]:
-    """Return {year_month: total_USD_spend} from ad_spend_daily. Empty when the
-    ad_spend_daily table is missing or the pull hasn't run yet."""
+    """Return {year_month: total_native_currency_spend} from ad_spend_daily.
+    Filters by that marketplace's native currency (per MARKETPLACE_AD_CURRENCY).
+    Empty when the ad_spend_daily table is missing or the pull hasn't run yet."""
+    from .config import MARKETPLACE_AD_CURRENCY
+    currency = MARKETPLACE_AD_CURRENCY.get(marketplace_id, "USD")
     with conn.cursor() as cur:
         try:
             cur.execute(
@@ -270,10 +335,10 @@ def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, De
                 SELECT to_char(date, 'YYYY-MM'), SUM(total_cost)
                 FROM ad_spend_daily
                 WHERE marketplace_id = %s
-                  AND budget_currency = 'USD'
+                  AND budget_currency = %s
                 GROUP BY 1
                 """,
-                (marketplace_id,),
+                (marketplace_id, currency),
             )
         except psycopg.errors.UndefinedTable:
             return {}
@@ -293,7 +358,9 @@ _AD_LINE_MAP = [
 
 
 def load_ad_spend_by_line(conn: psycopg.Connection, marketplace_id: str) -> dict[str, dict[str, Decimal]]:
-    """Return {year_month: {api_adProduct_string: total_USD_spend}}."""
+    """Return {year_month: {api_adProduct_string: total_native_currency_spend}}."""
+    from .config import MARKETPLACE_AD_CURRENCY
+    currency = MARKETPLACE_AD_CURRENCY.get(marketplace_id, "USD")
     with conn.cursor() as cur:
         try:
             cur.execute(
@@ -301,10 +368,10 @@ def load_ad_spend_by_line(conn: psycopg.Connection, marketplace_id: str) -> dict
                 SELECT to_char(date, 'YYYY-MM'), ad_product, SUM(total_cost)
                 FROM ad_spend_daily
                 WHERE marketplace_id = %s
-                  AND budget_currency = 'USD'
+                  AND budget_currency = %s
                 GROUP BY 1, 2
                 """,
-                (marketplace_id,),
+                (marketplace_id, currency),
             )
         except psycopg.errors.UndefinedTable:
             return {}
@@ -441,8 +508,9 @@ def _refund_delta_totals(pnl_all, sellerise_all, months) -> Decimal:
 def reconcile(
     conn: psycopg.Connection,
     marketplace_id: str,
-    sellerise_path: pathlib.Path = SELLERISE_JSON,
+    sellerise_path: pathlib.Path | None = None,
 ) -> dict:
+    sellerise_path = _resolve_sellerise_path(marketplace_id, sellerise_path)
     sellerise_all = load_sellerise(sellerise_path)
     ad_all = load_ad_spend(conn, marketplace_id)
     ad_by_line = load_ad_spend_by_line(conn, marketplace_id)
@@ -458,10 +526,15 @@ def reconcile(
     pnl_after_refund_purchase = compute_pnl_in_memory(
         conn, marketplace_id, shipment_basis="purchase", refund_basis="purchase",
     )
+    # Per-marketplace refund-COGS attribution (CA differs from US; see
+    # MARKETPLACE_REFUND_COGS_BASIS in config).
+    from .config import MARKETPLACE_REFUND_COGS_BASIS
+    refund_cog_basis = MARKETPLACE_REFUND_COGS_BASIS.get(marketplace_id, "purchase")
     # "before" = the pre-fix state: posted-date basis, no refund netting
     # "after" = the current locked design: purchase-date basis with refund netting
     cog_before = compute_cog_by_basis(conn, marketplace_id, basis="posted",   net_refunds=False)
-    cog_after  = compute_cog_by_basis(conn, marketplace_id, basis="purchase", net_refunds=True)
+    cog_after  = compute_cog_by_basis(conn, marketplace_id, basis="purchase", net_refunds=True,
+                                       refund_basis=refund_cog_basis)
 
     months = sorted(sellerise_all.keys())
     trailing = months[-1] if months else None
@@ -700,7 +773,7 @@ def reconcile(
 
     # Locked-target results.
     locked_results = []
-    for bucket, sub_line, ym, expected, dec in LOCKED_TARGETS:
+    for bucket, sub_line, ym, expected, dec in LOCKED_TARGETS_BY_MARKETPLACE.get(marketplace_id, []):
         actual = _ours_sub_line(pnl_all.get(ym, {}), bucket, sub_line)
         delta = actual - expected
         locked_results.append({

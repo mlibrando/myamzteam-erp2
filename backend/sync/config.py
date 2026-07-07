@@ -29,12 +29,15 @@ MARKETPLACE_ALIASES: dict[str, str] = {
 }
 
 # Marketplace → native currency (per the "no FX conversion" decision).
+# This drives the `budget_currency` filter when loading ad_spend_daily for
+# per-marketplace reconciliation.
 MARKETPLACE_CURRENCY: dict[str, str] = {
     "ATVPDKIKX0DER": "USD",
     "A2EUQ1WTGCTBG2": "CAD",
     "A1F83G8C2ARO7P": "GBP",
     "A39IBJ37TRP1C6": "AUD",
 }
+MARKETPLACE_AD_CURRENCY = MARKETPLACE_CURRENCY   # alias for clarity in ad-load
 
 # COGS workbook sheet name per marketplace.
 MARKETPLACE_TO_SHEET: dict[str, str] = {
@@ -59,6 +62,18 @@ MARKETPLACE_TO_REFRESH_ENV: dict[str, str] = {
     "A2EUQ1WTGCTBG2": "AMAZON_SP_REFRESH_TOKEN_NA",
     "A1F83G8C2ARO7P": "AMAZON_SP_REFRESH_TOKEN_EU",
     "A39IBJ37TRP1C6": "AMAZON_SP_REFRESH_TOKEN_FE",
+}
+
+# Per-marketplace refund-COGS basis (attribution of refund_qty × cog).
+# Empirically tested per rollout task — US and UK win with purchase-date basis,
+# CA prefers postedDate (Σ|Δ| $2596.90 posted vs $3090.23 purchase).
+# Refund-dollar attribution (not COGS) is always postedDate in every market
+# tested, so no per-marketplace switch needed there.
+MARKETPLACE_REFUND_COGS_BASIS: dict[str, str] = {
+    "ATVPDKIKX0DER": "purchase",   # US
+    "A2EUQ1WTGCTBG2": "posted",    # CA — differs from US
+    "A1F83G8C2ARO7P": "purchase",  # UK
+    "A39IBJ37TRP1C6": "purchase",  # AU — assumed until AU Sellerise target lands
 }
 
 # Backfill start (per project decision — matches the Sellerise sheet).

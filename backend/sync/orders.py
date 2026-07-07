@@ -186,7 +186,9 @@ def sweep_orders(
     end: datetime | None = None,
 ) -> SweepStats:
     stats = SweepStats()
-    end = end or datetime.now(timezone.utc)
+    # Amazon's Orders API rejects CreatedBefore within ~2 minutes of "now"
+    # (systemic ingest delay). Cap at now - 10 min.
+    end = end or (datetime.now(timezone.utc) - timedelta(minutes=10))
     state_key = f"orders:{marketplace_id}"
     last_saved, saved_next_token = _load_state(conn, state_key)
     resume_start = last_saved if (last_saved and last_saved > start) else start

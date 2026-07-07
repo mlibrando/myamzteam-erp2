@@ -139,15 +139,19 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
     """
     stats = {"months": 0, "missing_skus": 0}
 
+    from .config import MARKETPLACE_REFUND_COGS_BASIS
+    refund_basis = MARKETPLACE_REFUND_COGS_BASIS.get(marketplace_id, "purchase")
+    refund_date_expr = (
+        "COALESCE(opd.purchase_date, t.posted_at)"
+        if refund_basis == "purchase" else "t.posted_at"
+    )
     with conn.cursor() as cur:
         # Monthly COGS: sum(quantity_shipped × unit_cogs) joined to cogs_per_sku on SKU.
-        # Attribution: PurchaseDate month (from order_purchase_date) with postedDate
-        # fallback. Refunds NET OUT under the same purchase-date basis — Sellerise's
-        # cog nets refunded units, and REFUND_COG_FIX.md Step 2 tested both bases:
-        # purchase-date won by cumulative Σ|Δ| ($5,249 vs $5,971 for posted-date).
-        # Diff = SHIPMENT.qty_shipped − REFUND.qty_shipped, per SKU per month.
+        # Shipment attribution: PurchaseDate month (from order_purchase_date) with
+        # postedDate fallback. Refunds NET OUT — CA uses postedDate for refund
+        # netting; US/UK use purchase-date (per MARKETPLACE_REFUND_COGS_BASIS).
         cur.execute(
-            """
+            f"""
             WITH ship_or_refund AS (
                 SELECT i.sku,
                        CASE (t.raw_json->>'transactionType')
@@ -155,7 +159,10 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
                             WHEN 'Refund'   THEN -i.quantity_shipped
                        END                                              AS net_qty,
                        to_char(
-                           COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC',
+                           CASE (t.raw_json->>'transactionType')
+                               WHEN 'Shipment' THEN COALESCE(opd.purchase_date, t.posted_at)
+                               WHEN 'Refund'   THEN {refund_date_expr}
+                           END AT TIME ZONE 'UTC',
                            'YYYY-MM'
                        )                                                AS year_month
                 FROM sp_transaction_items i
