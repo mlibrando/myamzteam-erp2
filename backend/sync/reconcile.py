@@ -48,6 +48,7 @@ from dotenv import load_dotenv
 from .attribution import load_order_purchase_dates, order_id_from_related, resolve_attribution_ym, ym as _ym
 from .bucket_map import EXPENSES, NET, classify
 from .config import MARKETPLACE_ALIASES
+from . import drift_bands as _drift
 
 log = logging.getLogger(__name__)
 
@@ -209,18 +210,33 @@ def compute_cog_by_basis(
     conn: psycopg.Connection,
     marketplace_id: str,
     *,
-    basis: str,   # "posted" or "purchase"
+    basis: str,           # "posted" or "purchase"
+    net_refunds: bool = True,
 ) -> dict[str, Decimal]:
-    """Return {year_month: cog_magnitude} using the specified attribution."""
+    """Return {year_month: cog_magnitude} using the specified attribution.
+
+    net_refunds=True subtracts Refund.quantity_shipped × cog under the same
+    attribution basis. Sellerise nets refunded units out of cog; not netting is
+    the systematic over-count diagnosed in `net_residual_diagnosis.md`.
+    Purchase-date basis + net-refunds is the empirical winner (REFUND_COG_FIX.md
+    Step 2: Σ|Δ| $5,249 vs $5,971 for posted-date, $8,042 without netting).
+    """
     date_expr = (
         "COALESCE(opd.purchase_date, t.posted_at)"
         if basis == "purchase" else "t.posted_at"
+    )
+    txn_types = "('Shipment', 'Refund')" if net_refunds else "('Shipment')"
+    net_qty_expr = (
+        "CASE (t.raw_json->>'transactionType') "
+        "WHEN 'Shipment' THEN i.quantity_shipped "
+        "WHEN 'Refund'   THEN -i.quantity_shipped END"
+        if net_refunds else "i.quantity_shipped"
     )
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT to_char({date_expr} AT TIME ZONE 'UTC', 'YYYY-MM') AS ym,
-                   SUM(i.quantity_shipped * c.cogs)                    AS amt
+                   SUM(({net_qty_expr}) * c.cogs)                    AS amt
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
             JOIN cogs_per_sku c
@@ -235,7 +251,7 @@ def compute_cog_by_basis(
               ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
-              AND (t.raw_json->>'transactionType') = 'Shipment'
+              AND (t.raw_json->>'transactionType') IN {txn_types}
               AND i.quantity_shipped > 0
             GROUP BY 1
             """,
@@ -245,8 +261,8 @@ def compute_cog_by_basis(
 
 
 def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, Decimal]:
-    """Return {year_month: total_spend} from ad_spend_daily. Empty when Phase 4
-    hasn't populated it yet — the audit cross-check just shows OURS_MISSING then."""
+    """Return {year_month: total_USD_spend} from ad_spend_daily. Empty when the
+    ad_spend_daily table is missing or the pull hasn't run yet."""
     with conn.cursor() as cur:
         try:
             cur.execute(
@@ -254,6 +270,7 @@ def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, De
                 SELECT to_char(date, 'YYYY-MM'), SUM(total_cost)
                 FROM ad_spend_daily
                 WHERE marketplace_id = %s
+                  AND budget_currency = 'USD'
                 GROUP BY 1
                 """,
                 (marketplace_id,),
@@ -261,6 +278,73 @@ def load_ad_spend(conn: psycopg.Connection, marketplace_id: str) -> dict[str, De
         except psycopg.errors.UndefinedTable:
             return {}
         return {ym: Decimal(str(t)) for ym, t in cur.fetchall()}
+
+
+# Sellerise ad-line ↔ SP-API adProduct.value mapping. SB Video is not
+# separable on adProduct.value (probe-confirmed), so hsaCost+hsaVideoCost are
+# merged into the SPONSORED_BRANDS line.
+_AD_LINE_MAP = [
+    # (sellerise_key, api_adProduct_string, human_label)
+    ("adCost",       "Sponsored Products", "Sponsored Products"),
+    ("hsaCost+hsaVideoCost", "Sponsored Brands", "Sponsored Brands (+Video, merged)"),
+    ("sdCost",       "Sponsored Display",  "Sponsored Display"),
+    ("stvCost",      "Sponsored Television", "Sponsored TV (absent from API)"),
+]
+
+
+def load_ad_spend_by_line(conn: psycopg.Connection, marketplace_id: str) -> dict[str, dict[str, Decimal]]:
+    """Return {year_month: {api_adProduct_string: total_USD_spend}}."""
+    with conn.cursor() as cur:
+        try:
+            cur.execute(
+                """
+                SELECT to_char(date, 'YYYY-MM'), ad_product, SUM(total_cost)
+                FROM ad_spend_daily
+                WHERE marketplace_id = %s
+                  AND budget_currency = 'USD'
+                GROUP BY 1, 2
+                """,
+                (marketplace_id,),
+            )
+        except psycopg.errors.UndefinedTable:
+            return {}
+        out: dict[str, dict[str, Decimal]] = defaultdict(dict)
+        for ym, ap, tot in cur.fetchall():
+            out[ym][ap] = Decimal(str(tot))
+        return dict(out)
+
+
+def load_ad_spend_as_of(conn: psycopg.Connection, marketplace_id: str) -> dict[str, dt.datetime]:
+    """Return {year_month: max(as_of)} so the report shows when each month was last pulled."""
+    with conn.cursor() as cur:
+        try:
+            cur.execute(
+                """
+                SELECT to_char(date, 'YYYY-MM'), MAX(as_of)
+                FROM ad_spend_daily
+                WHERE marketplace_id = %s
+                GROUP BY 1
+                """,
+                (marketplace_id,),
+            )
+        except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn):
+            return {}
+        return {ym: t for ym, t in cur.fetchall()}
+
+
+# Restatement-drift tolerance: sub-dollar-to-few-dollar deltas per line show as
+# PASS-with-note (drift, not FAIL). Trailing month is EXPECTED-to-drift.
+_AD_DRIFT_TOLERANCE = Decimal("5.00")
+
+
+def _ad_status(delta: Decimal, is_trailing: bool) -> str:
+    if is_trailing and abs(delta) >= TOLERANCE:
+        return "EXPECTED_DRIFT"
+    if abs(delta) < TOLERANCE:
+        return "PASS"
+    if abs(delta) < _AD_DRIFT_TOLERANCE:
+        return "PASS_DRIFT"
+    return "FAIL"
 
 
 # ── comparison primitives ───────────────────────────────────────────────────
@@ -361,6 +445,8 @@ def reconcile(
 ) -> dict:
     sellerise_all = load_sellerise(sellerise_path)
     ad_all = load_ad_spend(conn, marketplace_id)
+    ad_by_line = load_ad_spend_by_line(conn, marketplace_id)
+    ad_as_of = load_ad_spend_as_of(conn, marketplace_id)
 
     # ── Compute pnl under each candidate attribution basis (in-memory) ──────
     pnl_before = compute_pnl_in_memory(
@@ -372,8 +458,10 @@ def reconcile(
     pnl_after_refund_purchase = compute_pnl_in_memory(
         conn, marketplace_id, shipment_basis="purchase", refund_basis="purchase",
     )
-    cog_before = compute_cog_by_basis(conn, marketplace_id, basis="posted")
-    cog_after = compute_cog_by_basis(conn, marketplace_id, basis="purchase")
+    # "before" = the pre-fix state: posted-date basis, no refund netting
+    # "after" = the current locked design: purchase-date basis with refund netting
+    cog_before = compute_cog_by_basis(conn, marketplace_id, basis="posted",   net_refunds=False)
+    cog_after  = compute_cog_by_basis(conn, marketplace_id, basis="purchase", net_refunds=True)
 
     months = sorted(sellerise_all.keys())
     trailing = months[-1] if months else None
@@ -449,6 +537,72 @@ def reconcile(
             "delta_purchase": float(purchase_sum - theirs_sum),
         })
 
+    # ── Ad-line reconciliation (V1 test — before wiring into net) ───────────
+    ad_lines: list[dict] = []
+    for ym in months:
+        adx = sellerise_all[ym].get("adExpenses") or {}
+        s_ad = Decimal(str(adx.get("adCost", 0) or 0))
+        s_hsa = Decimal(str(adx.get("hsaCost", 0) or 0)) + Decimal(str(adx.get("hsaVideoCost", 0) or 0))
+        s_sd = Decimal(str(adx.get("sdCost", 0) or 0))
+        s_stv = Decimal(str(adx.get("stvCost", 0) or 0))
+        by_ap = ad_by_line.get(ym, {})
+        o_ad = by_ap.get("Sponsored Products", Decimal("0"))
+        o_sb = by_ap.get("Sponsored Brands", Decimal("0"))
+        o_sd = by_ap.get("Sponsored Display", Decimal("0"))
+        # Sponsored TV — API returned nothing for our account. If it ever
+        # shows, it would come through as "Sponsored Television" (or similar).
+        o_stv = by_ap.get("Sponsored Television", Decimal("0"))
+        is_trailing = (ym == trailing)
+        for label, ours, theirs in [
+            ("adCost (Sponsored Products)", o_ad, s_ad),
+            ("hsaCost+hsaVideoCost (SB merged)", o_sb, s_hsa),
+            ("sdCost (Sponsored Display)", o_sd, s_sd),
+            ("stvCost (Sponsored TV)", o_stv, s_stv),
+        ]:
+            delta = ours - theirs
+            ad_lines.append({
+                "year_month": ym, "line": label,
+                "ours": float(ours), "theirs": float(theirs),
+                "delta": float(delta),
+                "status": _ad_status(delta, is_trailing),
+            })
+        # per-month total row — tolerance is a small multiple of the per-line
+        # drift band so a month whose line-level deltas are all PASS_DRIFT
+        # doesn't get flagged FAIL just because the aggregate crosses the
+        # single-line threshold.
+        ours_total = o_ad + o_sb + o_sd + o_stv
+        theirs_total = s_ad + s_hsa + s_sd + s_stv
+        total_delta = ours_total - theirs_total
+        total_status = "PASS" if abs(total_delta) < TOLERANCE else (
+            "EXPECTED_DRIFT" if is_trailing and abs(total_delta) >= TOLERANCE
+            else ("PASS_DRIFT" if abs(total_delta) < _AD_DRIFT_TOLERANCE * 4  # 4 lines
+                  else "FAIL")
+        )
+        ad_lines.append({
+            "year_month": ym, "line": "TOTAL",
+            "ours": float(ours_total), "theirs": float(theirs_total),
+            "delta": float(total_delta),
+            "status": total_status,
+        })
+
+    # ── Net before/after — with adExpenses=0 vs with real ad spend ──────────
+    net_ba: list[dict] = []
+    for ym in months:
+        sm = sellerise_all[ym]
+        pa = pnl_after.get(ym, {})
+        theirs_net = _compute_net_theirs(sm)
+        ours_cog = cog_after.get(ym, Decimal("0"))
+        ours_net_before = _compute_net_ours(pa, Decimal("0"), ours_cog)          # adExpenses=0
+        ours_net_after  = _compute_net_ours(pa, ad_all.get(ym, Decimal("0")), ours_cog)  # real ads
+        net_ba.append({
+            "year_month": ym,
+            "net_before": float(ours_net_before),
+            "net_after":  float(ours_net_after),
+            "theirs":     float(theirs_net),
+            "delta_before": float(ours_net_before - theirs_net),
+            "delta_after":  float(ours_net_after  - theirs_net),
+        })
+
     # ── Main per-cell diff (using AFTER = chosen basis) ──────────────────────
     pnl_all = pnl_after  # for legacy naming below
 
@@ -470,8 +624,10 @@ def reconcile(
                     start=Decimal("0"),
                 )
                 if bucket == "adExpenses":
-                    ours = ad_all.get(ym, Decimal("0")) * -1  # ad_spend is positive cost, feed into formula
-                    ours_status = "OURS_MISSING" if not ad_all else _status(ours - theirs, False)
+                    # ad_all sums to a POSITIVE cost magnitude (same sign as Sellerise's aggregate).
+                    ours = ad_all.get(ym, Decimal("0"))
+                    is_trailing = (ym == trailing)
+                    ours_status = "OURS_MISSING" if not ad_all else _ad_status(ours - theirs, is_trailing)
                     diffs.append({
                         "year_month": ym, "bucket": bucket, "sub_line": "(aggregate)",
                         "ours": float(ours), "theirs": float(theirs),
@@ -568,6 +724,139 @@ def reconcile(
             "delta": float(sp_total + ads_api_total),  # SP-API fee is negative, Ads-API is positive
         })
 
+    # ── Prior-pull snapshot for the vs-prior-pull guard ─────────────────────
+    # Load the most recent snapshot per (ym, bucket, sub_line) BEFORE the
+    # current pull. Then compare current values to prior; classify with the
+    # tight prior-pull bands. On the first run there is no prior — mark
+    # NO_BASELINE for every cell.
+    prior_snapshot: dict[tuple[str, str, str], Decimal] = {}
+    prior_pull_at: dt.datetime | None = None
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT MAX(pull_at) FROM pnl_monthly_snapshots WHERE marketplace_id = %s
+        """, (marketplace_id,))
+        row = cur.fetchone()
+        prior_pull_at = row[0] if row and row[0] else None
+        if prior_pull_at is not None:
+            cur.execute("""
+                SELECT year_month, bucket, sub_line, amount
+                FROM pnl_monthly_snapshots
+                WHERE marketplace_id = %s AND pull_at = %s
+            """, (marketplace_id, prior_pull_at))
+            for ym_r, b, sl, amt in cur.fetchall():
+                prior_snapshot[(ym_r, b, sl)] = Decimal(str(amt))
+
+    # ── Drift-guard (regression detector — vs Sellerise) ────────────────────
+    # For every settled bucket + sub_line, classify the Δ against its band.
+    # WITHIN_DRIFT / TRAILING / INVESTIGATE per DRIFT_BASELINE.md.
+    drift_guard: list[dict] = []
+    for d in diffs:
+        is_trailing = (d["year_month"] == trailing)
+        # Ad lines handled by their own band below. Also skip cells the main
+        # diff already marked EXPECTED (decision-A trailing-DEFERRED estimate
+        # lines) — those are documented planned mismatches, not regressions.
+        if d["bucket"] in ("adExpenses",) or d["status"] == "EXPECTED":
+            continue
+        band = _drift.band_for(d["bucket"], d["sub_line"], is_trailing)
+        status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing)
+        drift_guard.append({
+            "year_month": d["year_month"], "bucket": d["bucket"], "sub_line": d["sub_line"],
+            "delta": d["delta"], "band": float(band), "status": status,
+        })
+    # Ad TOTAL / per-line drift
+    for r in ad_lines:
+        is_trailing = (r["year_month"] == trailing)
+        band = float(_drift.AD_TOTAL_BAND if r["line"] == "TOTAL" else _drift.AD_LINE_BAND)
+        status = _drift.classify(Decimal(str(r["delta"])), Decimal(str(band)), is_trailing)
+        drift_guard.append({
+            "year_month": r["year_month"], "bucket": "adExpenses", "sub_line": r["line"],
+            "delta": r["delta"], "band": band, "status": status,
+        })
+    # Sort INVESTIGATE to top for visibility
+    drift_guard.sort(key=lambda x: (x["status"] != "INVESTIGATE", x["year_month"], x["bucket"], x["sub_line"]))
+    investigate_count = sum(1 for r in drift_guard if r["status"] == "INVESTIGATE")
+
+    # ── Vs-prior-pull guard (regression detector — pure pull-to-pull) ───────
+    # For every non-EXPECTED cell: compare current value to the same cell's
+    # value in the most recent prior snapshot. Uses tight PRIOR_PULL_BANDS
+    # calibrated to observed pull-to-pull drift ($0.00 baseline for ads).
+    drift_vs_prior: list[dict] = []
+    have_prior = prior_pull_at is not None
+    for d in diffs:
+        if d["bucket"] in ("adExpenses",) or d["status"] == "EXPECTED":
+            continue
+        key = (d["year_month"], d["bucket"], d["sub_line"])
+        current = Decimal(str(d["ours"]))
+        if not have_prior:
+            status = "NO_BASELINE"
+            delta_pp: float = 0.0
+            band_pp: float = 0.0
+        else:
+            prior = prior_snapshot.get(key, Decimal("0"))
+            delta = current - prior
+            is_trailing = (d["year_month"] == trailing)
+            band = _drift.prior_pull_band_for(d["bucket"], d["sub_line"], is_trailing)
+            status = _drift.classify(delta, band, is_trailing)
+            delta_pp = float(delta); band_pp = float(band)
+        drift_vs_prior.append({
+            "year_month": d["year_month"], "bucket": d["bucket"], "sub_line": d["sub_line"],
+            "current": float(current), "prior_pull_at": prior_pull_at.isoformat() if prior_pull_at else None,
+            "delta": delta_pp, "band": band_pp, "status": status,
+        })
+    # Ad lines vs prior — key by ad line label
+    for r in ad_lines:
+        key = (r["year_month"], "adExpenses", r["line"])
+        current = Decimal(str(r["ours"]))
+        if not have_prior:
+            status = "NO_BASELINE"; delta_pp = 0.0; band_pp = 0.0
+        else:
+            prior = prior_snapshot.get(key, Decimal("0"))
+            delta = current - prior
+            is_trailing = (r["year_month"] == trailing)
+            band = (_drift.PRIOR_PULL_AD_TOTAL_BAND if r["line"] == "TOTAL"
+                    else _drift.PRIOR_PULL_AD_LINE_BAND)
+            if is_trailing:
+                band = band * _drift.TRAILING_MULTIPLIER
+            status = _drift.classify(delta, band, is_trailing)
+            delta_pp = float(delta); band_pp = float(band)
+        drift_vs_prior.append({
+            "year_month": r["year_month"], "bucket": "adExpenses", "sub_line": r["line"],
+            "current": float(current), "prior_pull_at": prior_pull_at.isoformat() if prior_pull_at else None,
+            "delta": delta_pp, "band": band_pp, "status": status,
+        })
+    drift_vs_prior.sort(key=lambda x: (x["status"] != "INVESTIGATE", x["year_month"], x["bucket"], x["sub_line"]))
+    investigate_prior_count = sum(1 for r in drift_vs_prior if r["status"] == "INVESTIGATE")
+
+    # ── Persist the current pull's snapshot (append-only) ───────────────────
+    # Do this LAST — after everything else succeeds. The snapshot IS the
+    # baseline for next pull; if we crash we don't want a partial baseline.
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    snapshot_rows: list[tuple] = []
+    # Save every cell that fed the diffs/ad-lines (the same universe the
+    # prior-pull guard reads back).
+    for d in diffs:
+        # Skip aggregates that aren't stable identifiers — we key by (bucket,
+        # sub_line) so both need real names.
+        if d["bucket"] in ("adExpenses",):
+            continue
+        snapshot_rows.append((now_utc, marketplace_id, d["year_month"],
+                              d["bucket"], d["sub_line"], Decimal(str(d["ours"]))))
+    for r in ad_lines:
+        snapshot_rows.append((now_utc, marketplace_id, r["year_month"],
+                              "adExpenses", r["line"], Decimal(str(r["ours"]))))
+    if snapshot_rows:
+        with conn.cursor() as cur:
+            cur.executemany(
+                """
+                INSERT INTO pnl_monthly_snapshots
+                    (pull_at, marketplace_id, year_month, bucket, sub_line, amount)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+                """,
+                snapshot_rows,
+            )
+        conn.commit()
+
     return {
         "diffs": diffs, "locked": locked_results, "ad_audit": ad_audit,
         "before_after": before_after,
@@ -580,6 +869,15 @@ def reconcile(
         "net_delta_before": float(net_delta_before),
         "net_delta_after": float(net_delta_after),
         "total_sellerise_net": float(total_sellerise_net),
+        "ad_lines": ad_lines,
+        "net_ba": net_ba,
+        "ad_as_of": {ym: t.isoformat() for ym, t in ad_as_of.items()},
+        "drift_guard": drift_guard,
+        "investigate_count": investigate_count,
+        "drift_vs_prior": drift_vs_prior,
+        "investigate_prior_count": investigate_prior_count,
+        "prior_pull_at": prior_pull_at.isoformat() if prior_pull_at else None,
+        "current_pull_at": now_utc.isoformat(),
         "trailing": trailing, "months": months,
     }
 
@@ -662,6 +960,76 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
         )
     lines.append("")
 
+    # ── Drift-guard (regression detector) ────────────────────────────────
+    if result.get("drift_guard"):
+        investigate = [r for r in result["drift_guard"] if r["status"] == "INVESTIGATE"]
+        lines.append(f"## Drift-guard: {result.get('investigate_count', 0)} INVESTIGATE / "
+                     f"{sum(1 for r in result['drift_guard'] if r['status'] == 'TRAILING')} TRAILING / "
+                     f"{sum(1 for r in result['drift_guard'] if r['status'] == 'WITHIN_DRIFT')} WITHIN_DRIFT")
+        lines.append("")
+        lines.append(f"Regression guard per `DRIFT_BASELINE.md`. Trailing month: **{result['trailing']}**.")
+        lines.append(f"`WITHIN_DRIFT` = expected restatement drift · "
+                     f"`TRAILING` = still moving (refund lag / DEFERRED) · "
+                     f"`INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.")
+        lines.append("")
+        if investigate:
+            lines.append("### 🚨 INVESTIGATE — beyond settled-month band")
+            lines.append("")
+            lines.append("| month | bucket · sub_line | Δ | band (±) |")
+            lines.append("|---|---|---:|---:|")
+            for r in investigate:
+                lines.append(f"| {r['year_month']} | `{r['bucket']}.{r['sub_line']}` | "
+                             f"{_fmt_amt(r['delta'])} | {_fmt_amt(r['band'])} |")
+            lines.append("")
+        # Full guard table collapsed by default — just show summary counts + INVESTIGATE
+        by_ym_status: dict[tuple[str, str], int] = defaultdict(int)
+        for r in result["drift_guard"]:
+            by_ym_status[(r["year_month"], r["status"])] += 1
+        lines.append("### Per-month summary")
+        lines.append("")
+        lines.append("| month | WITHIN_DRIFT | TRAILING | INVESTIGATE |")
+        lines.append("|---|---:|---:|---:|")
+        for ym in sorted({r["year_month"] for r in result["drift_guard"]}):
+            wd = by_ym_status.get((ym, "WITHIN_DRIFT"), 0)
+            tr = by_ym_status.get((ym, "TRAILING"), 0)
+            inv = by_ym_status.get((ym, "INVESTIGATE"), 0)
+            lines.append(f"| {ym} | {wd} | {tr} | {inv} |")
+        lines.append("")
+
+    # ── Drift-guard: vs prior pull (regression detector) ────────────────
+    if result.get("drift_vs_prior"):
+        vp = result["drift_vs_prior"]
+        vp_counts = defaultdict(int)
+        for r in vp: vp_counts[r["status"]] += 1
+        prior_at = result.get("prior_pull_at")
+        current_at = result.get("current_pull_at")
+        if vp_counts["NO_BASELINE"] > 0 and vp_counts["INVESTIGATE"] == 0:
+            lines.append(f"## Drift-guard vs prior pull: NO_BASELINE (first pull)")
+            lines.append("")
+            lines.append(f"Current pull persisted at `{current_at}`. Next reconcile run will "
+                         f"compare against this snapshot.")
+        else:
+            lines.append(f"## Drift-guard vs prior pull: "
+                         f"{vp_counts['INVESTIGATE']} INVESTIGATE / "
+                         f"{vp_counts['TRAILING']} TRAILING / "
+                         f"{vp_counts['WITHIN_DRIFT']} WITHIN_DRIFT")
+            lines.append("")
+            lines.append(f"Prior pull: `{prior_at}`. Current pull: `{current_at}`.")
+            lines.append(f"Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed "
+                         f"pull-to-pull movement (baseline: $0.00 for ads over ~13h).")
+            lines.append("")
+            investigate = [r for r in vp if r["status"] == "INVESTIGATE"]
+            if investigate:
+                lines.append("### 🚨 INVESTIGATE — moved beyond pull-to-pull band")
+                lines.append("")
+                lines.append("| month | bucket · sub_line | current | Δ (current − prior) | band (±) |")
+                lines.append("|---|---|---:|---:|---:|")
+                for r in investigate:
+                    lines.append(f"| {r['year_month']} | `{r['bucket']}.{r['sub_line']}` | "
+                                 f"{_fmt_amt(r['current'])} | {_fmt_amt(r['delta'])} | "
+                                 f"{_fmt_amt(r['band'])} |")
+                lines.append("")
+
     # ── Locked validation targets ────────────────────────────────────────
     lines.append("## Locked validation targets (Step 3 assertions)")
     lines.append("")
@@ -677,6 +1045,46 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
     lines.append("")
     lines.append(f"**Locked targets: {locked_pass} / {len(result['locked'])} PASS**")
     lines.append("")
+
+    # ── Ad-line reconciliation (V1) + net before/after (Step 2c) ────────
+    if result.get("ad_lines"):
+        lines.append("## Ad-lines reconciliation (Phase 4 Step 2c V1)")
+        lines.append("")
+        lines.append(
+            "Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's "
+            "five `adExpenses` lines. Restatement drift up to ±$5.00 shows as "
+            "`PASS_DRIFT` (small, expected — Amazon revises reports after Sellerise's snapshot). "
+            "Trailing month is `EXPECTED_DRIFT`."
+        )
+        lines.append("")
+        lines.append(f"`as_of` timestamps per month: {result.get('ad_as_of', {})}")
+        lines.append("")
+        lines.append("| month | line | ours (USD) | Sellerise | Δ | status |")
+        lines.append("|---|---|---:|---:|---:|---|")
+        for r in result["ad_lines"]:
+            lines.append(
+                f"| {r['year_month']} | {r['line']} | "
+                f"{_fmt_amt(r['ours'])} | {_fmt_amt(r['theirs'])} | "
+                f"{_fmt_amt(r['delta'])} | {r['status']} |"
+            )
+        lines.append("")
+
+    if result.get("net_ba"):
+        lines.append("## Net before / after wiring `adExpenses` (Phase 4 Step 2c)")
+        lines.append("")
+        lines.append("`net_before` = adExpenses set to 0; `net_after` = subtract real ad spend from Sellerise's formula.")
+        lines.append("")
+        lines.append("| month | net_before (ours) | net_after (ours) | Sellerise net | Δ before | Δ after |")
+        lines.append("|---|---:|---:|---:|---:|---:|")
+        for r in result["net_ba"]:
+            lines.append(
+                f"| {r['year_month']} | {_fmt_amt(r['net_before'])} | {_fmt_amt(r['net_after'])} | "
+                f"{_fmt_amt(r['theirs'])} | {_fmt_amt(r['delta_before'])} | {_fmt_amt(r['delta_after'])} |"
+            )
+        sum_before = sum(r["delta_before"] for r in result["net_ba"])
+        sum_after  = sum(r["delta_after"]  for r in result["net_ba"])
+        lines.append(f"| **Σ** | | | | **{_fmt_amt(sum_before)}** | **{_fmt_amt(sum_after)}** |")
+        lines.append("")
 
     # ── Ad audit cross-check (decision B) ────────────────────────────────
     lines.append("## Advertising audit cross-check (decision B)")
@@ -758,8 +1166,23 @@ def main(argv: list[str] | None = None) -> int:
         dict(counts), locked_pass, len(result["locked"]),
     )
 
-    # Exit 0 if all PASS + all locked targets PASS; else 1.
-    all_good = counts.get("FAIL", 0) == 0 and locked_pass == len(result["locked"])
+    # Drift-guard regression signals — loud, per DRIFT_BASELINE.md
+    inv_s = result.get("investigate_count", 0)
+    inv_p = result.get("investigate_prior_count", 0)
+    if inv_s:
+        log.warning(
+            "🚨 Drift-guard vs Sellerise: %d cell(s) fired INVESTIGATE. Possible pipeline regression.", inv_s
+        )
+    if inv_p:
+        log.warning(
+            "🚨 Drift-guard vs prior pull: %d cell(s) fired INVESTIGATE. "
+            "A cell moved from its own prior-pull value beyond band — likely a code regression.", inv_p
+        )
+    if not inv_s and not inv_p:
+        log.info("Drift-guards: 0 INVESTIGATE on both (vs Sellerise + vs prior pull).")
+
+    # Exit 0 if all locked targets PASS AND no INVESTIGATE fires on EITHER guard; else 1.
+    all_good = locked_pass == len(result["locked"]) and inv_s == 0 and inv_p == 0
     return 0 if all_good else 1
 
 

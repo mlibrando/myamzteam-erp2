@@ -340,32 +340,32 @@
     },
     "20260601": {
         "_id": 20260601,
-        "revenue": 103674.19,
-        "net": 30243.22,
+        "revenue": 103235.08,
+        "net": 30105.21,
         "refunds": 3286.51,
-        "fees": 14917.4,
-        "promos": 496.12,
-        "fba": 9574.67,
-        "cog": 25290.98,
-        "orders": 1352,
-        "salesTaxes": 4907.74,
+        "fees": 14857.31,
+        "promos": 499.51,
+        "fba": 9542.05,
+        "cog": 25073.27,
+        "orders": 1350,
+        "salesTaxes": 4919.22,
         "storageFee": 404.04,
         "chargesObject": {
-            "Principal": 98691.38,
-            "Promotion": -496.12,
-            "Tax": 4901.27,
-            "ShippingCharge": 397.11,
-            "Shipping": 174.08,
+            "Principal": 98244.18,
+            "Promotion": -499.51,
+            "Tax": 4912.75,
+            "ShippingCharge": 405.3,
+            "Shipping": 165.89,
             "ShippingTax": 6.47
         },
         "feesObject": {
-            "Commission": -10639.72,
-            "ReferralFee": -4148.65,
-            "ShippingChargeback": -129.03
+            "Commission": -11076.77,
+            "ReferralFee": -3644.52,
+            "ShippingChargeback": -136.02
         },
         "fbaObject": {
-            "FBAPerUnitFulfillmentFee": -7065.53,
-            "FBAFees": -2509.14
+            "FBAPerUnitFulfillmentFee": -7383.71,
+            "FBAFees": -2158.34
         },
         "refundsObject": {
             "ShippingCharge": -60.26,
@@ -401,9 +401,9 @@
         "adExpenses": {
             "hsaCost": 580.51,
             "sdCost": 14.2,
-            "hsaVideoCost": 2000.33,
+            "hsaVideoCost": 1998.97,
             "stvCost": 0,
-            "adCost": 12454.59
+            "adCost": 12453.79
         }
     }
 }

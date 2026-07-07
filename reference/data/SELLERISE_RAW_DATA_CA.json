@@ -1,0 +1,300 @@
+{
+    "20260101": {
+        "_id": 20260101,
+        "revenue": 10480.52,
+        "net": 1793.24,
+        "refunds": 464.84,
+        "fees": 1489.93,
+        "promos": 77.08,
+        "fba": 1303.57,
+        "cog": 1587.21,
+        "orders": 110,
+        "salesTaxes": 890.66,
+        "storageFee": 31.44,
+        "chargesObject": {
+            "Principal": 9559.08,
+            "Tax": 889.1,
+            "ShippingCharge": 107.86,
+            "Promotion": -77.08,
+            "ShippingTax": 1.56
+        },
+        "feesObject": {
+            "Commission": -1429.22,
+            "ShippingChargeback": -60.71
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -1303.57
+        },
+        "refundsObject": {
+            "Principal": -568.75,
+            "Commission": 79.45,
+            "RefundCommission": -14.83,
+            "Promotion": 41.46,
+            "DigitalServicesFee": 0.14,
+            "Tax": -36.43,
+            "Tax Withheld": 36.43,
+            "ShippingCharge": -2.31
+        },
+        "units": 1,
+        "expenses": {
+            "AmazonFees": -76.66,
+            "REVERSAL_REIMBURSEMENT": 449.87,
+            "Subscription Fee": -9.29,
+            "DisposalComplete": -15.41,
+            "COMPENSATED_CLAWBACK": -152.14
+        },
+        "adExpenses": {
+            "hsaCost": 8.35,
+            "sdCost": 14.34,
+            "hsaVideoCost": 634.84,
+            "stvCost": 0,
+            "adCost": 2262.1
+        }
+    },
+    "20260201": {
+        "_id": 20260201,
+        "revenue": 9837.88,
+        "net": 2842.09,
+        "refunds": 288.05,
+        "fees": 1336.54,
+        "promos": 46.34,
+        "fba": 843.31,
+        "cog": 1881.36,
+        "orders": 67,
+        "salesTaxes": 927.2,
+        "storageFee": 171.37,
+        "chargesObject": {
+            "Principal": 8910.68,
+            "Tax": 927.2,
+            "ShippingCharge": 46.34,
+            "Promotion": -46.34
+        },
+        "feesObject": {
+            "Commission": -1336.54
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -843.31
+        },
+        "refundsObject": {
+            "Principal": -357.35,
+            "Commission": 49.11,
+            "RefundCommission": -9.74,
+            "Promotion": 29.93,
+            "Tax": -37.67,
+            "Tax Withheld": 37.67
+        },
+        "expenses": {
+            "Subscription Fee": -9.21,
+            "REVERSAL_REIMBURSEMENT": 137.64,
+            "WAREHOUSE_LOST": 51.89,
+            "MISSING_FROM_INBOUND_CLAWBACK": -116.46,
+            "DisposalComplete": -1.64,
+            "StorageRenewalBilling": -1.59
+        },
+        "adExpenses": {
+            "hsaCost": 2.52,
+            "sdCost": 4.4,
+            "hsaVideoCost": 289.12,
+            "stvCost": 0,
+            "adCost": 1251.92
+        }
+    },
+    "20260301": {
+        "_id": 20260301,
+        "revenue": 9689.55,
+        "net": 2612.81,
+        "refunds": 1010.36,
+        "fees": 1329.28,
+        "promos": 35.1,
+        "fba": 854.71,
+        "cog": 1454.84,
+        "orders": 64,
+        "salesTaxes": 992.99,
+        "storageFee": 278.43,
+        "chargesObject": {
+            "Principal": 8667.35,
+            "Tax": 989.6,
+            "ShippingCharge": 64.31,
+            "ShippingTax": 3.39,
+            "Promotion": -35.1
+        },
+        "feesObject": {
+            "Commission": -1300.07,
+            "ShippingChargeback": -29.21
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -854.71
+        },
+        "refundsObject": {
+            "Tax": -151.72,
+            "Tax Withheld": 151.72,
+            "Principal": -1164.21,
+            "Commission": 171.65,
+            "RefundCommission": -29.2,
+            "DigitalServicesFee": 0.54,
+            "Promotion": 19.95,
+            "Goodwill": -9.09
+        },
+        "units": 1,
+        "expenses": {
+            "Subscription Fee": -9.2,
+            "REVERSAL_REIMBURSEMENT": 320.3,
+            "StorageRenewalBilling": -3.17,
+            "DisposalComplete": -3.85,
+            "WAREHOUSE_LOST": 51.89
+        },
+        "adExpenses": {
+            "hsaCost": 0,
+            "sdCost": 0,
+            "hsaVideoCost": 2.58,
+            "stvCost": 0,
+            "adCost": 1153.55
+        }
+    },
+    "20260401": {
+        "_id": 20260401,
+        "revenue": 5205.93,
+        "net": 41.22,
+        "refunds": 1092.03,
+        "fees": 714.53,
+        "promos": 230.31,
+        "fba": 502.18,
+        "cog": 653.28,
+        "orders": 38,
+        "salesTaxes": 442.1,
+        "storageFee": 569.1,
+        "chargesObject": {
+            "Principal": 4955.32,
+            "Tax": 442.1,
+            "ShippingCharge": 38.82,
+            "Promotion": -230.31
+        },
+        "feesObject": {
+            "Commission": -714.53
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -502.18
+        },
+        "refundsObject": {
+            "Tax": -146.37,
+            "Tax Withheld": 146.37,
+            "Principal": -1266.95,
+            "Commission": 187.07,
+            "RefundCommission": -32.1,
+            "ShippingCharge": -14.13,
+            "Promotion": 34.08
+        },
+        "expenses": {
+            "DisposalComplete": -5.84,
+            "Subscription Fee": -9.31,
+            "COMPENSATED_CLAWBACK": -135.19,
+            "REVERSAL_REIMBURSEMENT": 303.61,
+            "StorageRenewalBilling": -4.34
+        },
+        "adExpenses": {
+            "hsaCost": 0,
+            "sdCost": 0,
+            "hsaVideoCost": 1.19,
+            "stvCost": 0,
+            "adCost": 1190.3
+        }
+    },
+    "20260501": {
+        "_id": 20260501,
+        "revenue": 6809.57,
+        "net": 1721.49,
+        "refunds": 589.82,
+        "fees": 939.96,
+        "promos": 206.26,
+        "fba": 650.52,
+        "cog": 894.1,
+        "orders": 36,
+        "salesTaxes": 542.98,
+        "storageFee": 540.75,
+        "chargesObject": {
+            "Principal": 6455.15,
+            "Tax": 542.98,
+            "Promotion": -206.26,
+            "ShippingCharge": 17.7
+        },
+        "feesObject": {
+            "Commission": -939.96
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -650.52
+        },
+        "refundsObject": {
+            "Tax": -57.37,
+            "Tax Withheld": 57.37,
+            "Principal": -731.4,
+            "Commission": 100.72,
+            "RefundCommission": -18.99,
+            "Promotion": 65.75,
+            "ShippingCharge": -5.9
+        },
+        "expenses": {
+            "Digital Services Fee Adjustment": 407.8,
+            "Subscription Fee": -9.09,
+            "REVERSAL_REIMBURSEMENT": 285.99,
+            "WAREHOUSE_LOST": 17.5,
+            "StorageRenewalBilling": -8.09,
+            "DisposalComplete": -41.33,
+            "AmazonFees": -53.31
+        },
+        "adExpenses": {
+            "hsaCost": 0,
+            "sdCost": 0,
+            "hsaVideoCost": 0.6,
+            "stvCost": 0,
+            "adCost": 929.35
+        }
+    },
+    "20260601": {
+        "_id": 20260601,
+        "revenue": 7488.62,
+        "net": 1702.49,
+        "refunds": 584.53,
+        "fees": 1005.3,
+        "promos": 432.49,
+        "fba": 605.32,
+        "cog": 1533.16,
+        "orders": 35,
+        "salesTaxes": 823.43,
+        "storageFee": 486.47,
+        "chargesObject": {
+            "Principal": 7097.68,
+            "Tax": 823.43,
+            "Promotion": -432.49
+        },
+        "feesObject": {
+            "Commission": -920.47,
+            "ReferralFee": -84.83
+        },
+        "fbaObject": {
+            "FBAPerUnitFulfillmentFee": -547.22,
+            "FBAFees": -58.1
+        },
+        "refundsObject": {
+            "Principal": -690.7,
+            "Commission": 100.18,
+            "RefundCommission": -16.89,
+            "Tax": -58.18,
+            "Tax Withheld": 58.18,
+            "Promotion": 22.88
+        },
+        "units": 1,
+        "expenses": {
+            "REVERSAL_REIMBURSEMENT": 555.03,
+            "Subscription Fee": -9.22,
+            "COMPENSATED_CLAWBACK": -152.14,
+            "StorageRenewalBilling": -6.27
+        },
+        "adExpenses": {
+            "hsaCost": 0,
+            "sdCost": 0,
+            "hsaVideoCost": 0,
+            "stvCost": 0,
+            "adCost": 747.92
+        }
+    }
+}

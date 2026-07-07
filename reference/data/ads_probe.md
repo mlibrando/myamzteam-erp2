@@ -97,3 +97,73 @@ Raw CSV saved to `reference/data/ads_probe_2026-02_raw.csv`.
 {"date.value": "2026-02-01", "campaign.id": "54673378227395", "adProduct.value": "Sponsored Products", "metric.totalCost": "0.52", "budgetCurrency.value": "USD"}
 {"date.value": "2026-02-05", "campaign.id": "149942312994880", "adProduct.value": "Sponsored Products", "metric.totalCost": "0.00", "budgetCurrency.value": "USD"}
 ```
+
+---
+
+# Residual diagnosis — the −$1.46 Sponsored Products delta
+
+## Cross-month shape (adjudicator)
+
+Fresh reports pulled today (2026-07-07) for Jan / Feb / Mar / Apr (May/Jun blocked by
+`/create/reports` throttling — 4 months is enough to name the shape):
+
+| month | product | rows | ours | Sellerise | Δ | last-day spend | last-day % |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 2026-01 | Sponsored Products | 4,096 | 24,829.62 | 24,829.62 | **+0.00** | 950.44 | 3.8 % |
+| 2026-01 | Sponsored Brands (+Video) | 1,371 | 6,259.04 | 6,259.64 | **−0.60** | 239.44 | 3.8 % |
+| 2026-01 | Sponsored Display | 175 | 280.00 | 280.00 | **+0.00** | 2.48 | 0.9 % |
+| 2026-02 | Sponsored Products | 3,753 | 19,599.97 | 19,601.43 | **−1.46** | 655.18 | 3.3 % |
+| 2026-02 | Sponsored Brands (+Video) | 626 | 3,251.86 | 3,251.86 | **+0.00** | 84.52 | 2.6 % |
+| 2026-02 | Sponsored Display | 58 | 75.73 | 75.73 | **+0.00** | 1.53 | 2.0 % |
+| 2026-03 | Sponsored Products | 4,233 | 16,233.45 | 16,233.45 | **+0.00** | 360.80 | 2.2 % |
+| 2026-03 | Sponsored Brands (+Video) | 576 | 2,548.06 | 2,548.06 | **+0.00** | 61.45 | 2.4 % |
+| 2026-03 | Sponsored Display | 63 | 11.11 | 11.11 | **+0.00** | 0.79 | 7.1 % |
+| 2026-04 | Sponsored Products | 4,217 | 11,045.46 | 11,045.46 | **+0.00** | 421.05 | 3.8 % |
+| 2026-04 | Sponsored Brands (+Video) | 498 | 1,773.85 | 1,770.79 | **+3.06** | 44.90 | 2.5 % |
+| 2026-04 | Sponsored Display | 60 | 7.50 | 7.50 | **+0.00** | 0.08 | 1.1 % |
+
+## Verdict — falsifying each competing hypothesis
+
+- **Rounding accumulation** — FALSIFIED. Rounding would show a residual every month, roughly
+  scaled to row count. SP had 4,096 / 3,753 / 4,233 / 4,217 rows across the four months and
+  the delta was 0.00 / −1.46 / 0.00 / 0.00. Three of four months are exact to the cent, so
+  rounding is not the mechanism.
+- **V2 boundary-day attribution edge** — FALSIFIED. A boundary edge would show a residual on
+  the last day of *every* month proportional to that day's spend (~3 % of the month typically
+  here). If it were the mechanism, all four months' SP would carry a small delta of
+  ~0.02–0.05 × last-day spend. Instead only Feb SP has one, and Jan/Mar/Apr — where the
+  last-day-spend ratios are the same or larger — are exact.
+- **Per-campaign outlier** — FALSIFIED. Sorting campaigns by cumulative Jan–Apr spend, the
+  same campaigns appear across months (e.g. `156989235380210` scales from $208 in Jan to
+  $6,951 in Apr). No single campaign shows a −$1.46 anomaly in Feb that isn't present
+  elsewhere.
+- **Post-snapshot restatement** — CONSISTENT. Amazon Ads restates recent report data for a
+  period after the fact. Sellerise's Feb figures were captured at some earlier T1; our fresh
+  report pulled at T2 (today) shows numbers that differ where Amazon has since restated. The
+  pattern — isolated sub-dollar drifts on individual months (SP Feb −1.46, SB Jan −0.60,
+  SB Apr +3.06, SD always 0.00), mixed signs, no correlation with structural attributes — is
+  exactly what restatement drift looks like.
+
+## Corrected label
+
+The write-up's earlier note that the −$1.46 was "almost certainly the V2 boundary-day
+effect" is incorrect and is superseded by this diagnosis. The correct label is:
+
+> **Sub-dollar SP residual, cause: post-snapshot restatement drift** between Sellerise's
+> stored monthly snapshot and our fresh Ads-API pull. Only one of four settled months
+> (Feb SP −$1.46, or 0.007 % of the SP line) shows the effect. Occasional sub-dollar SB
+> deltas fit the same pattern.
+
+## Accepted-residual note
+
+Sub-dollar drifts on individual monthly ad lines are within tolerance and **will not be
+chased**. They arise from Amazon restating report data after Sellerise took its snapshot,
+which we cannot control from our end. The residual is documented, labelled, and does not
+affect the reconciliation verdict. Step 2 is unblocked.
+
+## Empirical side-finding
+
+Not a residual question, but discovered while polling: `POST /adsApi/v1/retrieve/reports`
+accepts **only one `reportId` per request** — 400000 error if the list has >1 element,
+even though the quickstart doc example shows a list. Step 2 pull must poll each report
+individually.

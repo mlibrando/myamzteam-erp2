@@ -141,51 +141,58 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
 
     with conn.cursor() as cur:
         # Monthly COGS: sum(quantity_shipped × unit_cogs) joined to cogs_per_sku on SKU.
-        # Only Shipment transactions count. Attribution: PurchaseDate month (from
-        # order_purchase_date) — falls back to postedDate when the order isn't in
-        # the map. Keeps revenue and COGS in the same month per the plan.
+        # Attribution: PurchaseDate month (from order_purchase_date) with postedDate
+        # fallback. Refunds NET OUT under the same purchase-date basis — Sellerise's
+        # cog nets refunded units, and REFUND_COG_FIX.md Step 2 tested both bases:
+        # purchase-date won by cumulative Σ|Δ| ($5,249 vs $5,971 for posted-date).
+        # Diff = SHIPMENT.qty_shipped − REFUND.qty_shipped, per SKU per month.
         cur.execute(
             """
-            SELECT
-                to_char(
-                    COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC',
-                    'YYYY-MM'
-                )                                                AS year_month,
-                SUM(i.quantity_shipped * c.cogs)                 AS cogs_amount
-            FROM sp_transaction_items i
-            JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+            WITH ship_or_refund AS (
+                SELECT i.sku,
+                       CASE (t.raw_json->>'transactionType')
+                            WHEN 'Shipment' THEN  i.quantity_shipped
+                            WHEN 'Refund'   THEN -i.quantity_shipped
+                       END                                              AS net_qty,
+                       to_char(
+                           COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC',
+                           'YYYY-MM'
+                       )                                                AS year_month
+                FROM sp_transaction_items i
+                JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+                LEFT JOIN LATERAL (
+                    SELECT ri->>'relatedIdentifierValue' AS order_id
+                    FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                    WHERE ri->>'relatedIdentifierName' = 'ORDER_ID' LIMIT 1
+                ) rel ON true
+                LEFT JOIN order_purchase_date opd
+                  ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+                WHERE t.marketplace_id = %s
+                  AND t.is_deferred_release_event = false
+                  AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
+                  AND i.quantity_shipped > 0
+            )
+            SELECT sr.year_month, SUM(sr.net_qty * c.cogs) AS cogs_amount
+            FROM ship_or_refund sr
             JOIN cogs_per_sku c
-              ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
-            LEFT JOIN LATERAL (
-                SELECT ri->>'relatedIdentifierValue' AS order_id
-                FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
-                WHERE ri->>'relatedIdentifierName' = 'ORDER_ID'
-                LIMIT 1
-            ) rel ON true
-            LEFT JOIN order_purchase_date opd
-              ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
-            WHERE t.marketplace_id = %s
-              AND t.is_deferred_release_event = false
-              AND (t.raw_json->>'transactionType') = 'Shipment'
-              AND i.quantity_shipped > 0
-            GROUP BY 1
-            ORDER BY 1
+              ON c.sku = sr.sku AND c.marketplace_id = %s
+            GROUP BY 1 ORDER BY 1
             """,
-            (marketplace_id,),
+            (marketplace_id, marketplace_id),
         )
         monthly_cogs = {r[0]: Decimal(str(r[1])) for r in cur.fetchall()}
 
-        # Find SKUs that have Shipment sales but no COGS row (unmatched by SKU).
+        # Find SKUs that have Shipment or Refund activity but no COGS row.
         cur.execute(
             """
-            SELECT DISTINCT i.sku, i.asin
+            SELECT DISTINCT i.sku, i.asin, (t.raw_json->>'transactionType') AS txn_type
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
             LEFT JOIN cogs_per_sku c
               ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
-              AND (t.raw_json->>'transactionType') = 'Shipment'
+              AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
               AND i.quantity_shipped > 0
               AND i.sku IS NOT NULL
               AND c.sku IS NULL
@@ -194,15 +201,25 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
         )
         missing_rows = cur.fetchall()
 
-    # Upsert missing SKUs
-    if missing_rows:
-        stats["missing_skus"] = len(missing_rows)
+    # Upsert missing SKUs (dedupe by sku since one SKU can appear on both
+    # Shipment and Refund rows).
+    seen_skus: set[str] = set()
+    missing_dedup: list[tuple[str, str | None]] = []
+    for sku, asin, txn_type in missing_rows:
+        if sku in seen_skus:
+            continue
+        seen_skus.add(sku)
+        missing_dedup.append((sku, asin))
+        log.warning("SKU %s (%s) has %s activity but no cog rate — treated as 0",
+                    sku, asin or "no ASIN", txn_type)
+    if missing_dedup:
+        stats["missing_skus"] = len(missing_dedup)
         log.warning(
-            "%d SKUs have sales but no COGS entry — writing to cogs_missing_skus",
-            len(missing_rows),
+            "%d SKUs have Shipment/Refund activity but no COGS entry — writing to cogs_missing_skus",
+            len(missing_dedup),
         )
         with conn.cursor() as cur:
-            for sku, asin in missing_rows:
+            for sku, asin in missing_dedup:
                 cur.execute(
                     """
                     INSERT INTO cogs_missing_skus (marketplace_id, sku, asin, first_seen, last_seen)
