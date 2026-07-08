@@ -85,8 +85,85 @@ Full monthly reports:
 | 2026-04 | +$618 | **−$240** | ~0.4 % |
 | 2026-05 | +$415 | **−$296** | Ads landed (£711.24 EXACT vs Sellerise) |
 | 2026-06 | +$420 | **−$332** | Trailing DEFERRED; Ads landed (£751.57 EXACT) |
-| **Σ Jan-Apr (ads-complete)** | **+$5,754** | **−$965** | |
-| **Σ Jan-Jun** | **+$6,589** | **−$1,594** | UK residual is small mixed-sign per-cell drift |
+| **Σ Jan-Apr (ads-complete)** | **+$5,754** | **−$965** | all same-signed negative |
+| **Σ Jan-Jun** | **+$6,589** | **−$1,594** | **NOT clean drift** — see UK diagnosis below |
+
+**UK is NOT reconciling cleanly** — the earlier "UK done, small mixed-sign
+drift" description was wrong. See UK residual diagnosis for the
+per-bucket decomposition.
+
+## UK residual diagnosis (`UK_RESIDUAL_DIAGNOSIS.md`)
+
+UK's Σ Jan-Jun net Δ of **−$1,594 (−13.4 % of Sellerise net)** decomposes to
+two systematic same-signed drivers (91 % of the residual):
+
+| bucket | Σ Jan-Jun Δ | contribution to Σ Δnet | signature |
+|---|---:|---:|---|
+| `cog` | +$1,001 | **−$1,001 (63 %)** | positive every month, ours HIGHER |
+| `fbaObject` (FBAPerUnit + FBAFees) | −$458 | **−$458 (29 %)** | negative every month, ours BOOKS MORE FBA |
+| feesObject Commission↔ReferralFee split | net −$118 | −$118 | Sellerise-side split, cancels except Jan |
+| refundsObject.Tax Withheld | −$108 | −$108 | mostly Jan (−$64) / Feb (−$33) DEFERRED lag |
+| refundsObject.Principal | +$135 | +$135 | mostly Jan; small refund attribution drift |
+| chargesObject.Promotion | +$63 | +$63 | small drift, Sellerise-side rounding |
+| unaccounted small drift | | −$106 | mixed-sign under ~$20/cell |
+
+### cog: per-SKU workbook value drift (fix = workbook data update)
+
+- **UK cog is NOT US×N mechanically-derived** (unlike the CA bug this
+  work chased). Per-ASIN ratios across UK vs US range 1.006–1.590 with
+  most 1.01–1.05 — that's independently-entered per-SKU costs, not a
+  fixed-multiplier bug. The CA writeup's "UK uses ≈US-parity cog"
+  claim was based on ONE SKU (GMAKER-3 = 1.006); reality is more mixed.
+- Per-unit cog gap: **ours $16.29–29.74/u vs Sellerise's $15.12–28.16/u**
+  → +$0.17–3.01/u × units → +$29–$244/mo Δ, same-signed positive every
+  month.
+- **Ridge-anchored leave-one-out CV proves a stable per-SKU structure
+  exists**: LOO-CV Σ|Δ| drops from $1,001 (baseline) to **$207–256**
+  with per-SKU adjustments — meaning if UK sheet per-SKU cog values
+  were tightened by ~5–15 % per SKU, the residual would collapse to
+  ~$40/month mixed-sign (US/CA-post-fix scale).
+- **No pipeline fix.** The workbook is the source of truth for per-SKU
+  cost. This is a data-governance action (user updates UK sheet with
+  more accurate per-unit costs), same fallback documented for CA when
+  real per-SKU sourcing costs land.
+- One CA-style structural note: UK has a **duplicate SKU listing**
+  `B5-FUC0-5AKB` (71 units Jan–Apr) mapping to ASIN B088TWCGKL (same
+  ASIN as `87-B4TQ-CWM8` which is in the workbook at £6.31). Sellerise
+  aggregates by ASIN so it already includes this SKU's cost; ours drops
+  it via the SKU-key join. Adding it would make our cog even higher,
+  which is the wrong direction — it doesn't fix the residual and would
+  amplify it by ~$448 across those months.
+
+### fbaObject: Amazon post-snapshot restatement drift
+
+- Raw sp_breakdowns UK Shipment FBA rate: **$3.53–3.86/unit** (stable
+  across 6 months). Sellerise's implied rate: **~$3.24/unit** (~10 %
+  lower). Same-signed −$60–$135/mo Δ.
+- Attribution basis tested: purchase (Σ|Δ|=$458) beats posted ($504),
+  confirms current config. Not attribution.
+- No refund-side FBA breakdowns; no mapping leak.
+- Signature (stable per-unit rate delta of ~10 %) is the classic
+  restatement-drift fingerprint: Amazon revised UK FBA rates upward
+  after Sellerise's snapshot. Not a pipeline mechanism.
+
+### Bands: tightened so the residual doesn't stay silent
+
+The earlier "0 INVESTIGATE on both guards" at −13.4 % net was the exact
+monitoring failure the CA closeout task warned against — the band
+absorbing the residual. UK bands were tightened to POST-FIX-expected
+sizes (cog 500→100, fbaObject.FBAPerUnitFulfillmentFee 250→50,
+Commission 300→200, refundsObject.Principal 250→200, Tax Withheld
+150→100, FBAFees 50→25). At the current unresolved state UK reports:
+- **9 INVESTIGATE cells vs Sellerise**: 4 cog (Jan/Feb/Apr/May) + 5
+  fbaObject.FBAPerUnitFulfillmentFee (Jan–May). Jun stays trailing;
+  Mar cog Δ=$29 stays within band.
+- **0 INVESTIGATE vs prior pull** (clean pull-to-pull baseline).
+- These will collapse to 0 once the workbook cog is corrected and the
+  FBA drift accepts a fresh Sellerise snapshot.
+
+Perturbation acceptance test (cog × 1.20) fires **6/6 UK months** on
+vs-Sellerise cog (up from 4/6 with the old $500 band) plus 6/6 on both
+vs-prior guards. US/CA numbers unchanged.
 
 Cell-level highlights (UK Jan): `Principal`, `Tax`, `salesTaxes`,
 `storageFee`, `DigitalServicesFee`, gift-wrap lines, several refund

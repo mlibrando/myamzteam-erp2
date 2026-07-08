@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace A1F83G8C2ARO7P
 
-Generated 2026-07-07 09:03:48Z.
+Generated 2026-07-07 09:35:12Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -72,25 +72,39 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |      -604.63 |      -328.35 |      -563.88 |       -40.75 |       235.53 |
 | 2026-06 |      -662.63 |      -537.67 |      -693.07 |        30.44 |       155.40 |
 
-## Drift-guard: 0 INVESTIGATE / 30 TRAILING / 158 WITHIN_DRIFT
+## Drift-guard: 9 INVESTIGATE / 30 TRAILING / 149 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
 `WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.
+
+### 🚨 INVESTIGATE — beyond settled-month band
+
+| month | bucket · sub_line | Δ | band (±) |
+|---|---|---:|---:|
+| 2026-01 | `cog.(scalar)` |       242.84 |       100.00 |
+| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` |       -80.06 |        50.00 |
+| 2026-02 | `cog.(scalar)` |       177.87 |       100.00 |
+| 2026-02 | `fbaObject.FBAPerUnitFulfillmentFee` |      -135.09 |        50.00 |
+| 2026-03 | `fbaObject.FBAPerUnitFulfillmentFee` |       -96.03 |        50.00 |
+| 2026-04 | `cog.(scalar)` |       184.41 |       100.00 |
+| 2026-04 | `fbaObject.FBAPerUnitFulfillmentFee` |       -60.35 |        50.00 |
+| 2026-05 | `cog.(scalar)` |       122.62 |       100.00 |
+| 2026-05 | `fbaObject.FBAPerUnitFulfillmentFee` |       -64.30 |        50.00 |
 
 ### Per-month summary
 
 | month | WITHIN_DRIFT | TRAILING | INVESTIGATE |
 |---|---:|---:|---:|
-| 2026-01 | 35 | 0 | 0 |
-| 2026-02 | 31 | 0 | 0 |
-| 2026-03 | 33 | 0 | 0 |
-| 2026-04 | 29 | 0 | 0 |
-| 2026-05 | 30 | 0 | 0 |
+| 2026-01 | 33 | 0 | 2 |
+| 2026-02 | 29 | 0 | 2 |
+| 2026-03 | 32 | 0 | 1 |
+| 2026-04 | 27 | 0 | 2 |
+| 2026-05 | 28 | 0 | 2 |
 | 2026-06 | 0 | 30 | 0 |
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 30 TRAILING / 158 WITHIN_DRIFT
 
-Prior pull: `2026-07-07T09:03:08.323006+00:00`. Current pull: `2026-07-07T09:03:47.493233+00:00`.
+Prior pull: `2026-07-07T09:34:35.977494+00:00`. Current pull: `2026-07-07T09:35:11.484569+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)

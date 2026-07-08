@@ -116,12 +116,21 @@ _CA_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
 }
 
 # ── UK bands ────────────────────────────────────────────────────────────────
-# UK is ~1/6 US scale. Basis: observed |Δ| Jan-Apr from
-# reference/data/reconcile_report_UK.md. UK has Sellerise-only cells that we
-# don't emit (feesObject.ReferralFee, fbaObject.FBAFees split) — those need
-# wider bands than US. May/Jun storageFee=77.60/59.68 is a documented
-# reclassification (Sellerise moves ServiceFee.FBAStorageFee into
-# expenses.FBAFees), band widened.
+# UK is ~1/6 US scale. Basis: observed |Δ| Jan-Jun from
+# reference/data/reconcile_report_UK.md. Two systematic drivers are UNFIXED
+# pending workbook / Sellerise updates (see UK_RESIDUAL_DIAGNOSIS.md):
+#   - cog: per-SKU workbook cog values are ~$1/unit too high ($0.17-$3.01/u
+#     gap × units → +$29-$244/mo Δ, all six months same-signed positive).
+#     LOO-CV shows the true per-SKU costs exist and would collapse Σ|Δ|
+#     from $1001 to ~$207 if the workbook is corrected. Not a pipeline
+#     mechanism.
+#   - fbaObject: Sellerise's per-unit FBA rate is ~10% lower than the raw
+#     Amazon sp_breakdowns rate — classic post-snapshot restatement drift.
+#     Same-signed −$60-$135/mo.
+# Bands here are sized to the POST-FIX residual (small mixed-sign like UK
+# would look after workbook + FBA reconcile), so at the current UNRESOLVED
+# state they INVESTIGATE — the honest signal that these residuals need
+# attention. Once fixed, INVESTIGATE goes quiet naturally.
 _UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     # chargesObject
     ("chargesObject", "Principal"):            Decimal("20"),     # matches to cent
@@ -133,22 +142,22 @@ _UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     ("chargesObject", "GiftWrap"):             Decimal("5"),
     ("chargesObject", "GiftWrapTax"):          Decimal("5"),
     # feesObject
-    ("feesObject", "Commission"):              Decimal("300"),    # obs max 153.28
+    # Sellerise's split (Commission ↔ ReferralFee) cancels in every settled
+    # month except Jan (−$118); Commission band captures that plus a small
+    # regression margin.
+    ("feesObject", "Commission"):              Decimal("200"),    # obs max 153.28
     ("feesObject", "ShippingChargeback"):      Decimal("10"),
     ("feesObject", "DigitalServicesFee"):      Decimal("5"),
     ("feesObject", "DigitalServicesFeeFBA"):   Decimal("5"),
     ("feesObject", "GiftwrapChargeback"):      Decimal("5"),
-    # UK-only Sellerise-side split: they classify some Commission into
-    # ReferralFee, we don't. Same $ appears twice — negative on Commission,
-    # positive here. Not a bug.
-    ("feesObject", "ReferralFee"):             Decimal("150"),    # obs max 67.46
-    # fbaObject
-    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("250"),    # obs max 135.09
-    # Same UK-only Sellerise split for FBA: they carve out some fees into
-    # FBAFees that we don't split out. Obs max 17.84.
-    ("fbaObject", "FBAFees"):                  Decimal("50"),
+    ("feesObject", "ReferralFee"):             Decimal("100"),    # obs max 67.46
+    # fbaObject — SIZED TO POST-RESTATEMENT-FIX, not current drift.
+    # Current UK FBA Δ is systematic $60-135/mo drift (Amazon post-snapshot
+    # rate revision). Band 50 fires on the drift so it's not hidden.
+    ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("50"),
+    ("fbaObject", "FBAFees"):                  Decimal("25"),     # obs max 17.84
     # refundsObject
-    ("refundsObject", "Principal"):            Decimal("250"),    # obs max 134.55
+    ("refundsObject", "Principal"):            Decimal("200"),    # obs max 134.55
     ("refundsObject", "Commission"):           Decimal("30"),     # obs max 15.06
     ("refundsObject", "DigitalServicesFee"):   Decimal("5"),
     ("refundsObject", "Promotion"):            Decimal("10"),
@@ -158,14 +167,18 @@ _UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     ("refundsObject", "ShippingTax"):          Decimal("5"),
     ("refundsObject", "Tax"):                  Decimal("60"),     # obs max 26.91
     # Tax Withheld tracks DEFERRED refund lag — wider band per obs 63.50.
-    ("refundsObject", "Tax Withheld"):         Decimal("150"),
+    ("refundsObject", "Tax Withheld"):         Decimal("100"),
     # scalars / derived
     # UK storageFee: Sellerise reclassifies ServiceFee.FBAStorageFee into
     # expenses.FBAFees for some months (May: 77.60, Jun: 59.68 in raw data).
     # Widened to accommodate. Non-reclassified months match to cent.
     ("storageFee", "(scalar)"):                Decimal("100"),
     ("salesTaxes", "(derived)"):               Decimal("20"),
-    ("cog", "(scalar)"):                       Decimal("500"),    # obs max 242.84
+    # cog: SIZED TO POST-WORKBOOK-FIX residual (LOO-CV Σ|Δ|=$207 → max
+    # ~$40-70/mo). Band 100 fires on months where the current per-SKU value
+    # gap exceeds that (Jan +$243, Feb +$178, Apr +$184, May +$123, Jun +$244).
+    # Once the workbook is corrected, INVESTIGATE goes quiet.
+    ("cog", "(scalar)"):                       Decimal("100"),
     ("expenses", "(aggregate)"):               Decimal("80"),     # obs max 45.24
 }
 

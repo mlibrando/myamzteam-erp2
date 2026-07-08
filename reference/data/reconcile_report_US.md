@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace ATVPDKIKX0DER
 
-Generated 2026-07-07 09:03:38Z.
+Generated 2026-07-07 09:34:54Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -91,7 +91,7 @@ Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 30 TRAILING / 154 WITHIN_DRIFT
 
-Prior pull: `2026-07-07T09:02:59.379627+00:00`. Current pull: `2026-07-07T09:03:37.661296+00:00`.
+Prior pull: `2026-07-07T09:34:17.892161+00:00`. Current pull: `2026-07-07T09:34:54.330901+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)
