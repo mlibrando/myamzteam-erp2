@@ -244,9 +244,24 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
         conn.commit()
 
     # Write pnl_monthly rows for COGS. Sellerise's top-level `cog` field.
+    #
+    # The currency is the *sheet's*, not the marketplace's. AU is the case that
+    # forced this: its cog column is USD while its transactions are AUD, so a row
+    # hardcoded to the marketplace currency would silently misdescribe itself and
+    # any net built from it would mix currencies. Label it truthfully and warn.
+    from .config import MARKETPLACE_CURRENCY, cog_currency, cog_needs_fx
+    row_currency = cog_currency(marketplace_id)
+    if cog_needs_fx(marketplace_id):
+        log.warning(
+            "%s cog is denominated in %s but its transactions are %s — these rows are "
+            "NOT directly combinable with the marketplace's other pnl_monthly buckets. "
+            "Convert before computing net.",
+            marketplace_id, row_currency, MARKETPLACE_CURRENCY[marketplace_id],
+        )
+
     pnl_rows = [
         (marketplace_id, ym, "cog", "Cost of goods sold",
-         "cog", abs(amount), "USD")
+         "cog", abs(amount), row_currency)
         for ym, amount in sorted(monthly_cogs.items())
         if amount != 0
     ]

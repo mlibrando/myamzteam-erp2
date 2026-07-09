@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+from decimal import Decimal
 
 from sp_api.base import Marketplaces
 
@@ -39,6 +40,31 @@ MARKETPLACE_CURRENCY: dict[str, str] = {
 }
 MARKETPLACE_AD_CURRENCY = MARKETPLACE_CURRENCY   # alias for clarity in ad-load
 
+# Currency of the COGS column in each workbook sheet. This is NOT inferrable
+# from the marketplace: the AU sheet's retail column is AUD while its COGS
+# column is USD, and the CA sheet's COGS column is CAD (= US x 1.35). Verified
+# arithmetically in `reference/data/au_sellerboard_reconcile.md`:
+#
+#   AU: GMAKER-3 cog 30.99 vs US 30.76 (ratio 1.007). If the sheet were AUD the
+#       ratio would be ~1.49. Corroborated by Sellerboard's USD `productCosts`
+#       dividing our USD-basis cog at ~1.05, not ~1.50.
+#   CA: every SKU is exactly US x 1.350 (a CAD markup), so the sheet is CAD.
+#       Unused in practice - MARKETPLACE_COG_SOURCE_OVERRIDE redirects CA to
+#       the US (USD) sheet, which is what Sellerise CA's `cog` actually matches.
+#   UK: US-parity values (GMAKER-3 30.94 vs 30.76), and Sellerise UK's `cog`
+#       matches the sheet, so both sides are the same denomination.
+#
+# A marketplace whose cog currency != its transaction currency needs explicit
+# FX handling at the point of use. Never infer sheet currency from the
+# marketplace again - that assumption is what MARKETPLACE_COG_SOURCE_OVERRIDE
+# was originally (mis)diagnosed as fixing.
+MARKETPLACE_COG_CURRENCY: dict[str, str] = {
+    "ATVPDKIKX0DER": "USD",   # US sheet, US pipeline - no conversion
+    "A2EUQ1WTGCTBG2": "CAD",  # CA sheet is CAD, but overridden to the US sheet
+    "A1F83G8C2ARO7P": "USD",  # UK sheet holds US-parity values
+    "A39IBJ37TRP1C6": "USD",  # AU sheet is USD while AU transactions are AUD
+}
+
 # COGS workbook sheet name per marketplace.
 MARKETPLACE_TO_SHEET: dict[str, str] = {
     "ATVPDKIKX0DER": "US",
@@ -46,6 +72,22 @@ MARKETPLACE_TO_SHEET: dict[str, str] = {
     "A1F83G8C2ARO7P": "UK",
     "A39IBJ37TRP1C6": "AU",
 }
+
+
+def cog_currency(marketplace_id: str) -> str:
+    """Currency of the cog values actually used for `marketplace_id`.
+
+    Resolves MARKETPLACE_COG_SOURCE_OVERRIDE first: CA joins the US sheet, so
+    CA's effective cog currency is USD (the US sheet's), not CAD (its own).
+    """
+    return MARKETPLACE_COG_CURRENCY[cog_source_marketplace(marketplace_id)]
+
+
+def cog_needs_fx(marketplace_id: str) -> bool:
+    """True when a marketplace's effective cog currency differs from the
+    currency its transactions are denominated in, so cog must be converted
+    before it can be combined with transaction-derived buckets."""
+    return cog_currency(marketplace_id) != MARKETPLACE_CURRENCY[marketplace_id]
 
 # Our marketplace_id → sp_api Marketplaces enum. The library uses "GB" for the
 # UK marketplace_id (A1F83G8C2ARO7P) as the canonical name; `.UK` is an alias.
@@ -73,8 +115,21 @@ MARKETPLACE_REFUND_COGS_BASIS: dict[str, str] = {
     "ATVPDKIKX0DER": "purchase",   # US
     "A2EUQ1WTGCTBG2": "posted",    # CA — differs from US
     "A1F83G8C2ARO7P": "purchase",  # UK
-    "A39IBJ37TRP1C6": "purchase",  # AU — assumed until AU Sellerise target lands
+    # AU: UNTESTED. The posted-vs-purchase test needs `order_purchase_date`,
+    # which has 0 AU rows (no getOrders backfill has run for AU). Refunds
+    # therefore fall back to postedDate regardless of this value.
+    "A39IBJ37TRP1C6": "purchase",
 }
+
+# Guard values for the AU cog double-conversion trap. The AU sheet is USD while
+# AU transactions are AUD, so `cog_needs_fx("A39IBJ37TRP1C6")` is True and the
+# cog must be converted exactly once. GMAKER-3 is the canary: US sheet 30.76,
+# AU sheet 30.99, so at an implied rate near 0.70 the AUD cog must land near 44.
+# The two failure modes both produce plausible-looking numbers:
+#   ~21 AUD  = 30.99 x 0.70  (converted the wrong way: USD sheet read as AUD)
+#   ~63 AUD  = 30.99 / 0.70 / 0.70  (converted twice)
+COG_FX_GUARD_SKU = "GMAKER-3"
+COG_FX_GUARD_AUD_RANGE = (Decimal("40"), Decimal("50"))
 
 # Per-marketplace cog *source* override — when set, cog lookups for the key
 # marketplace fall back to the target marketplace's `cogs_per_sku` values.

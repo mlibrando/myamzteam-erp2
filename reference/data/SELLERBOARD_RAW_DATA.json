@@ -1,0 +1,1224 @@
+[
+    {
+        "start": 1767225600,
+        "end": 1783296000,
+        "has_data": false,
+        "forecast": false,
+        "is_totals": true,
+        "task_ids": [
+            "9bf7e80e-002c-4f28-88dd-9379526064ed"
+        ],
+        "status": "preparing",
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "advertisingDetails": [],
+        "sessionsDetails": []
+    },
+    {
+        "start": 1767225600,
+        "end": 1769817600,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": -8.22,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 1290,
+        "mobileAppSessions": 999,
+        "sessions": 2291,
+        "unitSessionPercentage": 4.05936272370144,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 7788.7,
+        "orders": 88,
+        "salesOrganic": 4989.97,
+        "salesPpc": 2417.55,
+        "salesSd": 381.18,
+        "units": 93,
+        "unitsOrganic": 49,
+        "unitsPpc": 40,
+        "unitsSd": 4,
+        "promotionValue": 0,
+        "sponsoredAds": -686.96,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": -194.4,
+        "videoAdsNotProductLevel": true,
+        "sponsoredDisplay": -68.8,
+        "sponsoredDisplayNotProductLevel": false,
+        "hsa": 0,
+        "advertising": -950.16,
+        "realACOS": 12.2,
+        "giftWrap": 0,
+        "refundCostsTotal": -790.08,
+        "refunds": 10,
+        "grossProfit": 1152,
+        "netProfit": 1152,
+        "estimatedPayOut": 3909.04,
+        "amazonFeesTotal": -1727.34,
+        "productCosts": -3160.9,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -75.42,
+        "margin": 14.79,
+        "salesCosts": -3016.45,
+        "missingFromInboundCosts": -69.03,
+        "writeOffCosts": 0,
+        "clicks": 937,
+        "clicksPpc": 851,
+        "clicksSd": 86,
+        "roi": 36.45,
+        "snsActiveSubscriptions": 0,
+        "directSales": 7788.7,
+        "snsSubscriptionSales": 0,
+        "directUnits": 93,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -686.96,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": -194.4,
+                "notProductLevel": true
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": -68.8,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": -8.22,
+        "shippingCostList": [
+            {
+                "value": -8.22,
+                "key": "Shipping_FBA"
+            }
+        ],
+        "refundCosts": [
+            {
+                "hint": "Amount reimbursed to the customer for the products.",
+                "name": "Refunded amount",
+                "amount": -1350.04
+            },
+            {
+                "hint": "Amazon's fee for refunds processing.",
+                "name": "Refund commission",
+                "amount": -21.61
+            },
+            {
+                "hint": "Amount reimbursed to the customer for shipping.",
+                "name": "Refunded shipping",
+                "amount": -7.42
+            },
+            {
+                "hint": "",
+                "name": "Ship Promotion",
+                "amount": 7.42
+            },
+            {
+                "hint": "",
+                "name": "Promotion",
+                "amount": 65.45
+            },
+            {
+                "hint": "Amazon refunded you the referral fee you paid for this product (when it was sold)",
+                "name": "Refunded referral fee",
+                "amount": 112.26
+            },
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 403.86
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -759.57,
+                "notProductLevel": false
+            },
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -677.99,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -519.95,
+                "notProductLevel": true
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.4,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Amazon fee charged for the disposal of inventory.",
+                "name": "FBA disposal fee",
+                "amount": -0.65,
+                "notProductLevel": false
+            },
+            {
+                "hint": "This fee will be charged when your inventory in Amazon&rsquo;s fulfillment centers exceeds your storage limit during any day of the month. You will be charged the storage overage fees after the end of the month when the fees are incurred.",
+                "name": "Long term storage fee",
+                "amount": -0.15,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 73.74,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Products that have been damaged in the shipping center and have been refunded to you.",
+                "name": "Warehouse damage",
+                "amount": 167.63,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 10.75,
+        "sellableQuota": 40,
+        "SellableReturns": 40,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 1290
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 999
+            }
+        ]
+    },
+    {
+        "start": 1769904000,
+        "end": 1772236800,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": -36.76,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 847,
+        "mobileAppSessions": 565,
+        "sessions": 1417,
+        "unitSessionPercentage": 4.234297812279464,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 8487.62,
+        "orders": 59,
+        "salesOrganic": 6046.27,
+        "salesPpc": 2441.35,
+        "salesSd": 0,
+        "units": 60,
+        "unitsOrganic": 40,
+        "unitsPpc": 20,
+        "unitsSd": 0,
+        "promotionValue": 0,
+        "sponsoredAds": -287.84,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": -82.27,
+        "videoAdsNotProductLevel": false,
+        "sponsoredDisplay": -8.71,
+        "sponsoredDisplayNotProductLevel": false,
+        "hsa": 0,
+        "advertising": -378.82,
+        "realACOS": 4.46,
+        "giftWrap": 0,
+        "refundCostsTotal": -108.21,
+        "refunds": 1,
+        "grossProfit": 3405.4,
+        "netProfit": 3405.4,
+        "estimatedPayOut": 6668.1,
+        "amazonFeesTotal": -1271.1,
+        "productCosts": -3287.33,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -243.2,
+        "margin": 40.12,
+        "salesCosts": -3044.13,
+        "missingFromInboundCosts": 0,
+        "writeOffCosts": 0,
+        "clicks": 475,
+        "clicksPpc": 461,
+        "clicksSd": 14,
+        "roi": 103.59,
+        "snsActiveSubscriptions": 0,
+        "directSales": 8487.62,
+        "snsSubscriptionSales": 0,
+        "directUnits": 60,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -287.84,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": -82.27,
+                "notProductLevel": false
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": -8.71,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": -36.76,
+        "shippingCostList": [
+            {
+                "value": -36.76,
+                "key": "Shipping_FBA"
+            }
+        ],
+        "refundCosts": [
+            {
+                "hint": "Amount reimbursed to the customer for the products.",
+                "name": "Refunded amount",
+                "amount": -141.92
+            },
+            {
+                "hint": "",
+                "name": "Unsellable products costs",
+                "amount": -6.36
+            },
+            {
+                "hint": "Amount reimbursed to the customer for shipping.",
+                "name": "Refunded shipping",
+                "amount": -3.12
+            },
+            {
+                "hint": "Amazon's fee for refunds processing.",
+                "name": "Refund commission",
+                "amount": -2.27
+            },
+            {
+                "hint": "",
+                "name": "Ship Promotion",
+                "amount": 3.12
+            },
+            {
+                "hint": "Amazon refunded you the referral fee you paid for this product (when it was sold)",
+                "name": "Refunded referral fee",
+                "amount": 11.35
+            },
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 30.99
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -687.38,
+                "notProductLevel": false
+            },
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -550.85,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -373.16,
+                "notProductLevel": false
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.75,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 351.04,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 1.67,
+        "sellableQuota": 75,
+        "SellableReturns": 75,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 847
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 565
+            }
+        ]
+    },
+    {
+        "start": 1772323200,
+        "end": 1774915200,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": -5.62,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 664,
+        "mobileAppSessions": 360,
+        "sessions": 1032,
+        "unitSessionPercentage": 3.5852713178294575,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 6249.12,
+        "orders": 37,
+        "salesOrganic": 4638.61,
+        "salesPpc": 1610.51,
+        "salesSd": 0,
+        "units": 37,
+        "unitsOrganic": 28,
+        "unitsPpc": 9,
+        "unitsSd": 0,
+        "promotionValue": 0,
+        "sponsoredAds": -144.17,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": 0,
+        "sponsoredDisplay": 0,
+        "hsa": 0,
+        "advertising": -144.17,
+        "realACOS": 2.31,
+        "giftWrap": 0,
+        "refundCostsTotal": -242,
+        "refunds": 2,
+        "grossProfit": 2764.04,
+        "netProfit": 2764.04,
+        "estimatedPayOut": 4863.36,
+        "amazonFeesTotal": -924.94,
+        "productCosts": -2168.35,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -117.7,
+        "margin": 44.23,
+        "salesCosts": -2050.65,
+        "missingFromInboundCosts": 0,
+        "writeOffCosts": 0,
+        "clicks": 297,
+        "clicksPpc": 297,
+        "clicksSd": 0,
+        "roi": 127.47,
+        "snsActiveSubscriptions": 0,
+        "directSales": 6249.12,
+        "snsSubscriptionSales": 0,
+        "directUnits": 37,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -144.17,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": -5.62,
+        "shippingCostList": [
+            {
+                "value": -5.62,
+                "key": "Shipping_FBA"
+            }
+        ],
+        "refundCosts": [
+            {
+                "hint": "Amount reimbursed to the customer for the products.",
+                "name": "Refunded amount",
+                "amount": -332.31
+            },
+            {
+                "hint": "",
+                "name": "Unsellable products costs",
+                "amount": -30.99
+            },
+            {
+                "hint": "Amount reimbursed to the customer for shipping.",
+                "name": "Refunded shipping",
+                "amount": -7.03
+            },
+            {
+                "hint": "Amazon's fee for refunds processing.",
+                "name": "Refund commission",
+                "amount": -5.31
+            },
+            {
+                "hint": "",
+                "name": "Ship Promotion",
+                "amount": 7.03
+            },
+            {
+                "hint": "Amazon refunded you the referral fee you paid for this product (when it was sold)",
+                "name": "Refunded referral fee",
+                "amount": 26.59
+            },
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 100.02
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -497.5,
+                "notProductLevel": false
+            },
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -346.39,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -345.07,
+                "notProductLevel": false
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.75,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Amazon fee charged for the disposal of inventory.",
+                "name": "FBA disposal fee",
+                "amount": -0.4,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 275.17,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 5.41,
+        "sellableQuota": 0,
+        "SellableReturns": 0,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 664
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 360
+            }
+        ]
+    },
+    {
+        "start": 1775001600,
+        "end": 1777507200,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": 0,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 655,
+        "mobileAppSessions": 513,
+        "sessions": 1172,
+        "unitSessionPercentage": 3.3276450511945392,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 6770.19,
+        "orders": 39,
+        "salesOrganic": 3272.06,
+        "salesPpc": 3498.13,
+        "salesSd": 0,
+        "units": 39,
+        "unitsOrganic": 19,
+        "unitsPpc": 20,
+        "unitsSd": 0,
+        "promotionValue": 0,
+        "sponsoredAds": -301.87,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": 0,
+        "sponsoredDisplay": 0,
+        "hsa": 0,
+        "advertising": -301.87,
+        "realACOS": 4.46,
+        "giftWrap": 0,
+        "refundCostsTotal": -166.63,
+        "refunds": 2,
+        "grossProfit": 2923.14,
+        "netProfit": 2923.14,
+        "estimatedPayOut": 5107.48,
+        "amazonFeesTotal": -1094.19,
+        "productCosts": -2284.36,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -69.03,
+        "margin": 43.18,
+        "salesCosts": -2215.33,
+        "missingFromInboundCosts": 0,
+        "writeOffCosts": 0,
+        "clicks": 483,
+        "clicksPpc": 483,
+        "clicksSd": 0,
+        "roi": 127.96,
+        "snsActiveSubscriptions": 0,
+        "directSales": 6770.19,
+        "snsSubscriptionSales": 0,
+        "directUnits": 39,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -301.87,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": 0,
+        "shippingCostList": [],
+        "refundCosts": [
+            {
+                "hint": "Amount reimbursed to the customer for the products.",
+                "name": "Refunded amount",
+                "amount": -284.9
+            },
+            {
+                "hint": "",
+                "name": "Unsellable products costs",
+                "amount": -30.99
+            },
+            {
+                "hint": "Amazon's fee for refunds processing.",
+                "name": "Refund commission",
+                "amount": -4.55
+            },
+            {
+                "hint": "Amazon refunded you the referral fee you paid for this product (when it was sold)",
+                "name": "Refunded referral fee",
+                "amount": 22.8
+            },
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 131.01
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -548.27,
+                "notProductLevel": false
+            },
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -383.32,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -318.61,
+                "notProductLevel": false
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.72,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 166.73,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 5.13,
+        "sellableQuota": 66.67,
+        "SellableReturns": 66.67,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 655
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 513
+            }
+        ]
+    },
+    {
+        "start": 1777593600,
+        "end": 1780185600,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": -6.43,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 739,
+        "mobileAppSessions": 599,
+        "sessions": 1342,
+        "unitSessionPercentage": 3.055141579731744,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 6816.53,
+        "orders": 41,
+        "salesOrganic": 4318.11,
+        "salesPpc": 2498.42,
+        "salesSd": 0,
+        "units": 41,
+        "unitsOrganic": 25,
+        "unitsPpc": 16,
+        "unitsSd": 0,
+        "promotionValue": 0,
+        "sponsoredAds": -391.38,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": 0,
+        "sponsoredDisplay": 0,
+        "hsa": 0,
+        "advertising": -391.38,
+        "realACOS": 5.74,
+        "giftWrap": 0,
+        "refundCostsTotal": -716.96,
+        "refunds": 6,
+        "grossProfit": 2477.99,
+        "netProfit": 2477.99,
+        "estimatedPayOut": 4521.09,
+        "amazonFeesTotal": -1018.67,
+        "productCosts": -2205.1,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -30.99,
+        "margin": 36.35,
+        "salesCosts": -2174.11,
+        "missingFromInboundCosts": 0,
+        "writeOffCosts": 0,
+        "clicks": 646,
+        "clicksPpc": 646,
+        "clicksSd": 0,
+        "roi": 112.38,
+        "snsActiveSubscriptions": 0,
+        "directSales": 6816.53,
+        "snsSubscriptionSales": 0,
+        "directUnits": 41,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -391.38,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": -6.43,
+        "shippingCostList": [
+            {
+                "value": -6.43,
+                "key": "Shipping_FBA"
+            }
+        ],
+        "refundCosts": [
+            {
+                "hint": "Amount reimbursed to the customer for the products.",
+                "name": "Refunded amount",
+                "amount": -960.46
+            },
+            {
+                "hint": "",
+                "name": "Unsellable products costs",
+                "amount": -30.99
+            },
+            {
+                "hint": "Amount reimbursed to the customer for shipping.",
+                "name": "Refunded shipping",
+                "amount": -16.42
+            },
+            {
+                "hint": "Amazon's fee for refunds processing.",
+                "name": "Refund commission",
+                "amount": -15.35
+            },
+            {
+                "hint": "",
+                "name": "Shipping tax",
+                "amount": -1.38
+            },
+            {
+                "hint": "",
+                "name": "ShippingTaxDiscount",
+                "amount": 1.38
+            },
+            {
+                "hint": "",
+                "name": "Ship Promotion",
+                "amount": 16.42
+            },
+            {
+                "hint": "",
+                "name": "LowValueGoodsTax-Principal",
+                "amount": 20
+            },
+            {
+                "hint": "Amazon refunded you the referral fee you paid for this product (when it was sold)",
+                "name": "Refunded referral fee",
+                "amount": 76.85
+            },
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 192.99
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -559.13,
+                "notProductLevel": false
+            },
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -410.27,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -313.19,
+                "notProductLevel": false
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.89,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Amazon fee charged for the disposal of inventory.",
+                "name": "FBA disposal fee",
+                "amount": -3.48,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 128.69,
+                "notProductLevel": false
+            },
+            {
+                "hint": "",
+                "name": "Free replacement refund items",
+                "amount": 149.6,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 14.63,
+        "sellableQuota": 0,
+        "SellableReturns": 0,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 739
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 599
+            }
+        ]
+    },
+    {
+        "start": 1780272000,
+        "end": 1782777600,
+        "has_data": true,
+        "forecast": false,
+        "is_totals": false,
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "Expenses": 0,
+        "TotalProductCount": 0,
+        "Adspends": null,
+        "expensesTotal": 0,
+        "expenses": null,
+        "CostOfShipping": 0,
+        "UnitsPromo": 0,
+        "StvAds": 0,
+        "rasAds": 0,
+        "Shipping_FBA": -5.6,
+        "Shipping_FBM": 0,
+        "Shipping_Prime": 0,
+        "ShippingVeeqo": 0,
+        "ShippingShipStation": 0,
+        "ShippingPick": 0,
+        "ShippingPack": 0,
+        "VAT": 0,
+        "Investments": 0,
+        "Cash": 0,
+        "fb_ads_costs": 0,
+        "ga_ads_costs": 0,
+        "tiktok_ads_costs": 0,
+        "pinterest_ads_costs": 0,
+        "snapchat_ads_costs": 0,
+        "browserSessions": 860,
+        "mobileAppSessions": 623,
+        "sessions": 1488,
+        "unitSessionPercentage": 4.032258064516129,
+        "buyBoxPercentage": 0,
+        "variableExpenses": 0,
+        "showExpansesExclamation": false,
+        "showPpcExclamation": false,
+        "showProductCostExclamation": false,
+        "sales": 6603.44,
+        "orders": 60,
+        "salesOrganic": 4804.92,
+        "salesPpc": 1798.52,
+        "salesSd": 0,
+        "units": 60,
+        "unitsOrganic": 42,
+        "unitsPpc": 18,
+        "unitsSd": 0,
+        "promotionValue": 0,
+        "sponsoredAds": -564.95,
+        "sponsoredAdsNotProductLevel": false,
+        "videoAds": 0,
+        "sponsoredDisplay": 0,
+        "hsa": 0,
+        "advertising": -564.95,
+        "realACOS": 8.56,
+        "giftWrap": 0,
+        "refundCostsTotal": 30.99,
+        "refunds": 0,
+        "grossProfit": 3010.75,
+        "netProfit": 3010.75,
+        "estimatedPayOut": 4953.06,
+        "amazonFeesTotal": -1079.83,
+        "productCosts": -1973.3,
+        "multiChannelCosts": 0,
+        "costOfMissingReturns": -30.99,
+        "margin": 45.59,
+        "salesCosts": -1873.28,
+        "missingFromInboundCosts": -69.03,
+        "writeOffCosts": 0,
+        "clicks": 656,
+        "clicksPpc": 656,
+        "clicksSd": 0,
+        "roi": 152.57,
+        "snsActiveSubscriptions": 0,
+        "directSales": 6603.44,
+        "snsSubscriptionSales": 0,
+        "directUnits": 60,
+        "snsSubscriptionUnits": 0,
+        "advertisingDetails": [
+            {
+                "key": "sponsoredAds",
+                "amount": -564.95,
+                "notProductLevel": false
+            },
+            {
+                "key": "videoAds",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "sponsoredDisplay",
+                "amount": 0,
+                "notProductLevel": false
+            },
+            {
+                "key": "hsa",
+                "amount": 0,
+                "notProductLevel": false
+            }
+        ],
+        "vatCosts": 0,
+        "vatFacilitator": 0,
+        "vatTotal": 0,
+        "shippingCost": -5.6,
+        "shippingCostList": [
+            {
+                "value": -5.6,
+                "key": "Shipping_FBA"
+            }
+        ],
+        "refundCosts": [
+            {
+                "hint": "Cost of items returned in sellable conditions.",
+                "name": "Value of returned items",
+                "amount": 30.99
+            }
+        ],
+        "amazonFees": [
+            {
+                "hint": "The referral fee is a fee which Amazon charges you every time you sell a product. It is a percentage of the total sales price and is usually 15%",
+                "name": "Referral fee",
+                "amount": -602.7,
+                "notProductLevel": false
+            },
+            {
+                "hint": "FBA fee includes the cost of picking, packing, packaging and shipping from Amazon&#039;s warehouse to the customer.",
+                "name": "FBA per unit fulfilment fee",
+                "amount": -454.15,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Amazon charges you for the storage of your products on its warehouses once a month.",
+                "name": "FBA storage fee",
+                "amount": -293.02,
+                "notProductLevel": false
+            },
+            {
+                "hint": "It&#039;s the cost of Amazon subscription of your Amazon account",
+                "name": "Subscription ",
+                "amount": -10.85,
+                "notProductLevel": true
+            },
+            {
+                "hint": "Refunds with shipping by Amazon. For example: The customer wants to return a product and gets 60 days time for it. The customer service will reimburse the customer first and collects the amount from you. However, the customer does not return the item and will be charged again. You will get this money back.",
+                "name": "Reversal reimbursement",
+                "amount": 113.85,
+                "notProductLevel": false
+            },
+            {
+                "hint": "Products that have been damaged in the shipping center and have been refunded to you.",
+                "name": "Warehouse damage",
+                "amount": 167.04,
+                "notProductLevel": false
+            }
+        ],
+        "refundsAmountPercent": 0,
+        "sellableQuota": 50,
+        "SellableReturns": 50,
+        "sessionsDetails": [
+            {
+                "name": "Browser sessions",
+                "value": 860
+            },
+            {
+                "name": "Mobile app sessions",
+                "value": 623
+            }
+        ]
+    },
+    {
+        "start": 1782864000,
+        "end": 1783296000,
+        "has_data": false,
+        "forecast": false,
+        "is_totals": false,
+        "task_ids": [
+            "18cb8c27-223f-44c8-9f5c-5060e0fae2e0"
+        ],
+        "status": "preparing",
+        "compare_to_start": 0,
+        "compare_to_end": 0,
+        "advertisingDetails": [],
+        "sessionsDetails": []
+    }
+]
