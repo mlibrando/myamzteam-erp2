@@ -115,10 +115,27 @@ MARKETPLACE_REFUND_COGS_BASIS: dict[str, str] = {
     "ATVPDKIKX0DER": "purchase",   # US
     "A2EUQ1WTGCTBG2": "posted",    # CA — differs from US
     "A1F83G8C2ARO7P": "purchase",  # UK
-    # AU: UNTESTED. The posted-vs-purchase test needs `order_purchase_date`,
-    # which has 0 AU rows (no getOrders backfill has run for AU). Refunds
-    # therefore fall back to postedDate regardless of this value.
-    "A39IBJ37TRP1C6": "purchase",
+    # AU — measured against Sellerboard, not inherited. Settled on refunded-unit
+    # *counts* vs SB's `refunds` field (6/6 exact on posted, Δ=-4 on purchase),
+    # because the dollar comparison is confounded: `salesCosts` does not net
+    # returns, so pitting a refund-netted cog against it favours whichever basis
+    # happens to offset the bias. AU lands with CA, not with US/UK.
+    "A39IBJ37TRP1C6": "posted",
+}
+
+# Per-marketplace refund *dollar* attribution. Previously assumed uniformly
+# postedDate ("always postedDate in every market tested"). AU is the first
+# marketplace where that was tested against its own target rather than inherited,
+# so it now gets an explicit per-marketplace home rather than a hidden default.
+#
+# AU vs Sellerboard's `refundCosts."Refunded amount"`, Σ|Δ| over Jan-Jun:
+#   posted   $20.31      <- winner, by 90x
+#   purchase $1,829.02
+MARKETPLACE_REFUND_BASIS: dict[str, str] = {
+    "ATVPDKIKX0DER": "posted",     # US
+    "A2EUQ1WTGCTBG2": "posted",    # CA
+    "A1F83G8C2ARO7P": "posted",    # UK
+    "A39IBJ37TRP1C6": "posted",    # AU — measured, see above
 }
 
 # Guard values for the AU cog double-conversion trap. The AU sheet is USD while

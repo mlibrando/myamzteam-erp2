@@ -16,8 +16,13 @@ The reference rate comes only from content-insensitive anchors — refunds (the
 identical events on both sides) and advertising (Ads API, outside the SP-API
 transaction set). Revenue and fees are the buckets under test, so fitting the
 rate to them would absorb a scope error into the rate and then report a clean
-residual. That is precisely what would happen to 2026-01, whose shipment family
-implies ~0.59 while its refunds and ads say ~0.68.
+residual.
+
+Shipments are attributed to order PurchaseDate and refunds to postedDate, which
+is what Sellerboard does (see AU_SHIPMENT_BASIS). Before the AU `getOrders`
+backfill this module ran on postedDate, and 2026-01's shipment family implied a
+rate of 0.591 against refunds' 0.674 — the signature of the misattribution, not
+of FX.
 
 Usage:
     python -m sync.reconcile_au [--report reference/data/au_sellerboard_reconcile.md]
@@ -41,6 +46,8 @@ from .config import (
     COG_FX_GUARD_AUD_RANGE,
     COG_FX_GUARD_SKU,
     MARKETPLACE_CURRENCY,
+    MARKETPLACE_REFUND_BASIS,
+    MARKETPLACE_REFUND_COGS_BASIS,
     cog_currency,
     cog_needs_fx,
     cog_source_marketplace,
@@ -67,19 +74,88 @@ log = logging.getLogger(__name__)
 
 ZERO = Decimal("0")
 
+AU_REFUND_BASIS = MARKETPLACE_REFUND_BASIS[AU_MARKETPLACE_ID]
+AU_REFUND_COGS_BASIS = MARKETPLACE_REFUND_COGS_BASIS[AU_MARKETPLACE_ID]
+
+# Sellerboard attributes shipments to order PurchaseDate and refunds to
+# postedDate. Established on **unit counts**, which cannot be confounded by any
+# dollar-side effect:
+#
+#   shipped units  vs SB `units`  : posted Δ=+14   purchase Δ=-1   -> purchase
+#   refunded units vs SB `refunds`: posted Δ= +0   purchase Δ=-4   -> posted
+#
+# The purchase basis matches SB's units exactly in 5 of 6 months; posted matches
+# in 0 of 6. SB's January `orders` (88) likewise equals our count of *Shipped*
+# Jan-purchased orders exactly.
+#
+# A dollar-only test on cog appears to favour `posted` (Σ|Δ| 471 vs 1,046) but
+# that comparison was malformed on both sides: it pitted our *refund-netted* cog
+# against `salesCosts`, which does not net returns, and the posted basis's extra
+# December-purchased bundles happened to offset the resulting bias. Comparing
+# like with like — our **gross** shipped cog against `salesCosts` — the purchase
+# basis agrees **to the cent in 5 of 6 months** (Σ|Δ| = 86.71, all of it in
+# January). Counts settle the basis; the dollars then confirm it exactly.
+AU_SHIPMENT_BASIS = "purchase"
+
 
 # ── our side (AUD, native) ─────────────────────────────────────────────────
 
-def load_au_leaves(conn: psycopg.Connection) -> dict[str, dict[str, Decimal]]:
-    """{year_month: {"<TxnType>.<breakdown_type>": AUD amount}} for settled AU rows."""
+# Attribution SQL shared by the leaf and unit loaders. Same policy as
+# attribution.py — Shipment on PurchaseDate, Refund on the empirical basis,
+# everything else on postedDate — with both bases parameterised so the
+# posted-vs-purchase tests can be re-run without editing SQL.
+_ATTRIBUTION_YM = """
+    to_char(
+        CASE (t.raw_json->>'transactionType')
+            WHEN 'Shipment' THEN {shipment_date}
+            WHEN 'Refund'   THEN {refund_date}
+            ELSE t.posted_at
+        END AT TIME ZONE 'UTC', 'YYYY-MM')
+"""
+_ORDER_JOIN = """
+    LEFT JOIN LATERAL (
+        SELECT ri->>'relatedIdentifierValue' AS order_id
+        FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+        WHERE ri->>'relatedIdentifierName' = 'ORDER_ID' LIMIT 1
+    ) rel ON true
+    LEFT JOIN order_purchase_date opd
+      ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+"""
+
+
+def _date_expr(basis: str) -> str:
+    if basis not in ("posted", "purchase"):
+        raise ValueError(f"basis must be 'posted' or 'purchase', got {basis!r}")
+    return ("COALESCE(opd.purchase_date, t.posted_at)"
+            if basis == "purchase" else "t.posted_at")
+
+
+def _ym_expr(shipment_basis: str, refund_basis: str) -> str:
+    return _ATTRIBUTION_YM.format(shipment_date=_date_expr(shipment_basis),
+                                  refund_date=_date_expr(refund_basis))
+
+
+def load_au_leaves(
+    conn: psycopg.Connection,
+    shipment_basis: str = AU_SHIPMENT_BASIS,
+    refund_basis: str = "posted",
+) -> dict[str, dict[str, Decimal]]:
+    """{year_month: {"<TxnType>.<breakdown_type>": AUD amount}} for settled AU rows.
+
+    Revenue and fee shipments follow order PurchaseDate, matching Sellerboard:
+    unit counts agree exactly in 5 of 6 months on that basis and in 0 of 6 on
+    postedDate.
+    """
+    ym_expr = _ym_expr(shipment_basis, refund_basis)
     with conn.cursor() as cur:
         cur.execute(
-            """
-            SELECT to_char(t.posted_at AT TIME ZONE 'UTC', 'YYYY-MM') AS ym,
+            f"""
+            SELECT {ym_expr} AS ym,
                    (t.raw_json->>'transactionType') || '.' || b.breakdown_type AS leaf,
                    SUM(b.breakdown_amount)
             FROM sp_breakdowns b
             JOIN sp_transactions t ON t.transaction_id = b.transaction_id
+            {_ORDER_JOIN}
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
             GROUP BY 1, 2
@@ -108,18 +184,59 @@ def load_au_ad_spend(conn: psycopg.Connection) -> dict[str, Decimal]:
         return {ym: Decimal(str(v)) for ym, v in cur.fetchall()}
 
 
-def load_au_net_units(conn: psycopg.Connection) -> dict[str, dict[str, int]]:
+def load_au_cog_units(
+    conn: psycopg.Connection,
+    shipment_basis: str = AU_SHIPMENT_BASIS,
+    refund_cogs_basis: str = "posted",
+) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]]]:
+    """(shipped_units, refunded_units), each {year_month: {sku: units}}.
+
+    Kept apart rather than netted so `net` can mirror Sellerboard's formula,
+    which deducts gross `productCosts` and separately credits back the returned
+    units inside `refundCostsTotal`.
+    """
+    ship_d, refund_d = _date_expr(shipment_basis), _date_expr(refund_cogs_basis)
+    out: tuple[dict, dict] = (defaultdict(dict), defaultdict(dict))
+    with conn.cursor() as cur:
+        for idx, (txn_type, date_expr) in enumerate((("Shipment", ship_d), ("Refund", refund_d))):
+            cur.execute(
+                f"""
+                SELECT to_char({date_expr} AT TIME ZONE 'UTC', 'YYYY-MM'), i.sku,
+                       SUM(i.quantity_shipped)
+                FROM sp_transaction_items i
+                JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+                {_ORDER_JOIN}
+                WHERE t.marketplace_id = %s
+                  AND t.is_deferred_release_event = false
+                  AND (t.raw_json->>'transactionType') = %s
+                  AND i.quantity_shipped > 0
+                GROUP BY 1, 2
+                """,
+                (AU_MARKETPLACE_ID, txn_type),
+            )
+            for ym, sku, qty in cur.fetchall():
+                out[idx][ym][sku] = int(qty)
+    return dict(out[0]), dict(out[1])
+
+
+def load_au_net_units(
+    conn: psycopg.Connection,
+    shipment_basis: str = AU_SHIPMENT_BASIS,
+    refund_cogs_basis: str = "posted",
+) -> dict[str, dict[str, int]]:
     """{year_month: {sku: net units}} — shipments minus refunds, matching Sellerboard's
     `(units_sold - units_refunded) x unit_cog` COGS definition."""
+    ym_expr = _ym_expr(shipment_basis, refund_cogs_basis)
     with conn.cursor() as cur:
         cur.execute(
-            """
-            SELECT to_char(t.posted_at AT TIME ZONE 'UTC', 'YYYY-MM'), i.sku,
+            f"""
+            SELECT {ym_expr}, i.sku,
                    SUM(CASE (t.raw_json->>'transactionType')
                             WHEN 'Shipment' THEN  i.quantity_shipped
                             WHEN 'Refund'   THEN -i.quantity_shipped END)
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
+            {_ORDER_JOIN}
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
               AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
@@ -294,9 +411,10 @@ def main(argv: list[str] | None = None) -> int:
     log.info("Sellerboard gates passed: %d complete months", len(sb_months))
 
     with psycopg.connect(db_url) as conn:
-        leaves = load_au_leaves(conn)
+        leaves = load_au_leaves(conn, refund_basis=AU_REFUND_BASIS)
         ad_aud = load_au_ad_spend(conn)
-        net_units = load_au_net_units(conn)
+        net_units = load_au_net_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS)
+        ship_units, refund_units = load_au_cog_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS)
         cog_rates = load_cog_rates(conn)
 
     rows: list[dict] = []
@@ -310,10 +428,15 @@ def main(argv: list[str] | None = None) -> int:
 
         cog_usd = sum((cog_rates.get(sku, ZERO) * qty for sku, qty in net_units.get(ym, {}).items()),
                       start=ZERO)
+        gross_cog_usd = sum((cog_rates.get(s, ZERO) * q for s, q in ship_units.get(ym, {}).items()),
+                            start=ZERO)
+        returned_cog_usd = sum((cog_rates.get(s, ZERO) * q for s, q in refund_units.get(ym, {}).items()),
+                               start=ZERO)
         rows.append({
             "ym": ym, "rate": rate, "spread": spread, "basis": basis,
             "rates": rates, "fams": fams, "ours": ours, "theirs": theirs, "period": period,
             "ad_aud": ad_aud.get(ym, ZERO), "cog_usd": cog_usd,
+            "gross_cog_usd": gross_cog_usd, "returned_cog_usd": returned_cog_usd,
             "inventory_gap": inventory_loss_gap(period),
         })
 
@@ -399,9 +522,11 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
         a(f"- {f}")
 
     a("\n## net, on Sellerboard's own basis\n")
-    a("Rebuilt from our AUD lines using Sellerboard's formula, then converted. The")
-    a("inventory-loss gap is added back because our cog matches `salesCosts`, so")
-    a("without it we would be comparing a `salesCosts` net to a `productCosts` net.\n")
+    a("Rebuilt from our AUD lines using Sellerboard's own formula: deduct **gross**")
+    a("shipped cog (its `productCosts`), then credit back the returned units")
+    a("(its `Value of returned items`, which sits inside `refundCostsTotal`).")
+    a("Only the inventory-loss gap is borrowed from Sellerboard — `listTransactions`")
+    a("cannot see stock that never sold.\n")
     a("| month | ours (USD) | Sellerboard netProfit | Δ | Δ% |")
     a("|---|---:|---:|---:|---:|")
     tot_net = ZERO
@@ -413,9 +538,9 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
             + r["ours"]["fbaFee"] * r["rate"]
             - r["ours"]["storageFee"] * r["rate"]
             + sum(t.get("refundsObject", {}).values(), start=ZERO)
-            + sum(v for k, v in t.get("expenses", {}).items() if k != "shippingCost")
-            + t.get("expenses", {}).get("shippingCost", ZERO)
-            - r["cog_usd"]
+            + sum(t.get("expenses", {}).values(), start=ZERO)
+            - r["gross_cog_usd"]
+            + r["returned_cog_usd"]
             + r["inventory_gap"]
             - t.get("adExpenses", {}).get("(aggregate)", ZERO)
         )
@@ -427,19 +552,30 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
     a(f"| **Σ** | | | **{tot_net:+,.2f}** | |")
 
     a("\n## cog (compared USD-to-USD; no FX on either side)\n")
-    a(f"AU sheet is USD, Sellerboard is USD. Converting both by the same rate is a")
-    a(f"no-op on the ratio, so cog is compared natively and the FX band does not apply.\n")
-    a("| month | ours (USD) | salesCosts | Δ vs salesCosts | productCosts | inventory-loss gap |")
-    a("|---|---:|---:|---:|---:|---:|")
-    tot_sc = tot_gap = ZERO
+    a("AU sheet is USD, Sellerboard is USD. Converting both by the same rate is a")
+    a("no-op on the ratio, so cog is compared natively and the FX band does not apply.\n")
+    a("`salesCosts` is `units_sold x unit_cog` with inventory losses stripped, so the")
+    a("like-for-like comparison is our **gross shipped** cog — not the refund-netted")
+    a("figure. `productCosts` = `salesCosts` + those losses, which `listTransactions`")
+    a("cannot see.\n")
+    a("| month | ours gross cog | salesCosts | Δ | ours returned cog | valueOfReturned | Δ | inventory-loss gap |")
+    a("|---|---:|---:|---:|---:|---:|---:|---:|")
+    tot_sc = tot_ret = tot_gap = ZERO
     for r in rows:
         sc = r["theirs"]["cog"]["(salesCosts)"]
-        pc = r["theirs"]["cog"]["(productCosts)"]
-        d = sc - r["cog_usd"]
+        vri = r["theirs"].get("cogAdjust", {}).get("ReturnedItemsValue", ZERO)
+        d = r["gross_cog_usd"] - sc
+        dr = r["returned_cog_usd"] - vri
         tot_sc += d
+        tot_ret += dr
         tot_gap += r["inventory_gap"]
-        a(f"| {r['ym']} | {r['cog_usd']:,.2f} | {sc:,.2f} | {d:+,.2f} | {pc:,.2f} | {r['inventory_gap']:+,.2f} |")
-    a(f"| **Σ** | | | **{tot_sc:+,.2f}** | | **{tot_gap:+,.2f}** |")
+        a(f"| {r['ym']} | {r['gross_cog_usd']:,.2f} | {sc:,.2f} | {d:+,.2f} | "
+          f"{r['returned_cog_usd']:,.2f} | {vri:,.2f} | {dr:+,.2f} | {r['inventory_gap']:+,.2f} |")
+    a(f"| **Σ** | | | **{tot_sc:+,.2f}** | | | **{tot_ret:+,.2f}** | **{tot_gap:+,.2f}** |")
+    a("")
+    a("Our AU workbook unit costs **equal Sellerboard's**: five of six months agree to")
+    a("the cent. 2026-01's entire -86.71 is one MBUKB1 unit (workbook cog 86.71) whose")
+    a("order carries no financial transaction — see the S03 orders below.")
 
     a(f"\n## cog FX guard\n")
     usd = cog_rates[COG_FX_GUARD_SKU]

@@ -32,18 +32,27 @@ six months by `assert_net_reproduces`. `salesCosts` overshoots by exactly
 `costOfMissingReturns + missingFromInboundCosts` each month; that is the
 quantity our `listTransactions`-derived cog cannot see, so our cog matches
 `salesCosts`, not `productCosts`.
+
+Junk rows: do NOT filter on `has_data` or `status`. Both moved between the
+2026-07-06 and 2026-07-09 pulls — the totals row flipped to `has_data:true`,
+and the trailing partial month lost its `status:"preparing"` key entirely. The
+summary row is identified by `is_totals`; the in-progress month is identified
+structurally, by not ending on its month's last day.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import pathlib
 import statistics
 from decimal import Decimal
 from typing import Any
 
 from .config import MARKETPLACE_ALIASES
+
+log = logging.getLogger(__name__)
 
 AU_MARKETPLACE_ID = MARKETPLACE_ALIASES["AU"]
 
@@ -112,46 +121,57 @@ class SellerboardParseError(ValueError):
 
 # ── parsing ────────────────────────────────────────────────────────────────
 
-def _is_real_month(period: dict[str, Any]) -> bool:
-    """Reject the leading `is_totals` summary and the trailing `preparing` stub.
+def _is_junk_row(period: dict[str, Any]) -> bool:
+    """Reject the summary row and any explicitly-unready period.
 
-    Ingesting either as a month corrupts every downstream aggregate: the totals
-    row double-counts the whole period, and the stub is a partial month.
+    Sellerboard's flags for these are NOT stable across pulls. In the 2026-07-06
+    pull the totals row and the trailing stub both carried
+    `has_data:false, status:"preparing"`; in the 2026-07-09 pull the totals row
+    carries `has_data:true` and the trailing period has **no `status` key at
+    all**. So neither `has_data` nor `status` can be trusted to identify them.
+
+    `is_totals` is the only durable marker for the summary row (which sums the
+    whole year and would double-count it). The trailing partial month is caught
+    structurally instead, by `_classify_period`.
     """
-    return (
-        bool(period.get("has_data"))
-        and not period.get("is_totals")
-        and period.get("status") != "preparing"
-    )
+    return bool(period.get("is_totals")) or period.get("status") == "preparing"
 
 
-def _assert_calendar_month(period: dict[str, Any]) -> str:
-    """Return 'YYYY-MM', raising if the period is not a whole calendar month.
+def _classify_period(period: dict[str, Any]) -> tuple[str, str]:
+    """Return ('complete'|'partial', 'YYYY-MM'). Raise only on malformed shapes.
 
-    Sellerboard's `end` is the last *day* of the month at 00:00 UTC (Jan ends
-    2026-01-31, not 2026-02-01), so we check start-is-first-day and
-    end-is-last-day rather than a naive span.
+    A month is complete iff it starts on the 1st and ends on that month's last
+    day (Sellerboard's `end` is the last day at 00:00 UTC, not the 1st of the
+    next month). An in-progress month is a legitimate period, not corruption —
+    it is skipped, not fatal. A period that starts mid-month or spans months is
+    corruption, and fails loudly.
     """
     start = dt.datetime.fromtimestamp(period["start"], tz=dt.timezone.utc)
     end = dt.datetime.fromtimestamp(period["end"], tz=dt.timezone.utc)
     if start.day != 1:
         raise SellerboardParseError(f"period does not start on the 1st: {start:%Y-%m-%d}")
-    next_day = end + dt.timedelta(days=1)
-    if next_day.month == end.month:
-        raise SellerboardParseError(f"period does not end on the last day: {end:%Y-%m-%d}")
     if (start.year, start.month) != (end.year, end.month):
         raise SellerboardParseError(f"period spans months: {start:%Y-%m-%d}..{end:%Y-%m-%d}")
-    return f"{start:%Y-%m}"
+    ends_on_last_day = (end + dt.timedelta(days=1)).month != end.month
+    return ("complete" if ends_on_last_day else "partial", f"{start:%Y-%m}")
 
 
 def load_sellerboard(path: pathlib.Path | None = None) -> dict[str, dict[str, Any]]:
-    """Return {year_month: period} for the real, complete calendar months."""
+    """Return {year_month: period} for the complete calendar months only.
+
+    Partial (in-progress) months are dropped with a warning rather than silently
+    averaged into a trailing month or fatally rejected.
+    """
     raw = json.loads((path or SELLERBOARD_JSON).read_text())
     months: dict[str, dict[str, Any]] = {}
     for period in raw:
-        if not _is_real_month(period):
+        if _is_junk_row(period) or not period.get("has_data"):
             continue
-        months[_assert_calendar_month(period)] = period
+        kind, ym = _classify_period(period)
+        if kind == "partial":
+            log.warning("Skipping in-progress month %s (period ends mid-month)", ym)
+            continue
+        months[ym] = period
     if not months:
         raise SellerboardParseError("no complete months found — check the junk-row filter")
     return dict(sorted(months.items()))
