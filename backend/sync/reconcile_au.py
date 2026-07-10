@@ -97,6 +97,27 @@ AU_REFUND_COGS_BASIS = MARKETPLACE_REFUND_COGS_BASIS[AU_MARKETPLACE_ID]
 # January). Counts settle the basis; the dollars then confirm it exactly.
 AU_SHIPMENT_BASIS = "purchase"
 
+# ── January's two residuals, both Sellerboard-side. Do not "fix" either. ──
+#
+# 1. Multi-Channel Fulfilment. Sixteen AU orders carry the `S03-` prefix and
+#    `SalesChannel = "Non-Amazon"`: Amazon fulfils them (AFN) for a sale made off
+#    Amazon, so it posts **no financial event** and they can never appear in
+#    `listTransactions`. That is by design, not a coverage gap — there is nothing
+#    to fetch. Our pipeline correctly omits them, and so does Sellerboard in five
+#    of six months. In January it counted exactly one of the three MCF units:
+#      units    93 = our 92 Amazon-channel units + 1
+#      cog   3,016.45 = our 2,929.74 + 86.71  (exactly one MBUKB1, ASIN B0CX1WMVQV)
+#      sales 7,788.70 ~= (11,367.21 + 199.94 retail) x 0.6736, to 0.04%
+#    January's commission (-30.07) and FBA (-30.27) flags are that same unit's
+#    fees, which Amazon never billed us.
+#
+# 2. Storage GST. Sellerboard's January `FBA storage fee` equals our
+#    **GST-exclusive** figure at the reference rate (0.13% off); every other month
+#    it equals the GST-inclusive figure. The arrears hypothesis is refuted: a
+#    one-month shift makes the fit far worse (Σ|Δ| 535.54 vs 64.17), and our own
+#    `ServiceFee.Tax` (77.40 ~= 10% x 779.54) proves Amazon did charge the GST.
+#    The -52.75 is Sellerboard omitting GST from one line in one month.
+
 
 # ── our side (AUD, native) ─────────────────────────────────────────────────
 

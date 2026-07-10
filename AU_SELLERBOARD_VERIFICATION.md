@@ -607,3 +607,183 @@ sized against Sellerboard's measured restatement (trailing settled month only, ~
 
 No US/CA/UK number, report, or `order_purchase_date` row changed. No new abstractions: the Orders
 sweep and the attribution policy were reused as-is.
+
+---
+
+# Closing January — storage fee, S03, and the US/CA/UK sweep
+
+Both open items are now **resolved by test**. Both turned out to be Sellerboard-side, not ours.
+A fifth plausible label (`arrears-billed, therefore December`) fell.
+
+## Step 1 — the storage-fee arrears hypothesis is REFUTED
+
+Sellerboard's file starts 2026-01-01, so its December cannot be consulted. Our own storage
+transactions carry no billing-period field (`contexts: null`, `description: "FBAStorageBilling"`).
+So the hypothesis was tested structurally instead: **if Sellerboard books storage to the month it
+bills for, shifting our postings one month should improve the fit.**
+
+| SB month | SB storage USD | ours, posted same month | Δ | ours, posted M+1 | Δ |
+|---|---:|---:|---:|---:|---:|
+| 2026-01 | 519.95 | 572.67 | +52.72 | 358.82 | −161.13 |
+| 2026-02 | 373.16 | 370.60 | −2.56 | 342.27 | −30.89 |
+| 2026-03 | 345.07 | 346.26 | +1.19 | 324.25 | −20.82 |
+| 2026-04 | 318.61 | 321.81 | +3.20 | 302.32 | −16.29 |
+| 2026-05 | 313.19 | 312.80 | −0.39 | 299.78 | −13.41 |
+| 2026-06 | 293.02 | 288.92 | −4.10 | — | −293.02 |
+| **Σ\|Δ\|** | | | **64.17** | | **535.54** |
+
+**Posted-month wins by 8×.** Sellerboard books storage on the posted month, matching us within a
+few dollars in Feb–Jun. Arrears is refuted.
+
+### What January's −52.75 actually is
+
+Implied rate = SB storage ÷ our AUD, compared against that month's reference rate:
+
+| month | reference | implied if we are GST-**exclusive** | implied if GST-**inclusive** | verdict |
+|---|---:|---:|---:|---|
+| **2026-01** | 0.6736 | **0.6727** | 0.6116 | **GST-EXCLUSIVE** |
+| 2026-02 | 0.6957 | 0.7706 | 0.7005 | GST-inclusive |
+| 2026-03 | 0.7038 | 0.7715 | 0.7014 | GST-inclusive |
+| 2026-04 | 0.6985 | 0.7607 | 0.6916 | GST-inclusive |
+| 2026-05 | 0.7227 | 0.7960 | 0.7236 | GST-inclusive |
+| 2026-06 | 0.6965 | 0.7770 | 0.7064 | GST-inclusive |
+
+Sellerboard's January storage equals our **GST-exclusive** figure at the reference rate, to **0.13%**
+(519.95 vs 520.61 USD). Every other month it equals the GST-inclusive figure.
+
+And Amazon *did* charge the GST: our `ServiceFee.Tax` for January is 77.40 AUD ≈ 10% × 779.54
+(storage 772.88 + disposal/LTSF 6.66). So "the December bill was GST-free" is refuted from our own
+data too.
+
+**Verdict: explained.** Sellerboard omitted GST from one line in one month. A named
+Sellerboard-side difference — not absorbed, not fixed on our side.
+
+## Step 2 — S03 is Multi-Channel Fulfilment: a permanent, by-design gap
+
+Pulled from the Orders API. The S03 orders differ from every other order on exactly one axis:
+
+| attribute | S03 (n=6) | all others (n=154) |
+|---|---|---|
+| **SalesChannel** | **`Non-Amazon`** | `Amazon.com.au` |
+| FulfillmentChannel | AFN | AFN |
+| OrderType | StandardOrder | StandardOrder |
+| PaymentMethod | *(none)* | Other |
+| SellerOrderId | present (e.g. `VwwQPXUawA`) | absent |
+| Earliest/LatestShipDate | `1995-01-01` sentinel | real dates |
+
+These are **Multi-Channel Fulfilment** orders: the sale happened off Amazon, Amazon only fulfils.
+Amazon posts **no financial event**, so they can never appear in `listTransactions`.
+
+**Permanent, not delayed.** All 16 S03 orders (12 Shipped, 4 Canceled) have **zero** transactions
+anywhere in the payload — not merely no `ORDER_ID` match, no occurrence of the order id at all. All
+12 Shipped ones have a `LastUpdateDate` long before our latest AU transaction (2026-06-30). Nothing
+is pending. There is nothing to fetch.
+
+### Sellerboard counts MCF inconsistently — and that is January's whole residual
+
+| month | Amazon orders / units | MCF orders / units | SB orders / units | SB units − Amazon units |
+|---|---|---|---|---:|
+| 2026-01 | 86 / 92 | 2 / 3 | 88 / **93** | **+1** |
+| 2026-02 | 58 / 60 | 4 / 4 | 59 / 60 | 0 |
+| 2026-03 | 37 / 37 | 2 / 2 | 37 / 37 | 0 |
+| 2026-04 | 39 / 39 | 0 / 0 | 39 / 39 | 0 |
+| 2026-05 | 41 / 41 | 3 / 3 | 41 / 41 | 0 |
+| 2026-06 | 57 / 60 | 0 / 0 | 60 / 60 | 0 |
+
+Sellerboard excludes MCF from `units` in five of six months. **In January it included exactly one
+of the three MCF units.** Three independent, currency-free confirmations:
+
+1. **Units.** SB 93 = our 92 Amazon-channel units + 1.
+2. **cog** (USD both sides, no FX): `2,929.74 + 86.71 = 3,016.45` = SB `salesCosts`, **exactly**.
+   86.71 is MBUKB1's workbook cog, and the only 1–2 unit combination of AU SKUs summing to it.
+3. **Revenue.** Both January MCF orders contain ASIN **B0CX1WMVQV** — MBUKB1's ASIN — under SKU
+   `4X-RU2Z-1S2T` (absent from the workbook). Adding one at its 199.94 AUD retail price moves
+   January's revenue residual from **+131.44 → −3.24 USD (0.04% of SB's figure)**.
+
+The cog cross-check across all six months, in units of MBUKB1's cog:
+
+| month | ours gross cog | SB salesCosts | Δ | = n × 86.71 |
+|---|---:|---:|---:|---:|
+| 2026-01 | 2,929.74 | 3,016.45 | +86.71 | **1.000** |
+| 2026-02 | 3,044.13 | 3,044.13 | 0.00 | 0.000 |
+| 2026-03 | 2,050.65 | 2,050.65 | 0.00 | 0.000 |
+| 2026-04 | 2,215.33 | 2,215.33 | 0.00 | 0.000 |
+| 2026-05 | 2,174.11 | 2,174.11 | 0.00 | 0.000 |
+| 2026-06 | 1,873.28 | 1,873.28 | 0.00 | 0.000 |
+
+January's commission (−30.07) and FBA (−30.27) flags are the same unit's fees, which Amazon never
+billed us for. We cannot verify their exact composition line-by-line — no financial event exists —
+but the unit itself is identified beyond doubt by two FX-independent measures (count and cog).
+
+### AU's full MCF exposure
+
+All 12 Shipped MCF orders, items fetched from the Orders API:
+
+| ASIN | workbook SKU | units | cog USD | retail AUD |
+|---|---|---:|---:|---:|
+| B0CX1WMVQV | MBUKB1 | 8 | 693.68 | 1,599.52 |
+| B0DDL84DNV | GMAKER-3 | 2 | 61.98 | 407.98 |
+| B084Q3HHTH | 1-420-240V-AU | 1 | 69.03 | 284.99 |
+| B088TWCGKL | 83-EFO4-1SGB | 1 | 6.36 | 30.82 |
+| B08CVW3W8X | UP-EMO2-CQK5 | 1 | 3.88 | 30.82 |
+| **Σ (incl. 1 Dec order)** | | **13** | **834.93** | **2,354.13** |
+
+Restricted to Jan–Jun: **11 orders, 12 units, $831.05 cog, 2,323.31 AUD retail** (~$1,620 USD).
+Sellerboard counted exactly **one** of those 12 units.
+
+## Step 3 — the S03 class does not exist in US, CA or UK
+
+Read-only. Shipped orders purchased 2026-01-01 … 2026-05-31 (safely inside every marketplace's
+transaction coverage) with **zero** rows in `sp_transactions`:
+
+| marketplace | Shipped orders | with no transaction | % | prefixes |
+|---|---:|---:|---:|---|
+| US | 8,143 | **0** | 0.0% | — |
+| CA | 304 | **0** | 0.0% | — |
+| UK | 702 | **0** | 0.0% | — |
+| AU | 272 | 11 | 4.0% | `S03` × 11 (100%) |
+
+Confirmed live against the Orders API (one week per marketplace): `SalesChannel` is
+`Amazon.com` / `Amazon.ca` / `Amazon.co.uk` for **every** US/CA/UK order; `Non-Amazon` appears in AU
+only. The Orders API surfaces MCF orders everywhere — the other marketplaces simply have none.
+
+**$ exposure outside AU: zero.** US's accepted +1.70% residual is **not** contaminated by this class.
+No US/CA/UK number, mapping, or report was touched.
+
+## Step 4 — January: diagnosed and closed at cause, but not zero
+
+Both open items resolved, and **both live on Sellerboard's side of the comparison**:
+
+| January flag | cause | verdict |
+|---|---|---|
+| cog −86.71 | SB counted 1 of 3 MCF units (1 × MBUKB1) | **explained, exact** |
+| revenue +131.44 | same MCF unit at 199.94 AUD retail (adding it → −3.24) | **explained, 0.04%** |
+| commission −30.07 | same MCF unit's fees | explained (composition unverifiable — no financial event) |
+| FBA −30.27 | same MCF unit's fees | explained (same) |
+| storage −52.75 | SB omitted GST from its Jan storage line | **explained, 0.13%** |
+
+Our pipeline is correct on every one of them. It excludes MCF orders because Amazon posts nothing
+for them, and it grosses storage up by the GST Amazon actually charged.
+
+**So: January is diagnosed and closed at cause, but its residual is not zero — and I am not going to
+call it "clean".** The residual is real, it just does not belong to us. Calling it clean would mean
+absorbing two Sellerboard-side artifacts into a tolerance, which is exactly what this project has
+refused to do five times now.
+
+### Bands: may now be derived, deliberately not wired here
+
+Every AU residual is now named:
+
+- Feb–Jun: cog agrees **to the cent**; every bucket is inside the FX band.
+- Jan: five flags, all traced to one MCF unit and one missing GST line.
+- Named non-drift differences: inventory-loss gap (−$705.39), MCF exclusion, Jan storage GST.
+
+Bands **may** now be derived — the blocker (an undiagnosed January) is gone. They are **not wired in
+this task**, for a reason that matters: January still carries two Sellerboard-side artifacts, so a
+band fitted across all six months would be sized to absorb them. Bands should be derived from the
+five clean months, with January's two named differences excluded, and validated by the perturbation
+acceptance test — the same discipline used for US/CA/UK. That is a separate task, and the brief
+asked only that this one *state* they may be derived.
+
+Sellerboard's measured restatement (trailing settled month only, ≈$0.10) is the drift magnitude
+those bands should be scaled against.
