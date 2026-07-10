@@ -1,5 +1,23 @@
 # Claude Code Task — Diagnose UK's −13.4% net residual (it was never actually diagnosed)
 
+> **SUPERSEDED PREMISES (two).** Body left as written. See
+> [`../data/decisions_audit.md`](../data/decisions_audit.md).
+>
+> - **Step 2's analogy to CA is built on a refuted reading.** "CA's bug was cog derived from US by a
+>   fixed multiplier (×1.35) instead of real costs" — no. The CA sheet is **CAD**; ×1.350 is a
+>   correct CAD markup. CA's cog was fixed by joining the US sheet so that a **USD cog meets
+>   Sellerise-CA's USD `cog`**, a currency fix, not a cost-quality fix. The CA precedent therefore
+>   says nothing about UK per-SKU cost quality.
+> - **The UK cog gap is a Sellerise-side defect, not ours.** The component cost build-up validates
+>   the UK sheet (ABDB 78.53, GMAKER-3 30.94, MBUKB1 96.06 all tie out to invoice). Sellerise
+>   understates ABDB and MBUKB1; it matches GMAKER-3. Do **not** run the "is UK cog wrong / derived"
+>   line of inquiry, do **not** edit the UK workbook, and do **not** retune our cog toward
+>   Sellerise's implied values.
+>
+> UK's other driver — the `fbaObject` −$458 same-signed residual, labelled "Amazon post-snapshot
+> restatement" — remains the project's one **untested** label. It rests on a rate-signature
+> inference; no re-pull experiment has been run.
+
 ## Context
 
 Final rollout table shows: US +1.70%, CA −3.50% (after its cog fix), **UK −13.39%** of net

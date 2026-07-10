@@ -29,6 +29,7 @@ Design:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from decimal import Decimal
 
 # ── US bands ────────────────────────────────────────────────────────────────
@@ -231,6 +232,38 @@ NET_BAND        = Decimal("5000")
 TRAILING_MULTIPLIER = Decimal("3")
 
 
+# ── Known target-side defects ───────────────────────────────────────────────
+# A KNOWN_TARGET_DEFECT is a Δ diagnosed to the *reconciliation target*, not to
+# our pipeline: our number is right and the target's is wrong. Widening a band
+# to hide such a Δ would also blind that cell to a real regression, so instead
+# we **pin** it. The Δ must stay at its measured magnitude within a tight
+# tolerance; if it moves — in either direction, including toward zero because
+# the target fixed its bug — the cell fires INVESTIGATE and someone re-reads
+# the registry entry.
+#
+# This is not a band with a nicer name. `tolerance` is the cell's own measured
+# noise floor (the vs-prior-pull band for Sellerise cells, the FX-granularity
+# band for Sellerboard cells), never a multiple of the defect's size.
+KNOWN_TARGET_DEFECT = "KNOWN_TARGET_DEFECT"
+
+
+@dataclass(frozen=True)
+class TargetDefect:
+    """One pinned target-side defect.
+
+    `expected_delta` is always **ours − theirs**, matching `reconcile.py`'s
+    `diffs`. `reconcile_au.py` renders `theirs − ours` in its own table and
+    negates before consulting this registry.
+    """
+
+    expected_delta: Decimal
+    tolerance: Decimal
+    note: str
+
+    def matches(self, delta_ours_minus_theirs: Decimal) -> bool:
+        return abs(delta_ours_minus_theirs - self.expected_delta) <= self.tolerance
+
+
 def band_for(bucket: str, sub_line: str, is_trailing: bool,
              marketplace_id: str | None = None) -> Decimal:
     """Return the drift band for one cell, adjusting for trailing regime.
@@ -251,8 +284,18 @@ def band_for(bucket: str, sub_line: str, is_trailing: bool,
     return base
 
 
-def classify(delta: Decimal, band: Decimal, is_trailing: bool) -> str:
-    """Return WITHIN_DRIFT | TRAILING | INVESTIGATE."""
+def classify(delta: Decimal, band: Decimal, is_trailing: bool,
+             defect: TargetDefect | None = None) -> str:
+    """Return KNOWN_TARGET_DEFECT | WITHIN_DRIFT | TRAILING | INVESTIGATE.
+
+    A registered defect takes precedence over the band, in both directions: the
+    cell is KNOWN_TARGET_DEFECT only while `delta` sits at the defect's measured
+    magnitude, and INVESTIGATE the moment it leaves that tolerance. It never
+    falls back to the band — a pinned cell whose Δ has moved is a finding even
+    if the new Δ happens to be small.
+    """
+    if defect is not None:
+        return KNOWN_TARGET_DEFECT if defect.matches(delta) else "INVESTIGATE"
     if is_trailing:
         return "TRAILING" if abs(delta) < band else "INVESTIGATE"
     return "WITHIN_DRIFT" if abs(delta) < band else "INVESTIGATE"
@@ -434,3 +477,78 @@ def prior_pull_band_for(bucket: str, sub_line: str, is_trailing: bool,
     if is_trailing:
         return base * TRAILING_MULTIPLIER
     return base
+
+
+# ── The registry ────────────────────────────────────────────────────────────
+# Keyed (marketplace_id, year_month, bucket, sub_line). See TargetDefect for the
+# sign convention (ours − theirs) and the tolerance rule.
+#
+# Only cells whose defect breaches its band are registered. Where the same
+# defect sits inside the band, the band already covers it and pinning would add
+# nothing — each entry says which months those are.
+
+_UK = "A1F83G8C2ARO7P"
+_AU = "A39IBJ37TRP1C6"
+
+_UK_COG_NOTE = (
+    "Sellerise understates UK per-SKU cost. Our workbook is validated against the component "
+    "cost build-up (ABDB 78.53, GMAKER-3 30.94, MBUKB1 96.06 — all tie out to invoice); "
+    "Sellerise's values do not. Do NOT edit the workbook; do NOT retune our cog to match. "
+    "Measured aggregate Δ Jan–Jun = +$1,000.62, of which 2026-03 (+29.34) and 2026-06 "
+    "(+243.54, trailing) sit inside their bands and are not pinned here. "
+    "OPEN: the relayed per-SKU magnitudes (ABDB ~28%, MBUKB1 ~2%) do not reconcile with that "
+    "aggregate — 28% on ABDB alone implies +$2,484.69 — and Sellerise exposes only monthly "
+    "aggregate cog, so per-SKU cannot be confirmed from this repo. The classification rests on "
+    "the build-up table; the magnitude is open with Elena."
+)
+
+# The UK vs-prior-pull cog band is the calibrated 'how far may this cell legitimately
+# move between two pulls' figure. Reuse it rather than inventing a tolerance.
+_UK_COG_TOL = _UK_PRIOR_PULL_BANDS[("cog", "(scalar)")]   # $25
+
+_AU_MCF_NOTE = (
+    "Sellerboard counted exactly one Multi-Channel-Fulfilment unit (MBUKB1, ASIN B0CX1WMVQV) in "
+    "2026-01, and correctly excludes MCF in the other five months. Our exclusion is right in all "
+    "six: MCF orders carry SalesChannel='Non-Amazon' and Amazon posts no financial event, so "
+    "listTransactions cannot return them. The one unit moves Jan cog (−86.71 = its workbook cog), "
+    "commission (+30.07) and FBA fee (+30.27) — fees Amazon never billed us."
+)
+
+_AU_STORAGE_GST_NOTE = (
+    "Sellerboard omitted GST from its 2026-01 `FBA storage fee` line; every other month it reports "
+    "the GST-inclusive figure. Amazon did charge the GST — our ServiceFee.Tax of 77.40 is 10% of "
+    "the 779.54 storage base. The billed-in-arrears hypothesis is refuted structurally: shifting "
+    "one month fits 8x worse (Σ|Δ| 535.54 vs 64.17)."
+)
+
+# AU tolerances are each cell's own FX-granularity band for that month
+# (max(|ours_aud| x FX_RATE_TOLERANCE, $5.00)) — the residual a monthly rate can
+# produce on its own. Below that, a move cannot be distinguished from FX noise;
+# above it, the defect has changed.
+TARGET_DEFECTS: dict[tuple[str, str, str, str], TargetDefect] = {
+    # ── UK: Sellerise-side per-SKU cog understatement (4 settled cells) ──
+    (_UK, "2026-01", "cog", "(scalar)"): TargetDefect(Decimal("242.84"), _UK_COG_TOL, _UK_COG_NOTE),
+    (_UK, "2026-02", "cog", "(scalar)"): TargetDefect(Decimal("177.87"), _UK_COG_TOL, _UK_COG_NOTE),
+    (_UK, "2026-04", "cog", "(scalar)"): TargetDefect(Decimal("184.41"), _UK_COG_TOL, _UK_COG_NOTE),
+    (_UK, "2026-05", "cog", "(scalar)"): TargetDefect(Decimal("122.62"), _UK_COG_TOL, _UK_COG_NOTE),
+
+    # ── AU: Sellerboard omitted GST from one storage line, one month ──
+    (_AU, "2026-01", "storageFee", "storageFee"):
+        TargetDefect(Decimal("52.75"), Decimal("17.00"), _AU_STORAGE_GST_NOTE),
+
+    # ── AU: Sellerboard counted 1 of 3 MCF units in 2026-01 ──
+    (_AU, "2026-01", "feesObject", "Commission"):
+        TargetDefect(Decimal("30.07"), Decimal("19.24"), _AU_MCF_NOTE),
+    (_AU, "2026-01", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("30.27"), Decimal("21.65"), _AU_MCF_NOTE),
+    # cog is compared USD-to-USD with no FX on either side, so its tolerance is
+    # cent-rounding, not an FX band. One more MCF unit would move it by ~86.71.
+    (_AU, "2026-01", "cog", "(salesCosts)"):
+        TargetDefect(Decimal("-86.71"), Decimal("1.00"), _AU_MCF_NOTE),
+}
+
+
+def target_defect_for(marketplace_id: str | None, year_month: str,
+                      bucket: str, sub_line: str) -> TargetDefect | None:
+    """The registered target-side defect for one cell, or None."""
+    return TARGET_DEFECTS.get((marketplace_id or "", year_month, bucket, sub_line))

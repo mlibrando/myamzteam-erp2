@@ -41,12 +41,16 @@ rate by any plausible intra-month FX move.
 |ours_aud| x 0.02 (the widest residual a rate error alone can
 produce), floored at $5.00 for Sellerboard's cent-rounding.
 
+A cell in the target-defect registry (`drift_bands.TARGET_DEFECTS`) is **pinned** to its
+measured Δ rather than banded: it reads `KNOWN_TARGET_DEFECT` while it holds that value and
+`CONTENT` the moment it moves, in either direction.
+
 | month | bucket | ours (USD) | Sellerboard | post-FX Δ | Δ% | FX band | verdict |
 |---|---|---:|---:|---:|---:|---:|---|
 | 2026-01 | `chargesObject.Revenue` | 7,657.26 | 7,788.70 | +131.44 | +1.72% | ±227.34 | FX noise |
-| 2026-01 | `feesObject.Commission` | -647.92 | -677.99 | -30.07 | -4.64% | ±19.24 | **CONTENT** |
-| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` | -729.30 | -759.57 | -30.27 | -4.15% | ±21.65 | **CONTENT** |
-| 2026-01 | `storageFee.storageFee` | 572.70 | 519.95 | -52.75 | -9.21% | ±17.00 | **CONTENT** |
+| 2026-01 | `feesObject.Commission` | -647.92 | -677.99 | -30.07 | -4.64% | ±19.24 | **KNOWN_TARGET_DEFECT** |
+| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` | -729.30 | -759.57 | -30.27 | -4.15% | ±21.65 | **KNOWN_TARGET_DEFECT** |
+| 2026-01 | `storageFee.storageFee` | 572.70 | 519.95 | -52.75 | -9.21% | ±17.00 | **KNOWN_TARGET_DEFECT** |
 | 2026-01 | `refundsObject.Principal` | -1,350.36 | -1,350.04 | +0.32 | +0.02% | ±40.09 | FX noise |
 | 2026-01 | `refundsObject.Commission` | 112.26 | 112.26 | -0.00 | -0.00% | ±5.00 | FX noise |
 | 2026-02 | `chargesObject.Revenue` | 8,414.47 | 8,487.62 | +73.15 | +0.87% | ±241.89 | FX noise |
@@ -80,11 +84,17 @@ produce), floored at $5.00 for Sellerboard's cent-rounding.
 | 2026-06 | `refundsObject.Principal` | 0.00 | 0.00 | +0.00 | +0.00% | ±5.00 | FX noise |
 | 2026-06 | `refundsObject.Commission` | 0.00 | 0.00 | +0.00 | +0.00% | ±5.00 | FX noise |
 
-**3 CONTENT flags** (post-FX residual beyond the FX band):
+**3 KNOWN_TARGET_DEFECT** (diagnosed to Sellerboard; pinned, not excused):
 
 - 2026-01 feesObject.Commission -30.07
 - 2026-01 fbaObject.FBAPerUnitFulfillmentFee -30.27
 - 2026-01 storageFee.storageFee -52.75
+
+- Sellerboard counted exactly one Multi-Channel-Fulfilment unit (MBUKB1, ASIN B0CX1WMVQV) in 2026-01, and correctly excludes MCF in the other five months. Our exclusion is right in all six: MCF orders carry SalesChannel='Non-Amazon' and Amazon posts no financial event, so listTransactions cannot return them. The one unit moves Jan cog (−86.71 = its workbook cog), commission (+30.07) and FBA fee (+30.27) — fees Amazon never billed us.
+- Sellerboard omitted GST from its 2026-01 `FBA storage fee` line; every other month it reports the GST-inclusive figure. Amazon did charge the GST — our ServiceFee.Tax of 77.40 is 10% of the 779.54 storage base. The billed-in-arrears hypothesis is refuted structurally: shifting one month fits 8x worse (Σ|Δ| 535.54 vs 64.17).
+
+**0 CONTENT flags** (post-FX residual beyond the FX band, undiagnosed):
+
 
 ## net, on Sellerboard's own basis
 
@@ -114,19 +124,21 @@ like-for-like comparison is our **gross shipped** cog — not the refund-netted
 figure. `productCosts` = `salesCosts` + those losses, which `listTransactions`
 cannot see.
 
-| month | ours gross cog | salesCosts | Δ | ours returned cog | valueOfReturned | Δ | inventory-loss gap |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| 2026-01 | 2,929.74 | 3,016.45 | -86.71 | 541.92 | 403.86 | +138.06 | -144.45 |
-| 2026-02 | 3,044.13 | 3,044.13 | +0.00 | 30.99 | 30.99 | +0.00 | -243.20 |
-| 2026-03 | 2,050.65 | 2,050.65 | +0.00 | 100.02 | 100.02 | +0.00 | -117.70 |
-| 2026-04 | 2,215.33 | 2,215.33 | +0.00 | 61.98 | 131.01 | -69.03 | -69.03 |
-| 2026-05 | 2,174.11 | 2,174.11 | +0.00 | 223.98 | 192.99 | +30.99 | -30.99 |
-| 2026-06 | 1,873.28 | 1,873.28 | +0.00 | 0.00 | 30.99 | -30.99 | -100.02 |
-| **Σ** | | | **-86.71** | | | **+69.03** | **-705.39** |
+| month | ours gross cog | salesCosts | Δ | verdict | ours returned cog | valueOfReturned | Δ | inventory-loss gap |
+|---|---:|---:|---:|---|---:|---:|---:|---:|
+| 2026-01 | 2,929.74 | 3,016.45 | -86.71 | **KNOWN_TARGET_DEFECT** | 541.92 | 403.86 | +138.06 | -144.45 |
+| 2026-02 | 3,044.13 | 3,044.13 | +0.00 | exact | 30.99 | 30.99 | +0.00 | -243.20 |
+| 2026-03 | 2,050.65 | 2,050.65 | +0.00 | exact | 100.02 | 100.02 | +0.00 | -117.70 |
+| 2026-04 | 2,215.33 | 2,215.33 | +0.00 | exact | 61.98 | 131.01 | -69.03 | -69.03 |
+| 2026-05 | 2,174.11 | 2,174.11 | +0.00 | exact | 223.98 | 192.99 | +30.99 | -30.99 |
+| 2026-06 | 1,873.28 | 1,873.28 | +0.00 | exact | 0.00 | 30.99 | -30.99 | -100.02 |
+| **Σ** | | | **-86.71** | | | | **+69.03** | **-705.39** |
 
 Our AU workbook unit costs **equal Sellerboard's**: five of six months agree to
 the cent. 2026-01's entire -86.71 is one MBUKB1 unit (workbook cog 86.71) whose
-order carries no financial transaction — see the S03 orders below.
+order carries no financial transaction — see the S03 orders below. That cell is
+pinned in `drift_bands.TARGET_DEFECTS`: if it stops being exactly one unit, it
+stops reading KNOWN_TARGET_DEFECT.
 
 ## cog FX guard
 

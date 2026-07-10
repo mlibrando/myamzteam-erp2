@@ -827,7 +827,9 @@ def reconcile(
 
     # ── Drift-guard (regression detector — vs Sellerise) ────────────────────
     # For every settled bucket + sub_line, classify the Δ against its band.
-    # WITHIN_DRIFT / TRAILING / INVESTIGATE per DRIFT_BASELINE.md.
+    # KNOWN_TARGET_DEFECT / WITHIN_DRIFT / TRAILING / INVESTIGATE per
+    # DRIFT_BASELINE.md. A cell in DRIFT_BANDS' target-defect registry is pinned
+    # to its measured Δ instead of being banded — see drift_bands.TargetDefect.
     drift_guard: list[dict] = []
     for d in diffs:
         is_trailing = (d["year_month"] == trailing)
@@ -838,10 +840,15 @@ def reconcile(
             continue
         band = _drift.band_for(d["bucket"], d["sub_line"], is_trailing,
                                marketplace_id=marketplace_id)
-        status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing)
+        defect = _drift.target_defect_for(marketplace_id, d["year_month"],
+                                          d["bucket"], d["sub_line"])
+        status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing, defect=defect)
         drift_guard.append({
             "year_month": d["year_month"], "bucket": d["bucket"], "sub_line": d["sub_line"],
             "delta": d["delta"], "band": float(band), "status": status,
+            "expected_delta": float(defect.expected_delta) if defect else None,
+            "tolerance": float(defect.tolerance) if defect else None,
+            "note": defect.note if defect else None,
         })
     # Ad TOTAL / per-line drift
     _ad_line_band, _ad_total_band = _drift.ad_bands_for(marketplace_id)
@@ -861,6 +868,11 @@ def reconcile(
     # For every non-EXPECTED cell: compare current value to the same cell's
     # value in the most recent prior snapshot. Uses tight PRIOR_PULL_BANDS
     # calibrated to observed pull-to-pull drift ($0.00 baseline for ads).
+    #
+    # The target-defect registry is deliberately NOT consulted here. It pins a
+    # Δ *against the target*; this guard compares our-now against our-then, where
+    # a target-side defect contributes nothing. Suppressing cells here would
+    # blind the one guard that can still catch a code regression in them.
     drift_vs_prior: list[dict] = []
     have_prior = prior_pull_at is not None
     for d in diffs:
@@ -956,6 +968,8 @@ def reconcile(
         "ad_as_of": {ym: t.isoformat() for ym, t in ad_as_of.items()},
         "drift_guard": drift_guard,
         "investigate_count": investigate_count,
+        "target_defect_count": sum(1 for r in drift_guard
+                                   if r["status"] == _drift.KNOWN_TARGET_DEFECT),
         "drift_vs_prior": drift_vs_prior,
         "investigate_prior_count": investigate_prior_count,
         "prior_pull_at": prior_pull_at.isoformat() if prior_pull_at else None,
@@ -1045,15 +1059,38 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
     # ── Drift-guard (regression detector) ────────────────────────────────
     if result.get("drift_guard"):
         investigate = [r for r in result["drift_guard"] if r["status"] == "INVESTIGATE"]
+        defects = [r for r in result["drift_guard"]
+                   if r["status"] == _drift.KNOWN_TARGET_DEFECT]
         lines.append(f"## Drift-guard: {result.get('investigate_count', 0)} INVESTIGATE / "
+                     f"{result.get('target_defect_count', 0)} KNOWN_TARGET_DEFECT / "
                      f"{sum(1 for r in result['drift_guard'] if r['status'] == 'TRAILING')} TRAILING / "
                      f"{sum(1 for r in result['drift_guard'] if r['status'] == 'WITHIN_DRIFT')} WITHIN_DRIFT")
         lines.append("")
         lines.append(f"Regression guard per `DRIFT_BASELINE.md`. Trailing month: **{result['trailing']}**.")
         lines.append(f"`WITHIN_DRIFT` = expected restatement drift · "
                      f"`TRAILING` = still moving (refund lag / DEFERRED) · "
-                     f"`INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.")
+                     f"`KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its "
+                     f"measured Δ** · "
+                     f"`INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved "
+                     f"— possible pipeline regression**.")
         lines.append("")
+        if defects:
+            lines.append("### 🔒 KNOWN_TARGET_DEFECT — our side is right; the target is wrong")
+            lines.append("")
+            lines.append("Pinned, not excused: each cell must hold its measured Δ within a tight "
+                         "tolerance. If it moves in either direction — including toward zero, because "
+                         "the target fixed its bug — it fires `INVESTIGATE`.")
+            lines.append("")
+            lines.append("| month | bucket · sub_line | Δ | expected Δ | tolerance (±) |")
+            lines.append("|---|---|---:|---:|---:|")
+            for r in defects:
+                lines.append(f"| {r['year_month']} | `{r['bucket']}.{r['sub_line']}` | "
+                             f"{_fmt_amt(r['delta'])} | {_fmt_amt(r['expected_delta'])} | "
+                             f"{_fmt_amt(r['tolerance'])} |")
+            lines.append("")
+            for note in dict.fromkeys(r["note"] for r in defects):
+                lines.append(f"- {note}")
+            lines.append("")
         if investigate:
             lines.append("### 🚨 INVESTIGATE — beyond settled-month band")
             lines.append("")
@@ -1069,13 +1106,14 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
             by_ym_status[(r["year_month"], r["status"])] += 1
         lines.append("### Per-month summary")
         lines.append("")
-        lines.append("| month | WITHIN_DRIFT | TRAILING | INVESTIGATE |")
-        lines.append("|---|---:|---:|---:|")
+        lines.append("| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |")
+        lines.append("|---|---:|---:|---:|---:|")
         for ym in sorted({r["year_month"] for r in result["drift_guard"]}):
             wd = by_ym_status.get((ym, "WITHIN_DRIFT"), 0)
             tr = by_ym_status.get((ym, "TRAILING"), 0)
+            ktd = by_ym_status.get((ym, _drift.KNOWN_TARGET_DEFECT), 0)
             inv = by_ym_status.get((ym, "INVESTIGATE"), 0)
-            lines.append(f"| {ym} | {wd} | {tr} | {inv} |")
+            lines.append(f"| {ym} | {wd} | {tr} | {ktd} | {inv} |")
         lines.append("")
 
     # ── Drift-guard: vs prior pull (regression detector) ────────────────
@@ -1251,6 +1289,13 @@ def main(argv: list[str] | None = None) -> int:
     # Drift-guard regression signals — loud, per DRIFT_BASELINE.md
     inv_s = result.get("investigate_count", 0)
     inv_p = result.get("investigate_prior_count", 0)
+    ktd = result.get("target_defect_count", 0)
+    if ktd:
+        log.warning(
+            "🔒 Drift-guard vs Sellerise: %d cell(s) are KNOWN_TARGET_DEFECT — the target is wrong, "
+            "we are right, and each is pinned to its measured Δ. They do not fail the run. "
+            "See the report's KNOWN_TARGET_DEFECT section.", ktd,
+        )
     if inv_s:
         log.warning(
             "🚨 Drift-guard vs Sellerise: %d cell(s) fired INVESTIGATE. Possible pipeline regression.", inv_s
@@ -1263,7 +1308,11 @@ def main(argv: list[str] | None = None) -> int:
     if not inv_s and not inv_p:
         log.info("Drift-guards: 0 INVESTIGATE on both (vs Sellerise + vs prior pull).")
 
-    # Exit 0 if all locked targets PASS AND no INVESTIGATE fires on EITHER guard; else 1.
+    # Exit 0 if all locked targets PASS AND no INVESTIGATE fires on EITHER guard;
+    # else 1. The gate is on INVESTIGATE alone: a KNOWN_TARGET_DEFECT cell is a
+    # diagnosed defect on the *target's* side and never fails the run — but it
+    # becomes INVESTIGATE the moment its Δ leaves the pinned tolerance, so a
+    # registry entry can never silence a regression in the cell it covers.
     all_good = locked_pass == len(result["locked"]) and inv_s == 0 and inv_p == 0
     return 0 if all_good else 1
 

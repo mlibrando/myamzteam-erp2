@@ -1,8 +1,33 @@
 # CA + UK rollout results
 
 Built after the [rollout probe](marketplace_rollout_probe.md) with three
-verification gates (per [`ROLLOUT_CA_UK_BUILD.md`](../../ROLLOUT_CA_UK_BUILD.md)).
+verification gates (per [`ROLLOUT_CA_UK_BUILD.md`](../prompts/ROLLOUT_CA_UK_BUILD.md)).
 AU stays quarantined (no Sellerise target).
+
+> **SUPERSEDED CONCLUSIONS — the gate measurements stand; two conclusions drawn from them do not.**
+> Body left as written. See [`decisions_audit.md`](decisions_audit.md).
+>
+> **1. § cog: per-SKU workbook value drift (fix = workbook data update) — the direction is inverted.**
+> "No pipeline fix. The workbook is the source of truth… data-governance action (user updates UK
+> sheet)" sends the fix to the wrong side. The component cost build-up validates the UK sheet (ABDB
+> 78.53, GMAKER-3 30.94, MBUKB1 96.06 all tie out to invoice). **Sellerise understates ABDB and
+> MBUKB1; it matches GMAKER-3.** This is a **Sellerise-side data defect (`KNOWN_TARGET_DEFECT`)**,
+> the UK analogue of Sellerboard's AU GST omission. Do **not** edit the UK workbook; do **not**
+> retune our cog toward Sellerise. The `cog.(scalar)` INVESTIGATE cells will therefore **not** go
+> quiet by fixing the workbook — they are the guard correctly reporting a target defect.
+>
+> **2. § Provisional status and § CA workbook cost basis — the override is not provisional.**
+> "CA cog = US cog × 1.35 (mechanically derived)… Replacing with real CA-sourced per-unit costs would
+> allow removing the override." Refuted. The CA sheet's cost column is **CAD**, and 1.350 is the
+> CAD/USD rate — a correct conversion. (Its retail column is US × 1.1440, a *different* multiplier;
+> one mechanical FX scaling would have moved both.) `MARKETPLACE_COG_SOURCE_OVERRIDE` works because
+> it puts a **USD cog against Sellerise-CA's USD `cog` field**. Removing it re-introduces a
+> **+$2,425.58 / +29.1 %** cog error. Real CAD-sourced costs would make it *more* necessary.
+>
+> **3. § Gate 2, the US row of the refund-basis table, is mislabelled.** Its two columns carry the
+> same pair of numbers (5,249 / 5,971) with the labels swapped; those are the refund-**COGS** figures.
+> The US refund-**dollar** figures are posted $1,699.51 / purchase $10,332.00. The conclusion
+> (posted) is right; the cell does not support it.
 
 ## Gates — evidence-backed decisions
 
@@ -372,7 +397,7 @@ Key bands (per-marketplace, vs-Sellerise settled / vs-prior-pull):
 ## Follow-ups (not part of this task's scope)
 
 - ~~**CA/UK ads May+Jun**~~: **CLOSED** by
-  [`CA_UK_RESIDUAL_CLOSEOUT.md`](../../CA_UK_RESIDUAL_CLOSEOUT.md) Step 1.
+  [`CA_UK_RESIDUAL_CLOSEOUT.md`](../prompts/CA_UK_RESIDUAL_CLOSEOUT.md) Step 1.
   All four months (CA/UK × May/Jun) pulled, persisted, and match Sellerise
   to the cent.
 - ~~**Per-marketplace drift bands**~~: **CLOSED** by Step 5 —

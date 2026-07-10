@@ -52,6 +52,7 @@ from .config import (
     cog_needs_fx,
     cog_source_marketplace,
 )
+from .drift_bands import KNOWN_TARGET_DEFECT, target_defect_for
 from .sellerboard import (
     ANCHOR_SPREAD_WARN,
     AU_MARKETPLACE_ID,
@@ -513,6 +514,9 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
     a("`ours` is AUD converted to USD at the month's reference rate. The FX band is")
     a(f"|ours_aud| x {FX_RATE_TOLERANCE} (the widest residual a rate error alone can")
     a(f"produce), floored at ${FX_BAND_FLOOR_USD} for Sellerboard's cent-rounding.\n")
+    a("A cell in the target-defect registry (`drift_bands.TARGET_DEFECTS`) is **pinned** to its")
+    a("measured Δ rather than banded: it reads `KNOWN_TARGET_DEFECT` while it holds that value and")
+    a("`CONTENT` the moment it moves, in either direction.\n")
     a("| month | bucket | ours (USD) | Sellerboard | post-FX Δ | Δ% | FX band | verdict |")
     a("|---|---|---:|---:|---:|---:|---:|---|")
     bucket_lines = [
@@ -524,6 +528,7 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
         ("refundCommission", "refundsObject", "Commission"),
     ]
     content_flags: list[str] = []
+    defect_flags: list[tuple[str, str]] = []
     for r in rows:
         for key, bucket, line in bucket_lines:
             ours_usd = r["ours"][key] * r["rate"]
@@ -531,14 +536,34 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
             delta = theirs - ours_usd
             band = fx_band(r["ours"][key])
             pct = (delta / abs(ours_usd) * 100) if ours_usd else ZERO
-            is_content = abs(delta) > band
-            if is_content:
+            # The registry speaks in `ours - theirs`; this table renders `theirs - ours`.
+            defect = target_defect_for(AU_MARKETPLACE_ID, r["ym"], bucket, line)
+            if defect is not None and defect.matches(ours_usd - theirs):
+                verdict = f"**{KNOWN_TARGET_DEFECT}**"
+                defect_flags.append((f"{r['ym']} {bucket}.{line} {delta:+,.2f}", defect.note))
+            elif defect is not None:
+                verdict = "**CONTENT (pinned defect moved)**"
+                content_flags.append(
+                    f"{r['ym']} {bucket}.{line} {delta:+,.2f} "
+                    f"— pinned at {-defect.expected_delta:+,.2f} ±{defect.tolerance:,.2f}, it MOVED"
+                )
+            elif abs(delta) > band:
+                verdict = "**CONTENT**"
                 content_flags.append(f"{r['ym']} {bucket}.{line} {delta:+,.2f}")
+            else:
+                verdict = "FX noise"
             a(f"| {r['ym']} | `{bucket}.{line}` | {ours_usd:,.2f} | {theirs:,.2f} | "
-              f"{delta:+,.2f} | {pct:+.2f}% | ±{band:,.2f} | "
-              f"{'**CONTENT**' if is_content else 'FX noise'} |")
+              f"{delta:+,.2f} | {pct:+.2f}% | ±{band:,.2f} | {verdict} |")
 
-    a(f"\n**{len(content_flags)} CONTENT flags** (post-FX residual beyond the FX band):\n")
+    a(f"\n**{len(defect_flags)} KNOWN_TARGET_DEFECT** (diagnosed to Sellerboard; pinned, not excused):\n")
+    for f, _note in defect_flags:
+        a(f"- {f}")
+    if defect_flags:
+        a("")
+        for note in dict.fromkeys(n for _f, n in defect_flags):
+            a(f"- {note}")
+
+    a(f"\n**{len(content_flags)} CONTENT flags** (post-FX residual beyond the FX band, undiagnosed):\n")
     for f in content_flags:
         a(f"- {f}")
 
@@ -579,24 +604,31 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
     a("like-for-like comparison is our **gross shipped** cog — not the refund-netted")
     a("figure. `productCosts` = `salesCosts` + those losses, which `listTransactions`")
     a("cannot see.\n")
-    a("| month | ours gross cog | salesCosts | Δ | ours returned cog | valueOfReturned | Δ | inventory-loss gap |")
-    a("|---|---:|---:|---:|---:|---:|---:|---:|")
+    a("| month | ours gross cog | salesCosts | Δ | verdict | ours returned cog | valueOfReturned | Δ | inventory-loss gap |")
+    a("|---|---:|---:|---:|---|---:|---:|---:|---:|")
     tot_sc = tot_ret = tot_gap = ZERO
     for r in rows:
         sc = r["theirs"]["cog"]["(salesCosts)"]
         vri = r["theirs"].get("cogAdjust", {}).get("ReturnedItemsValue", ZERO)
-        d = r["gross_cog_usd"] - sc
+        d = r["gross_cog_usd"] - sc          # already `ours - theirs`
         dr = r["returned_cog_usd"] - vri
         tot_sc += d
         tot_ret += dr
         tot_gap += r["inventory_gap"]
-        a(f"| {r['ym']} | {r['gross_cog_usd']:,.2f} | {sc:,.2f} | {d:+,.2f} | "
+        defect = target_defect_for(AU_MARKETPLACE_ID, r["ym"], "cog", "(salesCosts)")
+        if defect is not None:
+            verdict = f"**{KNOWN_TARGET_DEFECT}**" if defect.matches(d) else "**CONTENT (pinned defect moved)**"
+        else:
+            verdict = "exact" if d == ZERO else "—"
+        a(f"| {r['ym']} | {r['gross_cog_usd']:,.2f} | {sc:,.2f} | {d:+,.2f} | {verdict} | "
           f"{r['returned_cog_usd']:,.2f} | {vri:,.2f} | {dr:+,.2f} | {r['inventory_gap']:+,.2f} |")
-    a(f"| **Σ** | | | **{tot_sc:+,.2f}** | | | **{tot_ret:+,.2f}** | **{tot_gap:+,.2f}** |")
+    a(f"| **Σ** | | | **{tot_sc:+,.2f}** | | | | **{tot_ret:+,.2f}** | **{tot_gap:+,.2f}** |")
     a("")
     a("Our AU workbook unit costs **equal Sellerboard's**: five of six months agree to")
     a("the cent. 2026-01's entire -86.71 is one MBUKB1 unit (workbook cog 86.71) whose")
-    a("order carries no financial transaction — see the S03 orders below.")
+    a("order carries no financial transaction — see the S03 orders below. That cell is")
+    a("pinned in `drift_bands.TARGET_DEFECTS`: if it stops being exactly one unit, it")
+    a("stops reading KNOWN_TARGET_DEFECT.")
 
     a(f"\n## cog FX guard\n")
     usd = cog_rates[COG_FX_GUARD_SKU]

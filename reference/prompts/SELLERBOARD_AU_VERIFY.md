@@ -1,5 +1,23 @@
 # Claude Code Task — AU verification against Sellerboard (different target, same Amazon source)
 
+> **SUPERSEDED — this brief's central inference is backwards.** Body left as written; it is the
+> reasoning history. Corrected by [`AU_SELLERBOARD_VERIFICATION.md`](AU_SELLERBOARD_VERIFICATION.md)
+> and by the code (`backend/sync/sellerboard.py`).
+>
+> - **Steps 2 / 3 and the Definition of Done are wrong: Sellerboard's `netProfit` uses
+>   `productCosts`, NOT `salesCosts`.** Proven to the cent across all six months by
+>   `sellerboard.assert_net_reproduces`, which also asserts the identity
+>   `salesCosts = productCosts − costOfMissingReturns − missingFromInboundCosts`.
+>   `salesCosts` remains the right basis for the **cog cell** — it is what our refund-netted,
+>   `listTransactions`-derived cog can see — but not for **net**. The instruction "Commit
+>   `salesCosts` as the cog basis for AU net" must not be followed.
+> - **The inventory-loss gap is −$705.39, not ~$845** (the $845 was an addition error).
+> - **This brief's parser rule was falsified by the 2026-07-09 re-pull.** Do **not** filter on
+>   `has_data` or `status:"preparing"` — both moved between pulls. The summary row is identified by
+>   `is_totals`, the in-progress month structurally, by not ending on its month's last day.
+>   `sellerboard.py`'s docstring says exactly this; its loader still filters on both. See
+>   [`../data/decisions_audit.md`](../data/decisions_audit.md) D1.2.
+
 ## Context
 
 AU reconciles against **Sellerboard**, not Sellerise. The SP-API data is the same Amazon source as

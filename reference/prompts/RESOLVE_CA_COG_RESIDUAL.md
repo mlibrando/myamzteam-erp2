@@ -1,5 +1,20 @@
 # Claude Code Task — Resolve the CA cog residual: FX-derived cost bug vs true governance drift
 
+> **SUPERSEDED PREMISE — the fix this brief produced is correct; its stated reason is not.**
+> Body left as written. See [`../data/decisions_audit.md`](../data/decisions_audit.md).
+>
+> This brief frames CA's `US_cog × 1.35` as evidence the sheet holds "mechanically derived" values
+> rather than "true CA-sourced per-unit costs". That framing is refuted. **The CA sheet's cost column
+> is denominated in CAD**, and 1.350 is the CAD/USD rate — a correct conversion, not a fake
+> multiplier. (Corroboration: the CA *retail* column is US × 1.1440, a different multiplier. One
+> mechanical FX scaling would have moved both columns by the same factor.)
+>
+> `MARKETPLACE_COG_SOURCE_OVERRIDE` (CA→US) works because it puts a **USD cog against Sellerise-CA's
+> USD `cog` field** — Sellerise-CA reports revenue in CAD but `cog` in USD. It has nothing to do with
+> the CA sheet's quality. **Do not remove the override when "real CA cost data lands"**; that would
+> re-introduce a +$2,425.58 / +29.1 % cog error. Real CAD-sourced costs would make the override *more*
+> necessary, not less.
+
 ## Context
 
 CA rollout reconciles except for a same-signed positive `cog` residual (+$258 to +$632/month,

@@ -2,6 +2,34 @@
 
 Generated 2026-07-07. Diagnostic only — no values edited.
 
+> **SUPERSEDED CONCLUSIONS — the measurements below stand; two of the verdicts drawn from them do not.**
+> Body text is left exactly as written. See [`decisions_audit.md`](decisions_audit.md).
+>
+> **1. The UK verdict is inverted (§ Summary verdict, "pipeline HIGH"; § Findings 1; § 6).**
+> "Workbook costs systematically above Sellerise" and "Sellerise understates the workbook" are the
+> *same measurement*. A two-sided comparison cannot say which side is right. The **component cost
+> build-up** can, and it validates the sheet: ABDB 78.53, GMAKER-3 30.94, MBUKB1 96.06 all tie out
+> against per-component invoice cost. Sellerise understates ABDB and MBUKB1; it matches GMAKER-3.
+> **Correct classification: a Sellerise-side data defect (`KNOWN_TARGET_DEFECT`), the UK analogue of
+> Sellerboard's AU GST omission — not a data-governance action on our side.**
+> Do **not** edit the UK workbook. Do **not** "correct" our cog to match Sellerise's implied values
+> (§ Findings 1, § Summary verdict last paragraph). Doing so would import the target's error.
+>
+> **2. The CA verdict ("a pure US×1.35 artifact") is wrong about the cause, right about the action.**
+> The ×1.35 is a **genuine CAD markup** — the CA sheet is denominated in CAD, and CAD/USD ≈ 1.35.
+> Note the CA *retail* column is US × 1.1440, a different multiplier: a mechanical FX artifact would
+> have produced one multiplier for both columns. The pipeline still correctly joins the US sheet,
+> but because that puts a **USD cog against Sellerise-CA's USD `cog` field** — not because the CA
+> sheet is bogus. Real CA-sourced costs landing in the sheet would make the override *more*
+> necessary, not less. See `config.py`'s `MARKETPLACE_COG_SOURCE_OVERRIDE`.
+>
+> **3. The per-SKU `implied cog` column (§ UK — per-SKU dollar impact) is not a per-SKU measurement.**
+> It is proportional attribution, which the doc states at § "Assumption: all SKUs are off by the same
+> relative fraction". By construction it assigns every SKU the same −5.06 % gap; the resulting
+> ABDB $74.56 and MBUKB1 $91.20 are outputs of that assumption, not observations of Sellerise's
+> values. Sellerise's API exposes only monthly aggregate `cog` (§ Method, "Limitation"), so **no
+> per-SKU Sellerise unit cost is observable from this repo at all.**
+
 ## Purpose
 
 Sellerise computes COGS as `(units_sold − units_refunded) × unit_COG` — a single per-unit cost

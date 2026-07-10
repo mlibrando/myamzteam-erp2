@@ -1,5 +1,19 @@
 # Claude Code Task — AU currency resolved: verify the three-currency picture, then build the adapter
 
+> **PARTIALLY SUPERSEDED.** The three-currency conclusion is confirmed and is now wired
+> (`MARKETPLACE_COG_CURRENCY[AU] = "USD"`; FX confined to the AU target adapter). Three notes:
+>
+> - **Step 5's "~$845 inventory-loss gap" is wrong — it is −$705.39.** The $845 was an addition
+>   error. Now computed in code (`sellerboard.inventory_loss_gap`) and tabulated in
+>   [`../data/au_sellerboard_reconcile.md`](../data/au_sellerboard_reconcile.md).
+> - Step 5's `netProfit`-uses-`productCosts` note is **correct**, and supersedes
+>   [`SELLERBOARD_AU_VERIFY.md`](SELLERBOARD_AU_VERIFY.md), which asserts the reverse.
+> - Step 6's CA guard was answered, but not as the step anticipated: the CA sheet's **cost column is
+>   CAD** (US × 1.350 — a real CAD markup, not a fake FX multiplier), while its **retail column is
+>   US × 1.1440**. Two different multipliers, so the sheet was not mechanically FX-scaled wholesale.
+>   The CA→US cog override is correct and must stay — it puts a USD cog against Sellerise-CA's USD
+>   `cog` field. See [`../data/decisions_audit.md`](../data/decisions_audit.md).
+
 ## Context
 
 The AU currency confusion is resolved. Three facts, each established from a different source — **but

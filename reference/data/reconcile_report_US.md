@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace ATVPDKIKX0DER
 
-Generated 2026-07-07 09:34:54Z.
+Generated 2026-07-10 06:03:32Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -73,25 +73,25 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |    -5,384.48 |    -4,549.27 |    -5,645.49 |       261.01 |     1,096.22 |
 | 2026-06 |    -3,821.97 |    -1,793.79 |    -3,286.51 |      -535.46 |     1,492.72 |
 
-## Drift-guard: 0 INVESTIGATE / 30 TRAILING / 154 WITHIN_DRIFT
+## Drift-guard: 0 INVESTIGATE / 0 KNOWN_TARGET_DEFECT / 30 TRAILING / 154 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
-`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.
+`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
 
 ### Per-month summary
 
-| month | WITHIN_DRIFT | TRAILING | INVESTIGATE |
-|---|---:|---:|---:|
-| 2026-01 | 30 | 0 | 0 |
-| 2026-02 | 30 | 0 | 0 |
-| 2026-03 | 33 | 0 | 0 |
-| 2026-04 | 28 | 0 | 0 |
-| 2026-05 | 33 | 0 | 0 |
-| 2026-06 | 0 | 30 | 0 |
+| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |
+|---|---:|---:|---:|---:|
+| 2026-01 | 30 | 0 | 0 | 0 |
+| 2026-02 | 30 | 0 | 0 | 0 |
+| 2026-03 | 33 | 0 | 0 | 0 |
+| 2026-04 | 28 | 0 | 0 | 0 |
+| 2026-05 | 33 | 0 | 0 | 0 |
+| 2026-06 | 0 | 30 | 0 | 0 |
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 30 TRAILING / 154 WITHIN_DRIFT
 
-Prior pull: `2026-07-07T09:34:17.892161+00:00`. Current pull: `2026-07-07T09:34:54.330901+00:00`.
+Prior pull: `2026-07-10T05:59:01.819114+00:00`. Current pull: `2026-07-10T06:03:31.621457+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)
