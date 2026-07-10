@@ -8,7 +8,7 @@ real blockers, but it defended two doc conclusions that evidence outside the cor
 overturned: it argued the UK cog gap was our workbook's fault, and it inherited the "CA sheet is a
 fake ×1.35 markup" framing. Both are corrected below. See § 5 for exactly what changed and why.
 
-> **UPDATE 2026-07-10 (later the same day).** Two of this audit's own findings have since been
+> **UPDATE 2026-07-10 (later the same day).** Three of this audit's own findings have since been
 > closed, and the table below reflects the post-fix state:
 >
 > - **S7 / D3.6 — resolved.** The UK sheet is **GBP**, its native currency. `config.py:74` now says
@@ -17,8 +17,14 @@ fake ×1.35 markup" framing. Both are corrected below. See § 5 for exactly what
 > - **S6 / D2.7 — resolved.** `KNOWN_TARGET_DEFECT` is now a real status in `drift_bands.py`, backed
 >   by a registry that **pins** a diagnosed target-side Δ to its measured magnitude instead of
 >   widening its band. UK's 4 `cog` cells and AU's 4 Jan cells are registered. UK's INVESTIGATE count
->   fell 9 → 5; the survivors are the 5 `fbaObject` cells of **S2**, which remain untested and so
->   remain unregistered. **UK still exits 1.** See § 7.
+>   fell 9 → 5. **UK still exits 1.** See § 7.
+> - **S2 / D3.2 — tested; the label is REFUTED and the residual is now NAMED.** The UK `fbaObject`
+>   residual is not Amazon restatement (867 re-pulled transactions byte-identical, `Principal` exact
+>   to the cent) and not refund-netting (no Refund-side FBA leaves exist). **It is Sellerise omitting
+>   GMAKER-3's FBA fulfilment fee** — Amazon charged £479.15 over 142 units; Sellerise carries £27.75.
+>   In five of six months the whole bucket gap equals that SKU's fee to the penny. The five settled
+>   cells are now pinned as `KNOWN_TARGET_DEFECT`, and **`reconcile --marketplace UK` exits 0** for
+>   the first time. See [`uk_fba_repull_test.md`](uk_fba_repull_test.md) and § 8.
 
 Legend:
 
@@ -67,14 +73,14 @@ workbook. § 6 lists every check that was run.
 | **Ads — read filter** | `budget_currency = 'USD'` (`reconcile.py:336`) | `= 'CAD'` (`:336`) | `= 'GBP'` | `= 'AUD'` (`reconcile_au.py:195`) |
 | ↳ *write ∩ read* | ✅ USD ∩ USD | ❌ **∅** — B2 | ❌ **∅** | ❌ **∅** |
 | **Ads — observed Δ** | −$5.75 … +$3.06, one `FAIL` | **$0.00 all 6 months** | **$0.00 all 6 months** | anchor only, no band |
-| **Drift bands — vs target** | `_US_SETTLED_BANDS` (`drift_bands.py:38-78`) | `_CA_SETTLED_BANDS` (`:87-117`) | `_UK_SETTLED_BANDS` (`:135-184`). Its `cog` band was sized to a post-fix residual that will never arrive; the 4 cells are now **pinned** in `TARGET_DEFECTS` (`:528`) instead — D2.7 | **none** (`:191-196`, AU absent). `band_for()` silently falls back to **US dollar bands** (`:275`) — D2.4. AU's 4 Jan cells are pinned in `TARGET_DEFECTS`, read by `reconcile_au.py` directly |
-| **Drift bands — vs prior pull** | `_US_PRIOR_PULL_BANDS` (`:318-353`) | `_CA_PRIOR_PULL_BANDS` (`:357-391`) | `_UK_PRIOR_PULL_BANDS` (`:395-430`) | **none** (`:435-439`) → US fallback |
+| **Drift bands — vs target** | `_US_SETTLED_BANDS` (`drift_bands.py:38-78`) | `_CA_SETTLED_BANDS` (`:87-117`) | `_UK_SETTLED_BANDS` (`:136-185`). Both its `cog` and `fbaObject` bands were sized to post-fix residuals that will never arrive; those 9 cells are now **pinned** in `TARGET_DEFECTS` instead. Neither band widened — D2.7 | **none** (`:192-197`, AU absent). `band_for()` silently falls back to **US dollar bands** (`:276`) — D2.4. AU's 4 Jan cells are pinned in `TARGET_DEFECTS`, read by `reconcile_au.py` directly |
+| **Drift bands — vs prior pull** | `_US_PRIOR_PULL_BANDS` (`:319-354`) | `_CA_PRIOR_PULL_BANDS` (`:358-392`) | `_UK_PRIOR_PULL_BANDS` (`:396-431`) | **none** (`:436-440`) → US fallback |
 | **Restatement profile sizing the bands** | Amazon/Sellerise: revenue-side ±$4,358.81 abs over 6 mo; ads $0.00 over ~13 h (`drift_baseline.md`); bands = 1.5–2× observed max | ← same profile, CA scale (~1/10 US) | ← same profile, UK scale (~1/6 US) | Sellerboard: **trailing settled month only, ≈$0.10** (`AU_SELLERBOARD_VERIFICATION.md:377-378,788`). Bands deliberately **unwired** pending a 5-clean-month derivation (`:784`) |
-| **Known target-side defects** | none named; snapshot staleness is bidirectional | Sellerise restates month-boundary attribution Feb→Mar ±$199.50 / ±$9.98 | **`KNOWN_TARGET_DEFECT` — Sellerise understates the UK-exclusive bundle cog.** Registered: 4 `cog` cells, pinned at +242.84 / +177.87 / +184.41 / +122.62, tolerance ±25. Direction established by the component cost build-up (external); per-SKU magnitudes **`UNVERIFIED`**, see D3.5. Plus (unregistered, inside band): `Commission ↔ ReferralFee` split (net −$118, cancels except Jan); `chargesObject.Promotion` +$63 rounding; storage reclassified into `expenses.FBAFees` some months | **`KNOWN_TARGET_DEFECT` ×2, 4 cells** — Sellerboard **omitted GST from Jan storage** (−$52.75) (`AU_SELLERBOARD_VERIFICATION.md:638-658`); **counted 1 of 3 MCF units in Jan** (`:696,759`), moving Jan `cog` −86.71, `Commission` +30.07, `FBA` +30.27. All four registered |
-| **Accepted net residual (Jan–Jun)** | **+$3,568.15 (+1.70 %)**, mixed-sign, per-cause labeled → ACCEPT (`reconcile_report_US.md:25`) | **−$374.48 (−3.50 %)**, mixed-sign, post cog-fix → ACCEPT (`reconcile_report_CA.md:25`) | **−$1,593.57 (−13.39 %)**, same-signed (`reconcile_report_UK.md:24`). **Not accepted, but re-attributed**: the cog arm (~63 %) is now a target defect, not our error; the FBA arm (~37 %) remains an untested label. See D3.4 | **Σ −$232.57**, mixed-sign per month (`au_sellerboard_reconcile.md:115`). Jan closed at cause — both causes Sellerboard-side |
+| **Known target-side defects** | none named; snapshot staleness is bidirectional | Sellerise restates month-boundary attribution Feb→Mar ±$199.50 / ±$9.98 | **`KNOWN_TARGET_DEFECT` — Sellerise understates the UK-exclusive bundle cog.** Registered: 4 `cog` cells, pinned at +242.84 / +177.87 / +184.41 / +122.62, tolerance ±25. Direction established by the component cost build-up (external); per-SKU magnitudes **`UNVERIFIED`**, see D3.5. **Second `KNOWN_TARGET_DEFECT`: Sellerise omits GMAKER-3's FBA fee** (£479.15 charged vs £27.75 carried, 142 units). Registered: 5 `fbaObject` cells, pinned at −80.06 / −135.09 / −96.03 / −60.35 / −64.30, tolerance ±15. Plus (unregistered, inside band): `Commission ↔ ReferralFee` split (net −£118, cancels except Jan); `chargesObject.Promotion` +£63 rounding; storage reclassified into `expenses.FBAFees` some months | **`KNOWN_TARGET_DEFECT` ×2, 4 cells** — Sellerboard **omitted GST from Jan storage** (−$52.75) (`AU_SELLERBOARD_VERIFICATION.md:638-658`); **counted 1 of 3 MCF units in Jan** (`:696,759`), moving Jan `cog` −86.71, `Commission` +30.07, `FBA` +30.27. All four registered |
+| **Accepted net residual (Jan–Jun)** | **+$3,568.15 (+1.70 %)**, mixed-sign, per-cause labeled → ACCEPT (`reconcile_report_US.md:25`) | **−$374.48 (−3.50 %)**, mixed-sign, post cog-fix → ACCEPT (`reconcile_report_CA.md:25`) | **−$1,593.57 (−13.39 %)**, same-signed (`reconcile_report_UK.md:24`). **Not accepted, but re-attributed**: **both arms are now target-side defects, pinned**: the cog arm (~63 %, Sellerise understates per-SKU cost) and the FBA arm (~37 %, Sellerise omits GMAKER-3's fulfilment fee). Neither is our error. See D3.4 | **Σ −$232.57**, mixed-sign per month (`au_sellerboard_reconcile.md:115`). Jan closed at cause — both causes Sellerboard-side |
 | **Locked validation targets** | 15 (`reconcile.py:73-89`) | **`[]`** (`:95`) | **`[]`** (`:96`) | **`[]`** (`:97`) |
-| **INVESTIGATE, latest run** | 0 vs target / 0 vs prior pull | 0 / 0 | **5 vs target** (all `fbaObject`, = S2) **+ 4 `KNOWN_TARGET_DEFECT`** (`cog`) / 0 vs prior pull (`reconcile_report_UK.md:75,97-101,114`). Was 9 before S6 | n/a (no bands) + **3 `KNOWN_TARGET_DEFECT`, 0 undiagnosed CONTENT flags** (`au_sellerboard_reconcile.md:87`) |
-| **Exit code, latest run** | **1** — locked targets 9/15 PASS (pre-existing) | **0** | **1** — 5 `fbaObject` INVESTIGATE remain (S2). `KNOWN_TARGET_DEFECT` cells do not fail the run (`reconcile.py:1316`) | **0** — `reconcile_au.py` never gated on content flags |
+| **INVESTIGATE, latest run** | 0 vs target / 0 vs prior pull | 0 / 0 | **0 vs target** **+ 9 `KNOWN_TARGET_DEFECT`** (4 `cog`, 5 `fbaObject`) / 0 vs prior pull. Was 9 INVESTIGATE before S6+S2′ | n/a (no bands) + **3 `KNOWN_TARGET_DEFECT`, 0 undiagnosed CONTENT flags** (`au_sellerboard_reconcile.md:87`) |
+| **Exit code, latest run** | **1** — locked targets 9/15 PASS (pre-existing) | **0** | **0** — 0 INVESTIGATE. `KNOWN_TARGET_DEFECT` cells do not fail the run (`reconcile.py:1316`) | **0** — `reconcile_au.py` never gated on content flags |
 | **cog residual, Jan–Jun** | Σ\|Δ\| $4,084.20, ΣΔ −$4,061.34, mixed-sign | Σ\|Δ\| $909.31, ΣΔ +$197.57, mixed-sign | Σ\|Δ\| $1,000.62, ΣΔ +$1,000.62, **6/6 same-signed** *(measured)* | gross-cog Σ −$86.71, all in Jan (`au_sellerboard_reconcile.md:135`) |
 
 ---
@@ -212,8 +218,8 @@ removing the guard first.
 
 **D2.4 — `band_for()` falls back to US dollar bands for any unknown marketplace, and AU is unknown.**
 
-`drift_bands.py:275`: `DRIFT_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_SETTLED_BANDS)`.
-Same at `:475` for prior-pull bands and `:223` for ad bands. AU is deliberately absent (`:191-196`).
+`drift_bands.py:276`: `DRIFT_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_SETTLED_BANDS)`.
+Same at `:476` for prior-pull bands and `:224` for ad bands. AU is deliberately absent (`:192-197`).
 `reconcile_au.py` never calls `band_for`, so today this is inert.
 
 **What breaks:** the moment anyone routes AU through `reconcile.py`'s guard — the natural move when
@@ -245,12 +251,13 @@ correct while the table is stale (D4.1), and it means **a green reconcile report
 the contents of `pnl_monthly`** — the table the dashboard is specified to read (`PLAN.md`).
 
 **D2.7 — the UK reclassification voids the design intent of two UK drift bands.** *(new this run;
-**cog arm RESOLVED** — see § 7)*
+**cog arm RESOLVED** — § 7. The `fbaObject` arm was then **tested** — § 8.)*
 
-`_UK_SETTLED_BANDS` sets `cog.(scalar)` to `$100` and `fbaObject.FBAPerUnitFulfillmentFee` to `$50`,
-both explicitly *"SIZED TO POST-WORKBOOK-FIX"* / *"POST-RESTATEMENT-FIX"* residuals
-(`drift_bands.py:155-157,178-182`), with the comment *"Once the workbook is corrected, INVESTIGATE
-goes quiet."*
+As found, `_UK_SETTLED_BANDS` sized `cog.(scalar)` to `$100` and
+`fbaObject.FBAPerUnitFulfillmentFee` to `$50` against residuals it expected to disappear — the
+comments read *"SIZED TO POST-WORKBOOK-FIX"* and *"SIZED TO POST-RESTATEMENT-FIX"*, with *"Once the
+workbook is corrected, INVESTIGATE goes quiet."* (`drift_bands.py:156-158,179-183`; the fbaObject
+comment has since been corrected — see § 8.)
 
 Under the corrected classification **the workbook will never be corrected** — it is right, and
 Sellerise is wrong. So the 4 `cog` INVESTIGATE cells fire permanently. The 5 `fbaObject` cells fire
@@ -258,11 +265,15 @@ until S2 is run. Because `reconcile.py:1316` gates the exit code on `inv_s == 0`
 `python -m sync.reconcile --marketplace UK` **returns 1 forever**, with no remediation path that is
 permitted.
 
-**Resolution (S6):** the 4 `cog` cells are now pinned in `drift_bands.TARGET_DEFECTS` (`:528`) and
+**Resolution (S6):** the 4 `cog` cells are now pinned in `drift_bands.TARGET_DEFECTS` (`:553`) and
 read `KNOWN_TARGET_DEFECT`, which does not fail the run. Neither band was widened. The 5 `fbaObject`
-cells were **not** registered — their "restatement" label is S2's untested inference, and pinning
-them would assert as diagnosed what has never been measured. **UK therefore still exits 1**, and the
-5 surviving INVESTIGATE cells are exactly the experiment that is owed.
+cells were **not** registered — at that point their "restatement" label was an untested inference,
+and pinning them would have asserted as diagnosed what had never been measured. **UK therefore still
+exits 1.**
+
+**And the restraint paid.** S2 subsequently refuted the restatement label outright (§ 8). The
+`fbaObject` band is now the honest signal for an `UNEXPLAINED` residual rather than a countdown to a
+fix that was never coming. Its comment no longer claims restatement; the band was not widened.
 
 This is a design gap, not a bug: the guard has no way to express "this Δ is a known *target* defect,
 hold it at its measured magnitude and alarm only if it moves." US, CA and AU record their target
@@ -282,20 +293,47 @@ against a cog cell computed from the CA sheet (CAD, US × 1.35), which the overr
 winner plausibly still holds — the override rescales both arms roughly monotonically — but it is
 asserted, not measured. Re-running the A/B under the override is a ~10-minute job. → **S1**
 
-**D3.2 — UK's FBA −$458 label is the project's last untested claim.**
+**D3.2 — UK's FBA −£458 label was the project's last untested claim. It has now been tested, and it
+was wrong.** *(**RESOLVED as refuted** — see § 8)*
 
 - Refund **dollars**: measured, and re-measured on *every* reconcile run (`reconcile.py:551`):
-  `posted $407.08 vs purchase $3,210.63`. Not inherited.
-- Refund **COGS**: measured independently — `purchase $1,000.62 vs posted $2,135.40`. It coincides
+  `posted £407.08 vs purchase £3,210.63`. Not inherited.
+- Refund **COGS**: measured independently — `purchase £1,000.62 vs posted £2,135.40`. It coincides
   with US; it was not copied from US. CA's `posted` in the same table proves the test discriminates
   per marketplace.
-- **FBA residual −$458, same-signed 5/5 settled months**: labelled *"Amazon post-snapshot restatement
-  drift"*. The label rests **entirely on a rate-signature inference** — our raw per-unit rate is
-  $3.53–3.86, Sellerise's implied rate ~$3.24, a stable ~10 % gap; attribution was ruled out; no
-  mapping leak found. **No re-pull test was ever run.** The only pull-to-pull evidence is the
-  vs-prior-pull guard over a **36-second** window (`reconcile_report_UK.md:114-116`), which cannot
-  observe a weeks-scale restatement — so its "0 INVESTIGATE" is not confirmation. Five `fbaObject`
-  cells still fire INVESTIGATE (`:97-101`). → **S2**
+- **FBA residual −£458.45, same-signed 6/6 months**: was labelled *"Amazon post-snapshot restatement
+  drift"*, resting **entirely on a rate-signature inference**, with no re-pull test ever run. The
+  only pull-to-pull evidence was the vs-prior-pull guard over a **36-second** window, which cannot
+  observe a weeks-scale restatement.
+
+**Tested 2026-07-10** ([`uk_fba_repull_test.md`](uk_fba_repull_test.md)):
+
+- Re-pulled UK Feb and Mar 2026 from SP-API into scratch. **867 / 867 transactions byte-identical**;
+  the FBA figure moved by **£0.00**. Zero transactions gained, lost or changed.
+- Independently of that 3-day window: `chargesObject.Principal` matches Sellerise's frozen snapshot
+  to **0.0000 in all six months**, and `Commission + ReferralFee` in five of six. A restatement that
+  moved the FBA line 9.6–23.6 % while leaving the principal on those *same transactions* identical to
+  the penny is not a credible mechanism. **The label is refuted.**
+- The netting hypothesis was tested too: there are **no Refund-side FBA leaves anywhere** in the UK
+  feed, and Sellerise's `refundsObject` has no FBA line either. Reconstructing the fee Amazon actually
+  charged on each refunded unit (matched on `order_id` + `sku`) and deducting it closes at most 58 %
+  of the gap and leaves a same-signed residual of ≈ −£147. **Not the explanation.**
+- What was left after S2: Sellerise's `fbaObject` is not a sum of Amazon's charged FBA fees. Same
+  shipment set, a per-unit rate 9.6–23.6 % lower, and *less* stable month to month than ours
+  (CV 6.7 % vs 4.2 %). At that point the residual was **`UNEXPLAINED`** and the five cells stayed
+  `INVESTIGATE`.
+
+**Then S2′ named it (same day).** Sellerise's own per-unit fee for **GMAKER-3** is £27.75 across 142
+units Jan–Jun (£0.195/unit). Amazon charged **£479.15** over the same 142 units (£3.374/unit) — a
+**94.2 % understatement**, £451.40 of a £458.45 gap. And it is not an aggregate coincidence: **in five
+of six months the entire `fbaObject` bucket gap equals GMAKER-3's Amazon-charged fee to the penny**
+(April alone differs, by exactly £20.70, the one month Sellerise booked anything). Each pinned cell Δ
+decomposes exactly into `(GMAKER-3's omitted fee) + (Sellerise's FBAFees deferred-estimate line)`.
+This also explains the CV anomaly above: Sellerise's figure is ours with one SKU zeroed, and
+GMAKER-3's unit share swings 10 %→25 % month to month.
+
+**Status: `KNOWN_TARGET_DEFECT`.** The five settled `fbaObject` cells are pinned at their measured Δ,
+tolerance ±£15. **UK exits 0.** Our FBA figure is the fee Amazon billed — do not adjust it. → § 8
 
 **D3.3 — AU's GST pass-through is inferred from CA/UK and is unverifiable against Sellerboard.**
 `bucket_map.py:218-222` routes `Shipment.Tax` to passthrough for AU with the comment *"Sellerise
@@ -369,7 +407,7 @@ US carries 15 (`:73-89`). `main()` requires `locked_pass == len(result["locked"]
 CA/UK/AU that clause is `0 == 0` — vacuously true. Their exit codes are governed by the drift guards
 alone.
 
-**D3.8 — AU drift bands are unwired by design.** `drift_bands.py:191-196`. The intended derivation —
+**D3.8 — AU drift bands are unwired by design.** `drift_bands.py:192-197`. The intended derivation —
 five clean months, excluding January's two Sellerboard artifacts — is specified but not done
 (`AU_SELLERBOARD_VERIFICATION.md:784-788`). See D2.4 for what the fallback does meanwhile.
 
@@ -463,14 +501,17 @@ behavioural question, explicitly out of scope for this audit to change.
 **S1 — re-run CA's refund-COGS A/B under the override.** (D3.1) The chosen basis was scored on cog
 values the override then changed by 29 %. Cheap to settle; currently an assertion.
 
-**S2 — the UK FBA −$458 label.** (D3.2) ⚠ *now the only thing standing between UK and a green run.*
-The one label in the project with no test behind it. The discriminating experiment: a fresh Amazon
-pull of UK Jan–May FBA fees compared against the values in the current `sp_breakdowns`. If the
-per-unit rate has moved toward Sellerise's ~$3.24, the restatement label is confirmed and the five
-cells can be registered as `KNOWN_TARGET_DEFECT`; if it is still $3.53–3.86, the label is wrong and
-there is an unfound pipeline mechanism. Five INVESTIGATE cells persist either way until it is run.
-Do **not** register them before the experiment — that would be the exact error this audit exists to
-prevent, dressed as a fix.
+**S2 — the UK FBA −£458 label.** (D3.2) ✅ **RUN — label REFUTED.** § 8.
+
+**S2′ — name the UK FBA residual.** ✅ **DONE — Sellerise omits GMAKER-3's FBA fee.** Five cells
+pinned; UK exits 0. § 8.
+
+**S2″ — the two live consequences of that pin.** *(new)*
+- The pinned Δ **scales with GMAKER-3's monthly unit volume**, so each new settled month needs its own
+  registry entry. This is not a rate defect that can be pinned once and forgotten.
+- If Sellerise corrects the SKU's fee, the five cells will fire `INVESTIGATE` — by design, since their
+  Δ moves to zero. That is the signal to delete the entries, and the only clean way this ends.
+  Raise the fee with Sellerise; it is a defect on their side, not ours.
 
 **S3 — decide what `MARKETPLACE_REFUND_BASIS` is for.** (D2.5) Authoritative for AU, decorative for
 US/CA/UK. Either wire `aggregate.py` and `reconcile.py` to read it, or delete the three unread
@@ -503,10 +544,11 @@ the current file and were written to be impossible. One of the two is wrong.
 - **Sellerboard restatement profile** — trailing settled month only, ≈$0.10; Jan–May byte-identical
   across pulls. This is why AU bands must not be copied from the Amazon/Sellerise profile.
 
-**UK's cog arm moves into this list in substance but not in status.** Σ −$1,593.57 (−13.39 %),
-same-signed, 9 INVESTIGATE. ~63 % is now a `KNOWN_TARGET_DEFECT` on Sellerise's side and needs no
-pipeline fix; ~37 % is S2's untested FBA label. It is not accepted; it is diagnosed and half-owned by
-the target — and the guard cannot currently say so (D2.7).
+**UK's cog arm moves into this list in substance but not in status.** Σ −£1,593.57 (−13.39 %),
+same-signed. ~63 % is now a `KNOWN_TARGET_DEFECT` on Sellerise's side, pinned in `TARGET_DEFECTS`,
+and needs no pipeline fix. ~37 % is the FBA residual, whose restatement label S2 **refuted**; it is
+now `UNEXPLAINED` and stays `INVESTIGATE`. UK is half diagnosed, half open — and the guard now says
+exactly that: 4 pinned, 5 firing.
 
 ---
 
@@ -628,10 +670,10 @@ not the CAD basis 10,600.85)*. That is the whole reason the override exists.
 
 One status, one registry, no new files, no band widened.
 
-- `drift_bands.py:247` — the status constant. `:251` — `TargetDefect(expected_delta, tolerance, note)`
-  with a `matches()` predicate. `:528` — `TARGET_DEFECTS`, keyed `(marketplace, month, bucket,
-  sub_line)`. `:551` — `target_defect_for()`.
-- `classify()` (`:287`) takes an optional defect. A registered cell reads `KNOWN_TARGET_DEFECT` only
+- `drift_bands.py:248` — the status constant. `:252` — `TargetDefect(expected_delta, tolerance, note)`
+  with a `matches()` predicate. `:553` — `TARGET_DEFECTS`, keyed `(marketplace, month, bucket,
+  sub_line)`. `:590` — `target_defect_for()`.
+- `classify()` (`:288`) takes an optional defect. A registered cell reads `KNOWN_TARGET_DEFECT` only
   while its Δ sits within tolerance of the measured value, and `INVESTIGATE` otherwise. **It never
   falls back to the band**, so a pinned cell whose Δ moved is a finding even when the new Δ is small
   — including Δ = 0, i.e. the target fixed its bug.
@@ -664,10 +706,14 @@ existing bands, so they are not pinned — the band already covers them, and pin
 would fight its legitimate movement. Registered in the entry's own note so a reader does not
 re-derive it.
 
-**What deliberately was *not* registered.** UK's 5 `fbaObject` cells. Their "Amazon post-snapshot
-restatement" label rests entirely on a rate-signature inference and no re-pull has ever been run
-(D3.2 / S2). Registering them would convert an untested inference into a machine-blessed
-"diagnosed defect" and turn the guard green on the strength of nothing. **UK still exits 1.**
+**What deliberately was *not* registered.** UK's 5 `fbaObject` cells. At the time of S6 their "Amazon
+post-snapshot restatement" label rested entirely on a rate-signature inference with no re-pull ever
+run (D3.2 / S2). Registering them would have converted an untested inference into a machine-blessed
+"diagnosed defect" and turned the guard green on the strength of nothing. **UK still exits 1.**
+
+*(That restraint was vindicated: S2 ran later the same day and the restatement label turned out to be
+**wrong**. Had the cells been pinned to "close" UK, the guard would now be green on a label the
+evidence refutes. See § 8.)*
 
 ### Results
 
@@ -675,7 +721,7 @@ restatement" label rests entirely on a rate-signature inference and no re-pull h
 |---|---|---|---:|
 | US | 0 INVESTIGATE | 0 INVESTIGATE, 0 pinned | 1 *(unchanged; locked targets 9/15)* |
 | CA | 0 INVESTIGATE | 0 INVESTIGATE, 0 pinned | 0 *(unchanged)* |
-| UK | **9 INVESTIGATE** | **5 INVESTIGATE** + 4 `KNOWN_TARGET_DEFECT` | 1 *(the 5 are S2)* |
+| UK | **9 INVESTIGATE** | **5 INVESTIGATE** + 4 `KNOWN_TARGET_DEFECT` | 1 *(the 5 were then closed by S2′ — § 8)* |
 | AU | 3 CONTENT flags | **0 CONTENT flags** + 3 `KNOWN_TARGET_DEFECT` (+ Jan cog pinned) | 0 *(unchanged)* |
 
 `WITHIN_DRIFT` counts are unchanged on every marketplace: nothing was reclassified into the band.
@@ -699,3 +745,189 @@ restatement" label rests entirely on a rate-signature inference and no re-pull h
 CA's cog perturbation is caught only by the vs-prior-pull guard — its vs-Sellerise `cog` band is
 $500 against a ~$290/month perturbation. That is pre-existing (the two guards are designed to cover
 each other) and unaffected by S6, but it is worth knowing that CA's vs-target cog band is loose.
+
+---
+
+## 8. S2, run — the UK FBA restatement label is refuted
+
+Full workings in [`uk_fba_repull_test.md`](uk_fba_repull_test.md). Read-only: nothing was written to
+`sp_transactions`, `sp_breakdowns`, `sp_transaction_items`, `pnl_monthly`, `pnl_monthly_snapshots` or
+`sync_state`; the re-pull landed in a scratch file. No band widened, no cell pinned.
+
+### The before-snapshot survived
+
+UK's 2,011 rows in `sp_transactions` carry six distinct `ingested_at` values, one per posted month,
+all inside `2026-07-07 07:38:19–07:38:28 UTC`. A single pass, never re-ingested. The stored bytes are
+the original pull, so the test could run today against a 3-day interval — days, not the 36 seconds
+the earlier "evidence" rested on, but still not the weeks over which restatement accumulates. The
+interval is not what carries the refutation.
+
+### Test 1 — Amazon vs Amazon
+
+| | Feb 2026 | Mar 2026 |
+|---|---:|---:|
+| transactions, stored / fresh | 432 / 432 | 435 / 435 |
+| vanished / newly appeared | 0 / 0 | 0 / 0 |
+| **byte-identical raw JSON** | **432 / 432** | **435 / 435** |
+| `fbaObject` feed, stored → fresh | −673.87 → −673.87 | −657.68 → −657.68 |
+| transactions whose FBA total moved | **0** | **0** |
+
+867 transactions, whole raw payload, **£0.00 of movement**. To close Feb the figure would have had to
+be ~£117 smaller when Sellerise snapshotted it — a 17 % revision.
+
+### Test 1b — the argument that does not depend on the interval
+
+A restatement would have had to touch the FBA line **and nothing else**, because nothing else
+disagrees. On the *same transactions*:
+
+| month | `chargesObject.Principal` Δ | `Commission`+`ReferralFee` Δ | `fbaObject` Δ |
+|---|---:|---:|---:|
+| 2026-01 | **0.0000** | −118.05 | −71.35 |
+| 2026-02 | **0.0000** | 0.00 | −117.25 |
+| 2026-03 | **0.0000** | 0.00 | −87.10 |
+| 2026-04 | **0.0000** | 0.00 | −60.35 |
+| 2026-05 | **0.0000** | 0.00 | −61.20 |
+| 2026-06 | **0.0000** | 0.00 | −61.20 |
+| **Σ** | **0.0000** | −118.05 | **−458.45** |
+
+Revenue agrees with Sellerise's frozen snapshot to the cent, every month. Amazon revising a fee line
+by 9.6–23.6 % while leaving the principal on those same transactions identical to the penny is not a
+credible mechanism. **Label refuted.**
+
+### Test 2 — the netting hypothesis, also refuted as the explanation
+
+- **There are no FBA-fee refund leaves to net.** Zero `Refund`-side FBA leaves anywhere in UK Jan–Jun;
+  Amazon does not reverse the fulfilment fee on a return. Sellerise's `refundsObject` has no FBA line
+  either — its keys are identical to ours — and no other Sellerise bucket carries one.
+- Reconstructing the fee Amazon *actually charged* on each refunded unit (matched on `order_id` +
+  `sku`, 69 of 78 units matched) and deducting it: Σ\|Δ\| 458.45 → **194.12** (refund posted-month) or
+  **225.68** (purchase-month). Closes ≤ 58 % and leaves a same-signed residual of ≈ −£147.
+- Eliminated alongside: FBA fees on zero-revenue items (**none exist** — no replacements/MCF), and
+  misclassification into `expenses` (Sellerise's reimbursement and inbound lines reconcile to our
+  leaves **exactly**, Jan–Apr).
+
+### What is actually true
+
+Identical shipment set. On those units, Amazon charged £3.53–3.86/unit; Sellerise's implied rate is
+£2.76–3.34 — 9.6–23.6 % lower, and *less* stable month to month than ours (CV 6.7 % vs 4.2 %). A single
+scalar `theirs ≈ 0.8391 × ours` describes 76 % of it, which is a description, not a mechanism.
+
+**Sellerise's `fbaObject` is not a sum of Amazon's charged FBA fees.** That is the same shape as UK's
+cog residual — our per-unit value above Sellerise's, on one of the two lines Sellerise *derives* per
+unit rather than reading from the feed — and it carries the same limitation: Sellerise exposes only a
+monthly aggregate, so its per-unit FBA rate cannot be observed from anything in this repo (D3.5).
+
+### Interim verdict (S2)
+
+> Not restatement. Not netting. At this point the −£458.45 was **`UNEXPLAINED`, same-signed**, the
+> five cells stayed `INVESTIGATE`, and UK still exited 1. A same-signed material residual stays
+> systematic until a test names it.
+
+---
+
+## 8b. S2′ — the residual is named: Sellerise omits GMAKER-3's FBA fee
+
+The discriminating experiment was one SKU. Sellerise's own per-unit FBA fee for **GMAKER-3**: £27.75
+across **142 units**, Jan–Jun. Our unit count for the same SKU and window, on the same purchase-date
+basis: **142**. The two sides are describing the same units.
+
+### The shortfall
+
+| | Amazon (charged, from `sp_transactions`) | Sellerise | shortfall |
+|---|---:|---:|---:|
+| total FBA, GMAKER-3, Jan–Jun | **−£479.15** | −£27.75 | **£451.40** |
+| units | 142 | 142 | — |
+| **£/unit** | **3.374** | **0.195** | **94.2 % understated** |
+
+£451.40 against a £458.45 gap — **98.5 %** of the entire `fbaObject` residual, from one SKU.
+
+### It reconciles month by month, to the penny
+
+| month | `fbaObject` bucket gap | GMAKER-3's Amazon fee | difference |
+|---|---:|---:|---:|
+| 2026-01 | −71.35 | −71.35 | **0.00** |
+| 2026-02 | −117.25 | −117.25 | **0.00** |
+| 2026-03 | −87.10 | −87.10 | **0.00** |
+| 2026-04 | −60.35 | −81.05 | +20.70 |
+| 2026-05 | −61.20 | −61.20 | **0.00** |
+| 2026-06 | −61.20 | −61.20 | **0.00** |
+| **Σ** | **−458.45** | **−479.15** | **+20.70** |
+
+**In five of six months the whole UK FBA residual *is* GMAKER-3's fulfilment fee.** Sellerise books
+nothing for it. April is the sole exception — it booked exactly £20.70 there, and that £20.70 is the
+entire six-month difference. Implied Sellerise booking for the SKU: £0.00 × 5 months + £20.70 = £20.70,
+against the £27.75 it reports; the £7.05 remainder is **0.27 %** of the ~£2,600 non-GMAKER-3 FBA base.
+Rounding.
+
+This also disposes of the one loose end from S2 — Sellerise's implied per-unit rate looked *less*
+stable than ours (CV 6.7 % vs 4.2 %), which no fixed rate table can produce. It is our figure with one
+SKU zeroed out, and GMAKER-3's share of monthly units swings from 10 % to 25 %.
+
+### Every pinned Δ decomposes into two named components
+
+The guard cells sit on `fbaObject.FBAPerUnitFulfillmentFee`, not on the bucket. The difference is
+Sellerise's `FBAFees` line — its deferred-shipment estimate, for which we have no counterpart now that
+those shipments have released.
+
+| month | GMAKER-3's omitted fee | Sellerise's `FBAFees` estimate | sum | cell Δ in the report |
+|---|---:|---:|---:|---:|
+| 2026-01 | −71.35 | −8.71 | −80.06 | **−80.06** |
+| 2026-02 | −117.25 | −17.84 | −135.09 | **−135.09** |
+| 2026-03 | −87.10 | −8.93 | −96.03 | **−96.03** |
+| 2026-04 | −60.35 | 0.00 | −60.35 | **−60.35** |
+| 2026-05 | −61.20 | −3.10 | −64.30 | **−64.30** |
+
+No unexplained remainder anywhere.
+
+### Pinned
+
+Five settled cells in `drift_bands.TARGET_DEFECTS`, tolerance **±£15** — reused from
+`_UK_PRIOR_PULL_BANDS[("fbaObject","FBAPerUnitFulfillmentFee")]`, the calibrated pull-to-pull movement
+for that cell, never a fraction of the defect. `2026-06` carries the same defect but is trailing and
+still moving; a trailing month is never pinned.
+
+| marketplace | before | after | exit |
+|---|---|---|---:|
+| US | 0 INVESTIGATE | unchanged | 1 *(locked targets 9/15, pre-existing)* |
+| CA | 0 INVESTIGATE | unchanged | 0 |
+| **UK** | **5 INVESTIGATE + 4 pinned** | **0 INVESTIGATE + 9 pinned** | **0** ← first green run |
+| AU | 3 pinned | unchanged | 0 |
+
+`WITHIN_DRIFT` (149) and `TRAILING` (30) are unchanged for UK: nothing was reclassified into a band,
+and **no band was widened**. US, CA and AU reports are byte-identical; UK's per-cell diff tables (164
+rows) are byte-identical too — only statuses moved.
+
+### The pin holds; it does not excuse
+
+| check | result |
+|---|---|
+| Δ at the measured value | `KNOWN_TARGET_DEFECT` |
+| Δ ±£14 (inside tolerance) | `KNOWN_TARGET_DEFECT` |
+| Δ ±£16 (moved) | `INVESTIGATE`, both directions |
+| **Δ → 0.00, i.e. Sellerise fixes the SKU** | **`INVESTIGATE`** (unpinned it would read `WITHIN_DRIFT`) |
+| unregistered cell at the same Δ, band 50 | `INVESTIGATE` — the pin widens nothing |
+| `fbaObject × 1.20`, all 5 cells | `INVESTIGATE` on both guards |
+| one extra GMAKER-3 unit's fee (£3.37) | still `KNOWN_TARGET_DEFECT` — tracks the defect, not noise |
+| five extra units (£16.87) | `INVESTIGATE` |
+| `cog × 1.20` regression test | still fires on US / CA / UK |
+
+### Consequences (→ S2″)
+
+1. The Δ **scales with GMAKER-3's monthly volume**, so each new settled month needs its own entry.
+2. **If Sellerise corrects the fee, these cells fire `INVESTIGATE`** — by design. That is the signal to
+   delete the entries, and the only clean way this ends.
+3. **Do not adjust our FBA figure.** It is the fee Amazon billed, straight off the
+   `FBAPerUnitFulfillmentFee` leaves. Do not widen the band, do not touch the `fbaObject` mapping.
+
+### Code changed
+
+`drift_bands.py` only: the five registry entries, their evidence note, `_UK_FBA_TOL`, and the UK-band
+comment (which no longer asserts the refuted restatement label). No other file, no behavioural change
+outside the intended reclassification.
+
+### The sequence is the point
+
+The label was **refuted before the cause was found**, and the cells were held at `INVESTIGATE` in
+between. Had they been pinned to the restatement label to make UK green, the guard would now be
+certifying a claim the evidence kills — and the real defect, sitting in one SKU's fee, would never
+have been looked for.

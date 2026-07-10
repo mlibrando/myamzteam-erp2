@@ -118,20 +118,21 @@ _CA_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
 
 # ── UK bands ────────────────────────────────────────────────────────────────
 # UK is ~1/6 US scale. Basis: observed |Δ| Jan-Jun from
-# reference/data/reconcile_report_UK.md. Two systematic drivers are UNFIXED
-# pending workbook / Sellerise updates (see UK_RESIDUAL_DIAGNOSIS.md):
-#   - cog: per-SKU workbook cog values are ~$1/unit too high ($0.17-$3.01/u
-#     gap × units → +$29-$244/mo Δ, all six months same-signed positive).
-#     LOO-CV shows the true per-SKU costs exist and would collapse Σ|Δ|
-#     from $1001 to ~$207 if the workbook is corrected. Not a pipeline
-#     mechanism.
-#   - fbaObject: Sellerise's per-unit FBA rate is ~10% lower than the raw
-#     Amazon sp_breakdowns rate — classic post-snapshot restatement drift.
-#     Same-signed −$60-$135/mo.
-# Bands here are sized to the POST-FIX residual (small mixed-sign like UK
-# would look after workbook + FBA reconcile), so at the current UNRESOLVED
-# state they INVESTIGATE — the honest signal that these residuals need
-# attention. Once fixed, INVESTIGATE goes quiet naturally.
+# reference/data/reconcile_report_UK.md. Two systematic drivers, neither a
+# pipeline mechanism:
+#   - cog: SETTLED. Sellerise understates our per-SKU cost; the workbook is
+#     validated against the component build-up. A Sellerise-side defect, now
+#     pinned in TARGET_DEFECTS (4 settled cells). Do NOT edit the workbook.
+#   - fbaObject: SETTLED. Sellerise books essentially no FBA fee for GMAKER-3
+#     (£27.75 vs the £479.15 Amazon charged on the same 142 units). In five of
+#     six months the whole bucket gap IS that SKU's fee, to the penny. Another
+#     Sellerise-side defect, now pinned in TARGET_DEFECTS (5 settled cells).
+#     The old label here, "post-snapshot restatement drift", was REFUTED first:
+#     a re-pull of Feb and Mar 2026 returned 867 byte-identical transactions and
+#     moved the FBA figure by £0.00. See reference/data/uk_fba_repull_test.md.
+# Both bands stay as sized even though their cells are pinned: the pin holds each
+# Δ at its measured value, and the band still governs any cell that leaves the
+# registry. Neither was widened.
 _UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     # chargesObject
     ("chargesObject", "Principal"):            Decimal("20"),     # matches to cent
@@ -152,9 +153,9 @@ _UK_SETTLED_BANDS: dict[tuple[str, str], Decimal] = {
     ("feesObject", "DigitalServicesFeeFBA"):   Decimal("5"),
     ("feesObject", "GiftwrapChargeback"):      Decimal("5"),
     ("feesObject", "ReferralFee"):             Decimal("100"),    # obs max 67.46
-    # fbaObject — SIZED TO POST-RESTATEMENT-FIX, not current drift.
-    # Current UK FBA Δ is systematic $60-135/mo drift (Amazon post-snapshot
-    # rate revision). Band 50 fires on the drift so it's not hidden.
+    # fbaObject — the 5 settled cells are PINNED in TARGET_DEFECTS (Sellerise
+    # omits GMAKER-3's fee). This band is what catches any cell that is not, and
+    # the trailing month. Not widened.
     ("fbaObject", "FBAPerUnitFulfillmentFee"): Decimal("50"),
     ("fbaObject", "FBAFees"):                  Decimal("25"),     # obs max 17.84
     # refundsObject
@@ -521,6 +522,30 @@ _AU_STORAGE_GST_NOTE = (
     "one month fits 8x worse (Σ|Δ| 535.54 vs 64.17)."
 )
 
+_UK_FBA_NOTE = (
+    "Sellerise books essentially NO FBA fulfilment fee for GMAKER-3. Amazon charged £479.15 over "
+    "142 units Jan-Jun (£3.374/unit, straight off the `FBAPerUnitFulfillmentFee` leaves); Sellerise "
+    "carries £27.75 for the same SKU and the same 142 units (£0.195/unit) — a 94.2% understatement. "
+    "Proof it is the whole residual: in FIVE of six months the entire `fbaObject` bucket gap equals "
+    "GMAKER-3's Amazon-charged fee TO THE PENNY (Jan -71.35, Feb -117.25, Mar -87.10, May -61.20, "
+    "Jun -61.20; only April differs, by exactly £20.70, the one month Sellerise booked anything). "
+    "Each pinned Δ decomposes exactly into (GMAKER-3's omitted fee) + (Sellerise's `FBAFees` "
+    "deferred-estimate line, which we no longer have a counterpart for since those shipments "
+    "released). Do NOT 'fix' our FBA figure: it is the fee Amazon actually billed. "
+    "Two rival explanations are refuted, not merely unlikely: (1) Amazon post-snapshot restatement — "
+    "a re-pull of Feb and Mar 2026 returned 867 byte-identical transactions and moved the FBA figure "
+    "by £0.00, and `chargesObject.Principal` matches Sellerise to the cent in all six months; "
+    "(2) netting of refunded units' fees — there are zero Refund-side FBA leaves anywhere in the UK "
+    "feed and Sellerise's `refundsObject` has no FBA line. See reference/data/uk_fba_repull_test.md. "
+    "NOTE the Δ scales with GMAKER-3's monthly unit volume, so a NEW month needs its own entry — "
+    "and the right fix is Sellerise correcting the SKU's fee, which would drive these Δs to zero and "
+    "(correctly) fire INVESTIGATE until the entries are removed."
+)
+
+# The UK vs-prior-pull band for this cell is the calibrated 'how far may it move
+# between two pulls' figure. Reuse it rather than inventing a tolerance.
+_UK_FBA_TOL = _UK_PRIOR_PULL_BANDS[("fbaObject", "FBAPerUnitFulfillmentFee")]   # £15
+
 # AU tolerances are each cell's own FX-granularity band for that month
 # (max(|ours_aud| x FX_RATE_TOLERANCE, $5.00)) — the residual a monthly rate can
 # produce on its own. Below that, a move cannot be distinguished from FX noise;
@@ -531,6 +556,20 @@ TARGET_DEFECTS: dict[tuple[str, str, str, str], TargetDefect] = {
     (_UK, "2026-02", "cog", "(scalar)"): TargetDefect(Decimal("177.87"), _UK_COG_TOL, _UK_COG_NOTE),
     (_UK, "2026-04", "cog", "(scalar)"): TargetDefect(Decimal("184.41"), _UK_COG_TOL, _UK_COG_NOTE),
     (_UK, "2026-05", "cog", "(scalar)"): TargetDefect(Decimal("122.62"), _UK_COG_TOL, _UK_COG_NOTE),
+
+    # ── UK: Sellerise omits GMAKER-3's FBA fee (5 settled cells) ──
+    # 2026-06 carries the same defect (-61.20) but is the trailing month and is
+    # still moving; its band handles it. Do not pin a trailing month.
+    (_UK, "2026-01", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("-80.06"), _UK_FBA_TOL, _UK_FBA_NOTE),
+    (_UK, "2026-02", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("-135.09"), _UK_FBA_TOL, _UK_FBA_NOTE),
+    (_UK, "2026-03", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("-96.03"), _UK_FBA_TOL, _UK_FBA_NOTE),
+    (_UK, "2026-04", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("-60.35"), _UK_FBA_TOL, _UK_FBA_NOTE),
+    (_UK, "2026-05", "fbaObject", "FBAPerUnitFulfillmentFee"):
+        TargetDefect(Decimal("-64.30"), _UK_FBA_TOL, _UK_FBA_NOTE),
 
     # ── AU: Sellerboard omitted GST from one storage line, one month ──
     (_AU, "2026-01", "storageFee", "storageFee"):
