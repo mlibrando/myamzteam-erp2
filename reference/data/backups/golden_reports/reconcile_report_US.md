@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace ATVPDKIKX0DER
 
-Generated 2026-07-11 05:58:31Z.
+Generated 2026-07-10 10:37:52Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -73,30 +73,28 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |    -5,384.48 |    -4,549.27 |    -5,645.49 |       261.01 |     1,096.22 |
 | 2026-06 |    -3,821.97 |    -1,793.79 |    -3,286.51 |      -535.46 |     1,492.72 |
 
-## Drift-guard: 0 INVESTIGATE / 0 DEFECT_REMEASURED / 0 KNOWN_TARGET_DEFECT / 30 TRAILING / 154 WITHIN_DRIFT
+## Drift-guard: 0 INVESTIGATE / 0 KNOWN_TARGET_DEFECT / 30 TRAILING / 154 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
-`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `DEFECT_REMEASURED` = **the pinned Δ moved, and rows ingested since the pin account for all of it — re-pin, do not investigate** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
+`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
 
 ### Per-month summary
 
-| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | DEFECT_REMEASURED | INVESTIGATE |
-|---|---:|---:|---:|---:|---:|
-| 2026-01 | 30 | 0 | 0 | 0 | 0 |
-| 2026-02 | 30 | 0 | 0 | 0 | 0 |
-| 2026-03 | 33 | 0 | 0 | 0 | 0 |
-| 2026-04 | 28 | 0 | 0 | 0 | 0 |
-| 2026-05 | 33 | 0 | 0 | 0 | 0 |
-| 2026-06 | 0 | 30 | 0 | 0 | 0 |
+| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |
+|---|---:|---:|---:|---:|
+| 2026-01 | 30 | 0 | 0 | 0 |
+| 2026-02 | 30 | 0 | 0 | 0 |
+| 2026-03 | 33 | 0 | 0 | 0 |
+| 2026-04 | 28 | 0 | 0 | 0 |
+| 2026-05 | 33 | 0 | 0 | 0 |
+| 2026-06 | 0 | 30 | 0 | 0 |
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 30 TRAILING / 154 WITHIN_DRIFT
 
-Prior pull: `2026-07-11T05:56:04.194775+00:00`. Current pull: `2026-07-11T05:58:30.409282+00:00`.
+Prior pull: `2026-07-10T10:35:12.173927+00:00`. Current pull: `2026-07-10T10:37:51.582921+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)
-
-Golden figures from RECONCILIATION.md. `PASS` = exact (±$0.01). `ACCEPTED_DRIFT` = off the frozen golden figure but within that cell's restatement band (shown) — the our-vs-Sellerise drift the guard already accepts, not a regression, does not fail the run. `FAIL` = outside the band.
 
 | Dec. | bucket · sub_line | month | expected | actual | delta | status |
 |---|---|---|---:|---:|---:|---|
@@ -105,24 +103,24 @@ Golden figures from RECONCILIATION.md. `PASS` = exact (±$0.01). `ACCEPTED_DRIFT
 | A | `fbaObject.FBAFees` | 2026-02 |         0.00 |         0.00 |         0.00 | PASS |
 | A | `fbaObject.FBAFees` | 2026-03 |         0.00 |         0.00 |         0.00 | PASS |
 | D | `refundsObject.RestockingFee` | 2026-02 |        52.94 |        52.94 |         0.00 | PASS |
-| D | `refundsObject.RestockingFee` | 2026-04 |         4.59 |         4.87 |         0.28 | ACCEPTED_DRIFT (±5.00) |
+| D | `refundsObject.RestockingFee` | 2026-04 |         4.59 |         4.87 |         0.28 | FAIL |
 | D | `refundsObject.RestockingFee` | 2026-06 |         9.70 |         9.70 |         0.00 | PASS |
 | D | `refundsObject.Goodwill` | 2026-05 |       -17.09 |       -17.09 |         0.00 | PASS |
 | D | `refundsObject.Goodwill` | 2026-06 |       -13.23 |       -13.23 |         0.00 | PASS |
 | E | `refundsObject.Promotion` | 2026-02 |       146.99 |       146.99 |         0.00 | PASS |
-| E | `refundsObject.Promotion` | 2026-03 |        44.87 |        46.87 |         2.00 | ACCEPTED_DRIFT (±20.00) |
-| E | `refundsObject.Promotion` | 2026-06 |         3.99 |         4.99 |         1.00 | ACCEPTED_DRIFT (±60.00) |
-| E | `chargesObject.Promotion` | 2026-02 |      -811.14 |      -819.10 |        -7.96 | ACCEPTED_DRIFT (±60.00) |
-| E | `chargesObject.Promotion` | 2026-03 |      -610.03 |      -613.51 |        -3.48 | ACCEPTED_DRIFT (±60.00) |
-| E | `chargesObject.Promotion` | 2026-06 |      -496.12 |      -505.04 |        -8.92 | ACCEPTED_DRIFT (±180.00) |
+| E | `refundsObject.Promotion` | 2026-03 |        44.87 |        46.87 |         2.00 | FAIL |
+| E | `refundsObject.Promotion` | 2026-06 |         3.99 |         4.99 |         1.00 | FAIL |
+| E | `chargesObject.Promotion` | 2026-02 |      -811.14 |      -819.10 |        -7.96 | FAIL |
+| E | `chargesObject.Promotion` | 2026-03 |      -610.03 |      -613.51 |        -3.48 | FAIL |
+| E | `chargesObject.Promotion` | 2026-06 |      -496.12 |      -505.04 |        -8.92 | FAIL |
 
-**Locked targets: 9 / 15 PASS** · 6 ACCEPTED_DRIFT · 0 FAIL
+**Locked targets: 9 / 15 PASS**
 
 ## Ad-lines reconciliation (Phase 4 Step 2c V1)
 
 Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's five `adExpenses` lines. Restatement drift up to ±$5.00 shows as `PASS_DRIFT` (small, expected — Amazon revises reports after Sellerise's snapshot). Trailing month is `EXPECTED_DRIFT`.
 
-`as_of` timestamps per month: {'2026-07': '2026-07-07T03:48:06.706798+00:00', '2026-06': '2026-07-07T08:29:09.567470+00:00', '2026-01': '2026-07-10T13:29:07.926811+00:00', '2026-02': '2026-07-10T13:15:56.339760+00:00', '2026-03': '2026-07-10T13:38:49.410856+00:00', '2026-05': '2026-07-10T13:57:27.288920+00:00', '2026-04': '2026-07-10T13:48:07.467034+00:00'}
+`as_of` timestamps per month: {'2026-07': '2026-07-07T03:48:06.706798+00:00', '2026-06': '2026-07-07T08:29:09.567470+00:00', '2026-01': '2026-07-07T03:16:29.778630+00:00', '2026-02': '2026-07-07T03:16:32.417283+00:00', '2026-03': '2026-07-07T03:22:47.460279+00:00', '2026-05': '2026-07-07T08:29:14.293871+00:00', '2026-04': '2026-07-07T03:25:10.232326+00:00'}
 
 | month | line | ours (USD) | Sellerise | Δ | status |
 |---|---|---:|---:|---:|---|

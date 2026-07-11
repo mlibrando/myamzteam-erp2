@@ -1,0 +1,697 @@
+marketplace_id,year_month,line_key,line_label,bucket,amount,currency,computed_at
+A1F83G8C2ARO7P,2025-12,Principal,Principal,chargesObject,780.3000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Promotion,Promotion,chargesObject,-9.2300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,ShippingCharge,ShippingCharge,chargesObject,4.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,ShippingTax,ShippingTax,chargesObject,0.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Tax,Tax,chargesObject,156.0800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,cog,Cost of goods sold,cog,67.8900,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2025-12,Shipment.OurPriceTaxDiscount,Shipment · OurPriceTaxDiscount,expenses,-0.9400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-46.0300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Commission,Commission,feesObject,-139.5900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,DigitalServicesFee,DigitalServicesFee,feesObject,-3.0500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-147.6500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Shipment.Promo,Shipment · Promo,passthrough,22.9500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2025-12,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-0.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,GiftWrap,GiftWrap,chargesObject,2.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,GiftWrapTax,GiftWrapTax,chargesObject,0.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Principal,Principal,chargesObject,11349.9500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Promotion,Promotion,chargesObject,-126.4700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingCharge,ShippingCharge,chargesObject,156.4400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingTax,ShippingTax,chargesObject,12.3100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Tax,Tax,chargesObject,2115.0100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,cog,Cost of goods sold,cog,3388.3800,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-01,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,1329.2700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-24.4500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Refund.OurPriceTaxDiscount,Refund · OurPriceTaxDiscount,expenses,4.8000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Refund.Promo,Refund · Promo,expenses,-39.2800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.DealParticipationFee,ServiceFee · DealParticipationFee,expenses,-20.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.DealPerformanceFee,ServiceFee · DealPerformanceFee,expenses,-16.9500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-214.2000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-329.6500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.FBAInboundTransportationProgramFee,ServiceFee · FBAInboundTransportationProgramFee,expenses,-16.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.OurPriceTaxDiscount,Shipment · OurPriceTaxDiscount,expenses,-17.7300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-745.5700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Commission,Commission,feesObject,-2026.7600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,DigitalServicesFee,DigitalServicesFee,feesObject,-52.0200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,GiftwrapChargeback,GiftwrapChargeback,feesObject,-2.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingChargeback,ShippingChargeback,feesObject,-102.9300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-2504.0900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,0.1300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.MarketplaceFacilitatorTax-Other,Shipment · MarketplaceFacilitatorTax-Other,passthrough,-0.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-1998.8500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-4.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.Promo,Shipment · Promo,passthrough,189.4000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-7.1500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,9476.6500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Commission,Commission,refundsObject,277.2400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,DigitalServicesFee,DigitalServicesFee,refundsObject,4.2000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Principal,Principal,refundsObject,-1564.3500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Promotion,Promotion,refundsObject,24.6400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,RefundCommission,RefundCommission,refundsObject,-51.7800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingCharge,ShippingCharge,refundsObject,-1.4500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingChargeback,ShippingChargeback,refundsObject,0.8300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,ShippingTax,ShippingTax,refundsObject,-0.3000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Tax,Tax,refundsObject,-312.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,Tax Withheld,Tax Withheld,refundsObject,276.6100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-01,storageFee,storageFee,storageFee,-178.8200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Principal,Principal,chargesObject,12965.5800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Promotion,Promotion,chargesObject,-63.4000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingCharge,ShippingCharge,chargesObject,109.3300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingTax,ShippingTax,chargesObject,20.1000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Tax,Tax,chargesObject,2467.0600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,cog,Cost of goods sold,cog,4037.2300,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-02,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,1393.0400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-226.2800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.6800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-712.8700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Commission,Commission,feesObject,-2338.8400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,DigitalServicesFee,DigitalServicesFee,feesObject,-55.8200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingChargeback,ShippingChargeback,feesObject,-44.3500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1799.6700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,1.0400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-2283.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-7.2900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Shipment.Promo,Shipment · Promo,passthrough,117.2500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-12.8100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,3949.2600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Commission,Commission,refundsObject,237.1700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,DigitalServicesFee,DigitalServicesFee,refundsObject,5.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Principal,Principal,refundsObject,-1317.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Promotion,Promotion,refundsObject,5.1900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,RefundCommission,RefundCommission,refundsObject,-43.7800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingCharge,ShippingCharge,refundsObject,-48.8200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingChargeback,ShippingChargeback,refundsObject,37.2800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,ShippingTax,ShippingTax,refundsObject,-2.1500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Tax,Tax,refundsObject,-231.9300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,Tax Withheld,Tax Withheld,refundsObject,201.3800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-02,storageFee,storageFee,storageFee,-146.7300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Principal,Principal,chargesObject,11287.2400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Promotion,Promotion,chargesObject,-42.2700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingCharge,ShippingCharge,chargesObject,139.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingTax,ShippingTax,chargesObject,26.0300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Tax,Tax,chargesObject,2201.1600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,cog,Cost of goods sold,cog,3329.8500,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-03,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,482.3700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-9.0700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,19.0100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,RemovalShipment.TaxOnRevenue,RemovalShipment · TaxOnRevenue,expenses,3.8000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-104.5100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.6700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-628.3800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Commission,Commission,feesObject,-2031.4500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,DigitalServicesFee,DigitalServicesFee,feesObject,-49.4800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,DigitalServicesFeeFBA,DigitalServicesFeeFBA,feesObject,-0.0600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingChargeback,ShippingChargeback,feesObject,-96.6100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,528.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-528.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1935.2100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,1.3200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-1987.7000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-18.6700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Shipment.Promo,Shipment · Promo,passthrough,87.1000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-7.3300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,8045.6200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Commission,Commission,refundsObject,391.6400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,DigitalServicesFee,DigitalServicesFee,refundsObject,7.8300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Principal,Principal,refundsObject,-2175.9700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Promotion,Promotion,refundsObject,6.6000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,RefundCommission,RefundCommission,refundsObject,-71.0700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingCharge,ShippingCharge,refundsObject,-7.1200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingChargeback,ShippingChargeback,refundsObject,0.5200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,ShippingTax,ShippingTax,refundsObject,-1.4200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Tax,Tax,refundsObject,-435.2500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,Tax Withheld,Tax Withheld,refundsObject,435.3500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-03,storageFee,storageFee,storageFee,-148.0800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Principal,Principal,chargesObject,9978.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Promotion,Promotion,chargesObject,-42.2800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingCharge,ShippingCharge,chargesObject,84.7100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingTax,ShippingTax,chargesObject,15.2200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Tax,Tax,chargesObject,1966.8500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,cog,Cost of goods sold,cog,3479.5400,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-04,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,1690.8200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Refund.OurPriceTaxDiscount,Refund · OurPriceTaxDiscount,expenses,1.1200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-29.6100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,62.3800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,RemovalShipment.TaxOnRevenue,RemovalShipment · TaxOnRevenue,expenses,12.4700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-69.5300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-24.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ServiceFee.FBAInboundTransportationProgramFee,ServiceFee · FBAInboundTransportationProgramFee,expenses,-1.2000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.7600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-451.4800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Commission,Commission,feesObject,-1795.8700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,DigitalServicesFee,DigitalServicesFee,feesObject,-42.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingChargeback,ShippingChargeback,feesObject,-40.9500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-790.7100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,0.7700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-1903.7700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-6.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Shipment.Promo,Shipment · Promo,passthrough,81.0500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-8.4800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,9696.9300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Commission,Commission,refundsObject,163.9100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,DigitalServicesFee,DigitalServicesFee,refundsObject,3.5700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Principal,Principal,refundsObject,-916.3300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Promotion,Promotion,refundsObject,9.4900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,RefundCommission,RefundCommission,refundsObject,-28.8500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingCharge,ShippingCharge,refundsObject,-22.0600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingChargeback,ShippingChargeback,refundsObject,15.3900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,ShippingTax,ShippingTax,refundsObject,-1.0500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Tax,Tax,refundsObject,-119.9500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,Tax Withheld,Tax Withheld,refundsObject,119.1100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-04,storageFee,storageFee,storageFee,-105.7800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Principal,Principal,chargesObject,5358.5700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Promotion,Promotion,chargesObject,-36.0700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ShippingCharge,ShippingCharge,chargesObject,61.5300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ShippingTax,ShippingTax,chargesObject,10.5600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Tax,Tax,chargesObject,1043.7800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,cog,Cost of goods sold,cog,1767.6200,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-05,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,189.0700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.EPRChargebackEcoFee,ServiceFee · EPRChargebackEcoFee,expenses,-87.1600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.EPRChargebackServiceFee,ServiceFee · EPRChargebackServiceFee,expenses,-10.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-58.9400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-18.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.FBAInboundTransportationProgramFee,ServiceFee · FBAInboundTransportationProgramFee,expenses,-0.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.5800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ServiceFee.Tax,ServiceFee · Tax,expenses,-16.5200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-259.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Commission,Commission,feesObject,-964.3800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,DigitalServicesFee,DigitalServicesFee,feesObject,-23.0400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ShippingChargeback,ShippingChargeback,feesObject,-25.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-352.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-792.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,0.6600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-1026.8100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-4.5500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Shipment.Promo,Shipment · Promo,passthrough,61.2000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-6.0100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,4353.7200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Commission,Commission,refundsObject,126.2200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,DigitalServicesFee,DigitalServicesFee,refundsObject,2.5000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Principal,Principal,refundsObject,-701.3400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Promotion,Promotion,refundsObject,3.3200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,RefundCommission,RefundCommission,refundsObject,-23.8600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ShippingCharge,ShippingCharge,refundsObject,-3.3200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,ShippingTax,ShippingTax,refundsObject,-0.6600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Tax,Tax,refundsObject,-140.2700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,Tax Withheld,Tax Withheld,refundsObject,132.7800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-05,storageFee,storageFee,storageFee,-77.6000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Principal,Principal,chargesObject,6853.4400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Promotion,Promotion,chargesObject,-21.2200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ShippingCharge,ShippingCharge,chargesObject,43.2900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ShippingTax,ShippingTax,chargesObject,6.5200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Tax,Tax,chargesObject,1313.6400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,cog,Cost of goods sold,cog,2365.0500,USD,2026-07-07 07:47:03.254537+00
+A1F83G8C2ARO7P,2026-06,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,89.4800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-64.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-9.1000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,19.2300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,RemovalShipment.TaxOnRevenue,RemovalShipment · TaxOnRevenue,expenses,3.8500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.EPRChargebackEcoFee,ServiceFee · EPRChargebackEcoFee,expenses,-103.5500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.EPRChargebackServiceFee,ServiceFee · EPRChargebackServiceFee,expenses,-10.0000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-21.4300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-57.9600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.FBAInboundTransportationProgramFee,ServiceFee · FBAInboundTransportationProgramFee,expenses,-2.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-7.6900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ServiceFee.Tax,ServiceFee · Tax,expenses,-19.3000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,FBAFees,FBAFees,fbaObject,-13.9000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-298.3900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Commission,Commission,feesObject,-1174.3200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,DigitalServicesFee,DigitalServicesFee,feesObject,-29.6100,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ReferralFee,ReferralFee,feesObject,-59.8200,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ShippingChargeback,ShippingChargeback,feesObject,-20.7900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,188.0400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-188.0400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-723.4500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Refund.ShippingTaxDiscount,Refund · ShippingTaxDiscount,passthrough,0.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-1304.1600,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-2.8900,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Shipment.Promo,Shipment · Promo,passthrough,61.2000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Shipment.ShippingTaxDiscount,Shipment · ShippingTaxDiscount,passthrough,-3.6300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,2932.4700,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Commission,Commission,refundsObject,140.3400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,DigitalServicesFee,DigitalServicesFee,refundsObject,2.8000,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Principal,Principal,refundsObject,-779.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Promotion,Promotion,refundsObject,3.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,RefundCommission,RefundCommission,refundsObject,-25.2800,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ShippingCharge,ShippingCharge,refundsObject,-3.7400,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,ShippingTax,ShippingTax,refundsObject,-0.7500,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Tax,Tax,refundsObject,-159.2300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,Tax Withheld,Tax Withheld,refundsObject,159.2300,GBP,2026-07-07 07:39:50.55983+00
+A1F83G8C2ARO7P,2026-06,storageFee,storageFee,storageFee,-59.6800,GBP,2026-07-07 07:39:50.55983+00
+A2EUQ1WTGCTBG2,2025-12,Principal,Principal,chargesObject,491.2000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2025-12,Promotion,Promotion,chargesObject,-29.9300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2025-12,ShippingCharge,ShippingCharge,chargesObject,5.9900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2025-12,cog,Cost of goods sold,cog,148.9100,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2025-12,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-74.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2025-12,Commission,Commission,feesObject,-69.1900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2025-12,ShippingChargeback,ShippingChargeback,feesObject,-5.9900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Principal,Principal,chargesObject,9584.0300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Promotion,Promotion,chargesObject,-77.0800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ShippingCharge,ShippingCharge,chargesObject,107.8600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ShippingTax,ShippingTax,chargesObject,1.5600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Tax,Tax,chargesObject,889.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,cog,Cost of goods sold,cog,1925.0700,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-01,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,449.8700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-152.1400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ServiceFee.CouponParticipationFee,ServiceFee · CouponParticipationFee,expenses,-2.0000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ServiceFee.CouponPerformanceFee,ServiceFee · CouponPerformanceFee,expenses,-74.6600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-15.0600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.2900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.6200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Shipment.Tax,Shipment · Tax,expenses,-4.0200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-1351.3200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Commission,Commission,feesObject,-1432.9600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ShippingChargeback,ShippingChargeback,feesObject,-60.7100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-2691.4000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-889.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-1.5600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Shipment.Promo,Shipment · Promo,passthrough,43.0400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,3655.9700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Commission,Commission,refundsObject,72.3700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Principal,Principal,refundsObject,-518.8500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Promotion,Promotion,refundsObject,38.7200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,RefundCommission,RefundCommission,refundsObject,-13.4100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,ShippingCharge,ShippingCharge,refundsObject,-2.3100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Tax,Tax,refundsObject,-36.4300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,Tax Withheld,Tax Withheld,refundsObject,36.4300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-01,storageFee,storageFee,storageFee,-31.1700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Principal,Principal,chargesObject,8711.1800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Promotion,Promotion,chargesObject,-46.3400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ShippingCharge,ShippingCharge,chargesObject,46.3400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Tax,Tax,chargesObject,917.2200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,cog,Cost of goods sold,cog,2225.8500,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-02,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,189.5300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-116.4600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-1.6400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-1.5800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.2100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.2300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Shipment.Tax,Shipment · Tax,expenses,-6.6600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-861.5800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Commission,Commission,feesObject,-1306.6100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1462.7200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-917.2200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Shipment.Promo,Shipment · Promo,passthrough,42.3600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,5157.8400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Commission,Commission,refundsObject,49.1100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Principal,Principal,refundsObject,-357.3500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Promotion,Promotion,refundsObject,29.9300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,RefundCommission,RefundCommission,refundsObject,-9.7400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Tax,Tax,refundsObject,-37.6700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,Tax Withheld,Tax Withheld,refundsObject,37.6700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-02,storageFee,storageFee,storageFee,-171.1500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Principal,Principal,chargesObject,8866.8500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Promotion,Promotion,chargesObject,-35.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ShippingCharge,ShippingCharge,chargesObject,64.3100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ShippingTax,ShippingTax,chargesObject,3.3900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Tax,Tax,chargesObject,999.5800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,cog,Cost of goods sold,cog,2054.6600,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-03,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,372.1900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-3.8500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-3.1400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.2000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.3200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Shipment.Tax,Shipment · Tax,expenses,-1.3200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-846.2600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Commission,Commission,feesObject,-1330.0000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ShippingChargeback,ShippingChargeback,feesObject,-29.2100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,1532.1600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-1532.1600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1464.6000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-999.5800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-3.3900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,2156.5000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Commission,Commission,refundsObject,171.6500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,DigitalServicesFee,DigitalServicesFee,refundsObject,0.5400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Goodwill,Goodwill,refundsObject,-9.0900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Principal,Principal,refundsObject,-1164.2100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Promotion,Promotion,refundsObject,19.9500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,RefundCommission,RefundCommission,refundsObject,-29.2000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Tax,Tax,refundsObject,-151.7200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,Tax Withheld,Tax Withheld,refundsObject,151.7200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-03,storageFee,storageFee,storageFee,-278.1400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Principal,Principal,chargesObject,4955.3200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Promotion,Promotion,chargesObject,-230.3100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ShippingCharge,ShippingCharge,chargesObject,38.8200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Tax,Tax,chargesObject,442.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,cog,Cost of goods sold,cog,911.8000,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-04,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,303.6100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-135.1900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-5.8400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-4.3300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.3100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.2100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-512.7700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Commission,Commission,feesObject,-714.5300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1123.3300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ProductAdsPayment.AdvertisingFeeRefund,ProductAdsPayment · AdvertisingFeeRefund,passthrough,882.0400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-442.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Shipment.Promo,Shipment · Promo,passthrough,10.5900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,2578.1200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Commission,Commission,refundsObject,187.0700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Principal,Principal,refundsObject,-1266.9500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Promotion,Promotion,refundsObject,34.0800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,RefundCommission,RefundCommission,refundsObject,-32.1000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,ShippingCharge,ShippingCharge,refundsObject,-14.1300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Tax,Tax,refundsObject,-146.3700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,Tax Withheld,Tax Withheld,refundsObject,146.3700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-04,storageFee,storageFee,storageFee,-568.9000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Principal,Principal,chargesObject,6455.1500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Promotion,Promotion,chargesObject,-206.2600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ShippingCharge,ShippingCharge,chargesObject,17.7000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Tax,Tax,chargesObject,542.9800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,cog,Cost of goods sold,cog,1318.8300,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-05,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,303.4900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,MiscellaneousLedgerAdjustment.Other,MiscellaneousLedgerAdjustment · Other,expenses,407.8000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.CouponParticipationFee,ServiceFee · CouponParticipationFee,expenses,-2.0000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.CouponPerformanceFee,ServiceFee · CouponPerformanceFee,expenses,-51.3100,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-40.9800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-8.0600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.0900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.5400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-661.4800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Commission,Commission,feesObject,-939.9600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-691.9300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-542.9800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Shipment.Promo,Shipment · Promo,passthrough,10.9600,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,2996.7300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Commission,Commission,refundsObject,100.7200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Principal,Principal,refundsObject,-731.4000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Promotion,Promotion,refundsObject,65.7500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,RefundCommission,RefundCommission,refundsObject,-18.9900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,ShippingCharge,ShippingCharge,refundsObject,-5.9000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Tax,Tax,refundsObject,-57.3700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,Tax Withheld,Tax Withheld,refundsObject,57.3700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-05,storageFee,storageFee,storageFee,-540.5900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Principal,Principal,chargesObject,6898.1800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Promotion,Promotion,chargesObject,-432.4900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Tax,Tax,chargesObject,797.4900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,cog,Cost of goods sold,cog,2164.6400,USD,2026-07-07 07:46:59.005193+00
+A2EUQ1WTGCTBG2,2026-06,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,555.0300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-152.1400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-6.2300,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-9.2200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.2500,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,FBAFees,FBAFees,fbaObject,-40.0000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-562.9400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Commission,Commission,feesObject,-920.4700,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,ReferralFee,ReferralFee,feesObject,-49.4200,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-917.2000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-797.4900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Shipment.Promo,Shipment · Promo,passthrough,43.8400,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,2633.8000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Commission,Commission,refundsObject,100.1800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Principal,Principal,refundsObject,-690.7000,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Promotion,Promotion,refundsObject,22.8800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,RefundCommission,RefundCommission,refundsObject,-16.8900,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Tax,Tax,refundsObject,-58.1800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,Tax Withheld,Tax Withheld,refundsObject,58.1800,CAD,2026-07-07 07:39:44.368993+00
+A2EUQ1WTGCTBG2,2026-06,storageFee,storageFee,storageFee,-486.2600,CAD,2026-07-07 07:39:44.368993+00
+ATVPDKIKX0DER,2025-12,Principal,Principal,chargesObject,10218.9200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,Promotion,Promotion,chargesObject,-198.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,ShippingCharge,ShippingCharge,chargesObject,66.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,ShippingTax,ShippingTax,chargesObject,0.3400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,Tax,Tax,chargesObject,444.1800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,cog,Cost of goods sold,cog,640.1800,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2025-12,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-993.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,Commission,Commission,feesObject,-1506.8500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,ShippingChargeback,ShippingChargeback,feesObject,-39.6500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-444.1800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2025-12,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-0.3400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,GiftWrap,GiftWrap,chargesObject,4.4900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,GiftWrapTax,GiftWrapTax,chargesObject,0.3100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Principal,Principal,chargesObject,166439.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Promotion,Promotion,chargesObject,-2019.3100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingCharge,ShippingCharge,chargesObject,847.2600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingTax,ShippingTax,chargesObject,5.2000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Tax,Tax,chargesObject,9027.5000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,cog,Cost of goods sold,cog,43949.3700,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-01,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,2787.3000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-1037.1600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.CouponParticipationFee,ServiceFee · CouponParticipationFee,expenses,-10.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.CouponPerformanceFee,ServiceFee · CouponPerformanceFee,expenses,-1104.8200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.CustomerReturnHRRUnitFee,ServiceFee · CustomerReturnHRRUnitFee,expenses,-5.2000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-1.0400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-793.7200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-5702.5300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-1495.7900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-697.1900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.PaidServicesFee,ServiceFee · PaidServicesFee,expenses,-2215.9500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.3900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-16497.2500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Commission,Commission,feesObject,-24600.9700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,GiftwrapChargeback,GiftwrapChargeback,feesObject,-4.4900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingChargeback,ShippingChargeback,feesObject,-233.2700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-31317.1100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Shipment.LowValueGoodsTax-Principal,Shipment · LowValueGoodsTax-Principal,passthrough,-28.3500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Shipment.MarketplaceFacilitatorTax-Other,Shipment · MarketplaceFacilitatorTax-Other,passthrough,-0.3100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-8999.1500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-5.2000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Shipment.Promo,Shipment · Promo,passthrough,19.7600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,100088.6800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Commission,Commission,refundsObject,1649.2200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Principal,Principal,refundsObject,-11169.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Promotion,Promotion,refundsObject,188.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,RefundCommission,RefundCommission,refundsObject,-298.6400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingCharge,ShippingCharge,refundsObject,-46.4500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingChargeback,ShippingChargeback,refundsObject,32.4700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,ShippingTax,ShippingTax,refundsObject,-0.4200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Tax,Tax,refundsObject,-740.0600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,Tax Withheld,Tax Withheld,refundsObject,740.4800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-01,storageFee,storageFee,storageFee,-3474.4600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Principal,Principal,chargesObject,137786.8600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Promotion,Promotion,chargesObject,-819.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingCharge,ShippingCharge,chargesObject,1035.6800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingTax,ShippingTax,chargesObject,14.5800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Tax,Tax,chargesObject,7128.5100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,cog,Cost of goods sold,cog,33733.3200,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-02,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,9984.4800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-284.0100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-16.3200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,9.1300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Retrocharge.BaseTax,Retrocharge · BaseTax,expenses,9.4500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Retrocharge.ShippingTax,Retrocharge · ShippingTax,expenses,0.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-496.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-1405.3300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-1526.8000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-192.9100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-13277.4600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Commission,Commission,feesObject,-20639.8300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingChargeback,ShippingChargeback,feesObject,-392.7300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-23361.4600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Retrocharge.MarketplaceFacilitatorTax-Principal,Retrocharge · MarketplaceFacilitatorTax-Principal,passthrough,-9.4500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.LowValueGoodsTax-Principal,Shipment · LowValueGoodsTax-Principal,passthrough,-21.7600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.LowValueGoodsTax-Shipping,Shipment · LowValueGoodsTax-Shipping,passthrough,-8.6200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-7014.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-5.9600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-92.1200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Shipment.Promo,Shipment · Promo,passthrough,60.9500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,81899.5300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Commission,Commission,refundsObject,1503.1400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Principal,Principal,refundsObject,-10116.3500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Promotion,Promotion,refundsObject,146.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,RefundCommission,RefundCommission,refundsObject,-266.2600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,RestockingFee,RestockingFee,refundsObject,52.9400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingCharge,ShippingCharge,refundsObject,-162.9100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingChargeback,ShippingChargeback,refundsObject,97.0500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,ShippingTax,ShippingTax,refundsObject,-0.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Tax,Tax,refundsObject,-690.5400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,Tax Withheld,Tax Withheld,refundsObject,691.1700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-02,storageFee,storageFee,storageFee,-1202.5700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftWrap,GiftWrap,chargesObject,8.4800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftWrapTax,GiftWrapTax,chargesObject,0.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Principal,Principal,chargesObject,122342.4700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Promotion,Promotion,chargesObject,-613.5100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingCharge,ShippingCharge,chargesObject,692.9000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingTax,ShippingTax,chargesObject,2.8800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Tax,Tax,chargesObject,6735.3600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,cog,Cost of goods sold,cog,28959.5900,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-03,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,2991.1200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-518.2500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-1179.9500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,2837.8400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,RemovalShipment.TaxOnRevenue,RemovalShipment · TaxOnRevenue,expenses,1.0600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-1262.4300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-1616.2900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-1557.3500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-1779.5800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.2700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-10940.7900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Commission,Commission,feesObject,-18324.0200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftwrapChargeback,GiftwrapChargeback,feesObject,-8.4800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingChargeback,ShippingChargeback,feesObject,-252.8300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Adjustment.ReserveCredit,Adjustment · ReserveCredit,passthrough,17856.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Adjustment.ReserveDebit,Adjustment · ReserveDebit,passthrough,-17856.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-19035.2500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,RemovalShipment.MarketplaceFacilitatorTax-Principal,RemovalShipment · MarketplaceFacilitatorTax-Principal,passthrough,-1.0600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Shipment.MarketplaceFacilitatorTax-Other,Shipment · MarketplaceFacilitatorTax-Other,passthrough,-0.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-6735.3600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-2.8800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,37577.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Commission,Commission,refundsObject,1333.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftWrap,GiftWrap,refundsObject,-3.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftwrapChargeback,GiftwrapChargeback,refundsObject,3.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,GiftWrapTax,GiftWrapTax,refundsObject,-0.3200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Principal,Principal,refundsObject,-8930.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Promotion,Promotion,refundsObject,46.8700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,RefundCommission,RefundCommission,refundsObject,-236.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingCharge,ShippingCharge,refundsObject,-17.0700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingChargeback,ShippingChargeback,refundsObject,8.3900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,ShippingTax,ShippingTax,refundsObject,-0.6700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Tax,Tax,refundsObject,-583.0200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,Tax Withheld,Tax Withheld,refundsObject,584.0100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-03,storageFee,storageFee,storageFee,-1177.9500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Principal,Principal,chargesObject,118226.9600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Promotion,Promotion,chargesObject,-515.6600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingCharge,ShippingCharge,chargesObject,733.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingTax,ShippingTax,chargesObject,10.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Tax,Tax,chargesObject,6077.6200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,cog,Cost of goods sold,cog,30607.8300,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-04,Adjustment.AmazonFees,Adjustment · AmazonFees,expenses,0.6500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Adjustment.RecommerceLiquidation,Adjustment · RecommerceLiquidation,expenses,-0.3100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,2434.9500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-517.4800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,RemovalShipment.AmazonFees,RemovalShipment · AmazonFees,expenses,-65.8500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,RemovalShipment.RecommerceLiquidation,RemovalShipment · RecommerceLiquidation,expenses,62.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Retrocharge.BaseTax,Retrocharge · BaseTax,expenses,20.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Retrocharge.Other,Retrocharge · Other,expenses,20.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Retrocharge.RetrochargeReversal,Retrocharge · RetrochargeReversal,expenses,-20.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Retrocharge.ShippingTax,Retrocharge · ShippingTax,expenses,0.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.CustomerReturnHRRUnitFee,ServiceFee · CustomerReturnHRRUnitFee,expenses,-15.6000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-549.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-2816.2100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-1249.3600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-3412.7900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.4100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-11246.7000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Commission,Commission,feesObject,-17722.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingChargeback,ShippingChargeback,feesObject,-284.5700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-13246.6600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ProductAdsPayment.AdvertisingFeeRefund,ProductAdsPayment · AdvertisingFeeRefund,passthrough,20.0100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Retrocharge.MarketplaceFacilitatorTax-Principal,Retrocharge · MarketplaceFacilitatorTax-Principal,passthrough,-20.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-6057.3500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-5.8800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-20.2700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Shipment.MarketplaceFacilitatorVAT-Shipping,Shipment · MarketplaceFacilitatorVAT-Shipping,passthrough,-5.0500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,55703.8900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Commission,Commission,refundsObject,682.5200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Principal,Principal,refundsObject,-4585.7300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Promotion,Promotion,refundsObject,52.4500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,RefundCommission,RefundCommission,refundsObject,-121.9000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,RestockingFee,RestockingFee,refundsObject,4.8700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingCharge,ShippingCharge,refundsObject,-25.8700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingChargeback,ShippingChargeback,refundsObject,8.9100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,ShippingTax,ShippingTax,refundsObject,-0.6700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Tax,Tax,refundsObject,-276.2200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,Tax Withheld,Tax Withheld,refundsObject,276.8900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-04,storageFee,storageFee,storageFee,-770.8300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Principal,Principal,chargesObject,109289.4900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Promotion,Promotion,chargesObject,-576.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingCharge,ShippingCharge,chargesObject,859.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingTax,ShippingTax,chargesObject,2.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Tax,Tax,chargesObject,5513.3700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,cog,Cost of goods sold,cog,26687.3300,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-05,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,1290.7900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-1006.8900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-391.5600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-576.9200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-2226.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-78.3800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-622.4900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.1200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,FBAFees,FBAFees,fbaObject,-29.6400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-10448.6900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Commission,Commission,feesObject,-16321.3300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ReferralFee,ReferralFee,feesObject,-53.9800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingChargeback,ShippingChargeback,feesObject,-397.0400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-15620.4700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-5508.5200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-2.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-4.8500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,59946.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Commission,Commission,refundsObject,919.0600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Goodwill,Goodwill,refundsObject,-17.0900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Principal,Principal,refundsObject,-6126.9000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Promotion,Promotion,refundsObject,23.6800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,RefundCommission,RefundCommission,refundsObject,-159.5500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingCharge,ShippingCharge,refundsObject,-70.3200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingChargeback,ShippingChargeback,refundsObject,46.6400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,ShippingTax,ShippingTax,refundsObject,-1.0000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Tax,Tax,refundsObject,-384.5400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,Tax Withheld,Tax Withheld,refundsObject,385.5400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-05,storageFee,storageFee,storageFee,-631.7600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Principal,Principal,chargesObject,97953.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Promotion,Promotion,chargesObject,-505.0400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingCharge,ShippingCharge,chargesObject,587.1000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingTax,ShippingTax,chargesObject,6.4700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Tax,Tax,chargesObject,4904.2100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,cog,Cost of goods sold,cog,25084.7000,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-06,Adjustment.Tax,Adjustment · Tax,expenses,-0.1600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,2080.8500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-1485.7700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,MiscellaneousLedgerAdjustment.Other,MiscellaneousLedgerAdjustment · Other,expenses,0.7400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.FBADisposalFee,ServiceFee · FBADisposalFee,expenses,-707.7200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-686.6200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.FBAInboundTransportationFee,ServiceFee · FBAInboundTransportationFee,expenses,-3264.6300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.FBALongTermStorageFee,ServiceFee · FBALongTermStorageFee,expenses,-111.9400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.FBARemovalFee,ServiceFee · FBARemovalFee,expenses,-266.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.Subscription,ServiceFee · Subscription,expenses,-12.3000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ServiceFee.Tax,ServiceFee · Tax,expenses,-0.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,FBAFees,FBAFees,fbaObject,-2388.3800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,FBAPerUnitFulfillmentFee,FBAPerUnitFulfillmentFee,fbaObject,-7132.7100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Commission,Commission,feesObject,-10788.9300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ReferralFee,ReferralFee,feesObject,-3882.8900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingChargeback,ShippingChargeback,feesObject,-220.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Adjustment.MarketplaceFacilitatorTax-Principal,Adjustment · MarketplaceFacilitatorTax-Principal,passthrough,0.1600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-15104.1600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-4883.0900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-6.4700,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Shipment.MarketplaceFacilitatorVAT-Principal,Shipment · MarketplaceFacilitatorVAT-Principal,passthrough,-21.1200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,41847.6100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Commission,Commission,refundsObject,653.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Goodwill,Goodwill,refundsObject,-13.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Principal,Principal,refundsObject,-4357.3200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Promotion,Promotion,refundsObject,4.9900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,RefundCommission,RefundCommission,refundsObject,-116.4000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,RestockingFee,RestockingFee,refundsObject,9.7000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingCharge,ShippingCharge,refundsObject,-67.2500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingChargeback,ShippingChargeback,refundsObject,64.2600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,ShippingTax,ShippingTax,refundsObject,-2.3900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Tax,Tax,refundsObject,-281.8300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,Tax Withheld,Tax Withheld,refundsObject,284.2200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-06,storageFee,storageFee,storageFee,-404.0400,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Principal,Principal,chargesObject,6450.0300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Promotion,Promotion,chargesObject,-24.1500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingCharge,ShippingCharge,chargesObject,29.7100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingTax,ShippingTax,chargesObject,0.0100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Tax,Tax,chargesObject,385.8200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,cog,Cost of goods sold,cog,1622.5500,USD,2026-07-07 04:45:44.705993+00
+ATVPDKIKX0DER,2026-07,FBAInventoryReimbursement.FBAInventoryReimbursement,FBAInventoryReimbursement · FBAInventoryReimbursement,expenses,414.1500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,FBAInventoryReimbursement.FBAReversedReimbursement,FBAInventoryReimbursement · FBAReversedReimbursement,expenses,-70.5000,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ServiceFee.FBAInboundConvenienceFee,ServiceFee · FBAInboundConvenienceFee,expenses,-50.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,FBAFees,FBAFees,fbaObject,-607.2800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ReferralFee,ReferralFee,feesObject,-967.4300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingChargeback,ShippingChargeback,feesObject,-5.5600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ProductAdsPayment.AdvertisingFee,ProductAdsPayment · AdvertisingFee,passthrough,-1521.7200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Shipment.MarketplaceFacilitatorTax-Principal,Shipment · MarketplaceFacilitatorTax-Principal,passthrough,-385.8200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Shipment.MarketplaceFacilitatorTax-Shipping,Shipment · MarketplaceFacilitatorTax-Shipping,passthrough,-0.0100,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Transfer.FundTransfer,Transfer · FundTransfer,passthrough,23406.5300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Commission,Commission,refundsObject,38.6200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Goodwill,Goodwill,refundsObject,-13.2300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Principal,Principal,refundsObject,-257.4500,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Promotion,Promotion,refundsObject,1.4900,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,RefundCommission,RefundCommission,refundsObject,-7.0600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingCharge,ShippingCharge,refundsObject,-18.3200,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingChargeback,ShippingChargeback,refundsObject,16.8300,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,ShippingTax,ShippingTax,refundsObject,-0.7800,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Tax,Tax,refundsObject,-17.5600,USD,2026-07-07 07:47:07.075663+00
+ATVPDKIKX0DER,2026-07,Tax Withheld,Tax Withheld,refundsObject,18.3400,USD,2026-07-07 07:47:07.075663+00

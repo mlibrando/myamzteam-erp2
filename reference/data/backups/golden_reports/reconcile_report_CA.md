@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace A2EUQ1WTGCTBG2
 
-Generated 2026-07-11 05:58:39Z.
+Generated 2026-07-10 10:37:59Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -73,25 +73,25 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |      -589.82 |      -213.02 |      -589.82 |         0.00 |       376.80 |
 | 2026-06 |      -584.53 |      -529.13 |      -584.53 |         0.00 |        55.40 |
 
-## Drift-guard: 0 INVESTIGATE / 0 DEFECT_REMEASURED / 0 KNOWN_TARGET_DEFECT / 21 TRAILING / 120 WITHIN_DRIFT
+## Drift-guard: 0 INVESTIGATE / 0 KNOWN_TARGET_DEFECT / 21 TRAILING / 120 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
-`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `DEFECT_REMEASURED` = **the pinned Δ moved, and rows ingested since the pin account for all of it — re-pin, do not investigate** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
+`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
 
 ### Per-month summary
 
-| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | DEFECT_REMEASURED | INVESTIGATE |
-|---|---:|---:|---:|---:|---:|
-| 2026-01 | 26 | 0 | 0 | 0 | 0 |
-| 2026-02 | 22 | 0 | 0 | 0 | 0 |
-| 2026-03 | 26 | 0 | 0 | 0 | 0 |
-| 2026-04 | 23 | 0 | 0 | 0 | 0 |
-| 2026-05 | 23 | 0 | 0 | 0 | 0 |
-| 2026-06 | 0 | 21 | 0 | 0 | 0 |
+| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |
+|---|---:|---:|---:|---:|
+| 2026-01 | 26 | 0 | 0 | 0 |
+| 2026-02 | 22 | 0 | 0 | 0 |
+| 2026-03 | 26 | 0 | 0 | 0 |
+| 2026-04 | 23 | 0 | 0 | 0 |
+| 2026-05 | 23 | 0 | 0 | 0 |
+| 2026-06 | 0 | 21 | 0 | 0 |
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 21 TRAILING / 120 WITHIN_DRIFT
 
-Prior pull: `2026-07-11T05:56:12.348501+00:00`. Current pull: `2026-07-11T05:58:39.232894+00:00`.
+Prior pull: `2026-07-10T10:35:21.021629+00:00`. Current pull: `2026-07-10T10:37:59.460299+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)
@@ -105,7 +105,7 @@ Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pul
 
 Ads-API `metric.totalCost` (USD-only, SB Video merged into SB) vs Sellerise's five `adExpenses` lines. Restatement drift up to ±$5.00 shows as `PASS_DRIFT` (small, expected — Amazon revises reports after Sellerise's snapshot). Trailing month is `EXPECTED_DRIFT`.
 
-`as_of` timestamps per month: {'2026-06': '2026-07-07T08:29:09.567470+00:00', '2026-01': '2026-07-10T13:29:07.926811+00:00', '2026-02': '2026-07-10T13:15:56.339760+00:00', '2026-03': '2026-07-10T13:38:49.410856+00:00', '2026-05': '2026-07-10T13:57:27.288920+00:00', '2026-04': '2026-07-10T13:48:07.467034+00:00'}
+`as_of` timestamps per month: {'2026-06': '2026-07-07T08:29:09.567470+00:00', '2026-01': '2026-07-07T07:49:17.420406+00:00', '2026-02': '2026-07-07T07:49:21.027972+00:00', '2026-03': '2026-07-07T07:49:23.962940+00:00', '2026-05': '2026-07-07T08:29:14.293871+00:00', '2026-04': '2026-07-07T07:49:26.575112+00:00'}
 
 | month | line | ours (USD) | Sellerise | Δ | status |
 |---|---|---:|---:|---:|---|

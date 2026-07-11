@@ -93,9 +93,6 @@ measured Δ rather than banded: it reads `KNOWN_TARGET_DEFECT` while it holds th
 - Sellerboard counted exactly one Multi-Channel-Fulfilment unit (MBUKB1, ASIN B0CX1WMVQV) in 2026-01, and correctly excludes MCF in the other five months. Our exclusion is right in all six: MCF orders carry SalesChannel='Non-Amazon' and Amazon posts no financial event, so listTransactions cannot return them. The one unit moves Jan cog (−86.71 = its workbook cog), commission (+30.07) and FBA fee (+30.27) — fees Amazon never billed us.
 - Sellerboard omitted GST from its 2026-01 `FBA storage fee` line; every other month it reports the GST-inclusive figure. Amazon did charge the GST — our ServiceFee.Tax of 77.40 is 10% of the 779.54 storage base. The billed-in-arrears hypothesis is refuted structurally: shifting one month fits 8x worse (Σ|Δ| 535.54 vs 64.17).
 
-**0 DEFECT_REMEASURED** (pinned Δ moved; rows ingested since the pin account for all of it — the defect is unchanged, its figure is not):
-
-
 **0 CONTENT flags** (post-FX residual beyond the FX band, undiagnosed):
 
 

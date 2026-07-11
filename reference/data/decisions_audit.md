@@ -18,6 +18,29 @@ fake ×1.35 markup" framing. Both are corrected below. See § 5 for exactly what
 >   by a registry that **pins** a diagnosed target-side Δ to its measured magnitude instead of
 >   widening its band. UK's 4 `cog` cells and AU's 4 Jan cells are registered. UK's INVESTIGATE count
 >   fell 9 → 5. **UK still exits 1.** See § 7.
+> - **S10 — US's permanent exit 1 is resolved; it exits 0 for a named reason.** "Locked targets 9/15"
+>   was the pass count — **6** failures, all decision-D/E `Promotion`/`RestockingFee` cells that are
+>   accepted restatement drift within their own drift bands (not stale, not a bug). A locked target now
+>   grades `PASS` / `ACCEPTED_DRIFT` (within band) / `FAIL` (outside band = regression); the gate keys on
+>   `FAIL`. Updating the 6 to "current" was rejected — the value drifts too. See
+>   [`us_locked_targets.md`](us_locked_targets.md) and § 12.
+> - **S9 — the ingestion horizon now covers ad spend, and the AU gap is closed twice over.** `as_of`
+>   is a pull timestamp but not a horizon (`_replace_month` deletes in place), so an append-only
+>   `ad_spend_history` keeps superseded rows and the horizon reconstructs from validity intervals.
+>   **Second finding, more important:** AU's FX rate is a median of refund + ads anchors, so an ads
+>   restatement moves a pinned Δ by ~£0.15 against a £19.24 tolerance (~127× headroom) — the false
+>   positive was never going to fire. See [`s9_ads_horizon.md`](s9_ads_horizon.md) and § 11.
+> - **S8 — pinned defects now survive live ingestion.** A pinned Δ is measured against a frozen target
+>   *and* a frozen Amazon pull, so ingesting new rows can move it on a correct pipeline. Fixed with an
+>   **ingestion horizon** (`measured_at` per entry) and a new `DEFECT_REMEASURED` status: recompute the
+>   cell using only rows ingested at or before the pin; if it is still pinned there, ingestion did it.
+>   **Rate-pinning was measured and rejected** — it fires on the very refund it is meant to absorb. See
+>   [`s8_pin_semantics.md`](s8_pin_semantics.md) and § 10.
+> - **B1–B4 — all four blockers CLOSED.** `python -m sync` completes end to end on all four
+>   marketplaces; `ads_spend.py` regenerates `ad_spend_daily` in native currency, reproducing the
+>   backup to the cent; `pnl_monthly.cog` now equals reconcile's in-memory figure everywhere
+>   (CA 10,749.76 → 8,324.18, UK relabelled GBP, AU populated). No reported number moved. See
+>   [`backend_blockers_fix.md`](backend_blockers_fix.md) and § 9.
 > - **S2 / D3.2 — tested; the label is REFUTED and the residual is now NAMED.** The UK `fbaObject`
 >   residual is not Amazon restatement (867 re-pulled transactions byte-identical, `Principal` exact
 >   to the cent) and not refund-netting (no Refund-side FBA leaves exist). **It is Sellerise omitting
@@ -39,6 +62,11 @@ Pointers are `file:line`, resolved against the working tree as of this update; e
 verified to point at the content it claims. Code lives under `backend/sync/`; findings under
 `reference/data/`; prompt/spec history under `reference/prompts/`.
 
+**One exception:** D1.1's and B1/B2's line numbers into `ads_spend.py` and `__main__.py:94` describe
+the code **as it stood before § 9's fixes** (commit `fcb4a3b`). Those lines have since been rewritten
+or deleted. The diagnosis is kept verbatim because it is the record of what was wrong; the current
+shape is in § 9 and [`backend_blockers_fix.md`](backend_blockers_fix.md).
+
 Everything marked *(measured)* was re-derived for this audit against the live database or the
 workbook. § 6 lists every check that was run.
 
@@ -51,37 +79,37 @@ workbook. § 6 lists every check that was run.
 | **Reconciliation target** | Sellerise · `SELLERISE_RAW_DATA.json` (`reconcile.py:61`) | Sellerise · `SELLERISE_RAW_DATA_CA.json` (`:62`) | Sellerise · `SELLERISE_RAW_DATA_UK.json` (`:63`) | Sellerboard · `SELLERBOARD_RAW_DATA.json` (`sellerboard.py:60`). `reconcile.py:65` sets `None`; `:106` raises for AU |
 | **Reconciler module** | `sync/reconcile.py` | `sync/reconcile.py` | `sync/reconcile.py` | `sync/reconcile_au.py` (separate engine) |
 | **Revenue attribution (Shipment)** | purchase-date, postedDate fallback (`attribution.py:70-83`). Σ\|Δ\| 39,569.53 → 9,748.02 (`reconcile_report_US.md:21`) | purchase-date. 3,505.26 → 1,708.10 (`reconcile_report_CA.md:21`) | purchase-date. 9,221.07 → 1,776.83 (`reconcile_report_UK.md:20`) | purchase-date (`reconcile_au.py:99`). Settled on **unit counts**: purchase matches SB `units` 5/6 months, posted 0/6 (`reconcile_au.py:85-90`) |
-| **Refund dollars basis** | posted — **re-derived at runtime**, not read from config (`reconcile.py:551`; tie → posted). posted $1,699.51 vs purchase $10,332.00 (`reconcile_report_US.md:17`) | posted, runtime-derived. $61.28 vs $1,866.58 (`reconcile_report_CA.md:17`) | posted, runtime-derived. $407.08 vs $3,210.63 (`reconcile_report_UK.md:16`) — **measured, not inherited** | posted, read from `config.MARKETPLACE_REFUND_BASIS` (`reconcile_au.py:78`). posted $20.31 vs purchase $1,829.02 (`config.py:141-143`) |
+| **Refund dollars basis** | posted — **re-derived at runtime**, not read from config (`reconcile.py:610`; tie → posted). posted $1,699.51 vs purchase $10,332.00 (`reconcile_report_US.md:17`) | posted, runtime-derived. $61.28 vs $1,866.58 (`reconcile_report_CA.md:17`) | posted, runtime-derived. $407.08 vs $3,210.63 (`reconcile_report_UK.md:16`) — **measured, not inherited** | posted, read from `config.MARKETPLACE_REFUND_BASIS` (`reconcile_au.py:78`). posted $20.31 vs purchase $1,829.02 (`config.py:141-143`) |
 | ↳ *writer path* (`pnl_monthly`) | `aggregate.py` default `"posted"` (`:52,59`), never given the config value | ← same | ← same | AU never written to `pnl_monthly` (0 rows, *measured*) |
 | **Refund COGS basis** | **purchase** (`config.py:125`). Scored on Σ\|net Δ\|: purchase $5,249.23 vs posted $5,970.98 (`net_residual_diagnosis.md:131-136`) | **posted** (`config.py:126`). Scored on Σ\|cog Δ\|: posted $2,596.90 vs purchase $3,090.23 — **`UNVERIFIED` post-override**, see D3.1 | **purchase** (`config.py:127`). Scored on Σ\|cog Δ\|: purchase $1,000.62 vs posted $2,135.40 (`rollout_ca_uk_results.md` Gate 2). Independently measured; matching US is coincidence | **posted** (`config.py:133`). Scored on refunded-unit **counts**: posted 6/6 exact, purchase Δ=−4 (`config.py:128-133`) |
 | ↳ *wired in* | `cogs.py:143`, `reconcile.py:538` | ← same | ← same | `reconcile_au.py:79` |
 | **COGS workbook sheet** | `US` (`config.py:80`) | `CA` (`:81`) | `UK` (`:82`) | `AU` (`:83`) |
 | **Sheet's actual currency** | **USD** (`config.py:72`) | **CAD** — cost column is US × 1.350 (ratio 1.3493–1.3512), *measured*. Retail column is US × **1.1440** — a different multiplier, so the sheet was not FX-scaled wholesale *(measured)* | **GBP** (`config.py:74`) — its native currency, validated against the component cost build-up. The near-parity with US (30.94 vs 30.76) is a coincidence of magnitude; it was once read as evidence of denomination. **Corrected this run** (S7 / D3.6) | **USD cost column, AUD retail column** (`config.py:75`). Cost: AU/US ratio 1.0075 on GMAKER-3. Retail: AU/US 1.27–1.67 *(both measured)* |
-| **COGS source override** | none | **CA → US** (`config.py:188-190`). Wired at `cogs.py:148`, `reconcile.py:263-264`, `reconcile_au.py:278` | none | none |
+| **COGS source override** | none | **CA → US** (`config.py:188-190`). Wired at `cogs.py:148`, `reconcile.py:271-272`, `reconcile_au.py:334` | none | none |
 | **Effective cog currency** | USD | **USD** (override resolves to the US sheet, `config.py:87-93`) | **GBP** | USD |
-| **`cog_needs_fx()` → converted?** | `False` → n/a | **`True` → NOT converted anywhere** (deliberate, D2.2) | **`False`** since S7 — cog and txns are both GBP, so the flag no longer misdescribes UK | `True` → **converted once**, `reconcile_au.py:289-314`; guard SKU `GMAKER-3` ∈ 40–50 AUD (`config.py:158-159`) |
+| **`cog_needs_fx()` → converted?** | `False` → n/a | **`True` → NOT converted anywhere** (deliberate, D2.2) | **`False`** since S7 — cog and txns are both GBP, so the flag no longer misdescribes UK | `True` → **converted once**, `reconcile_au.py:345-370`; guard SKU `GMAKER-3` ∈ 40–50 AUD (`config.py:158-159`) |
 | **Pipeline (txn) currency** | USD (`config.py:36`) | CAD (`:37`) | GBP (`:38`) | AUD (`:39`) |
 | **Target currency** | USD throughout | revenue **CAD**, `cog` **USD** (`AU_SELLERBOARD_VERIFICATION.md:270`) | **GBP** throughout — Sellerise-UK's `cog` is GBP, matching our sheet | **USD** throughout (`sellerboard.py:8`) |
-| **FX handling** | none | none | none | AU target adapter only. Reference rate from **refunds + ads anchors only** (`reconcile_au.py:369-388`); **absolute** band `FX_RATE_TOLERANCE = 0.02` (`sellerboard.py:389`), floor $5.00 (`:398`) |
+| **FX handling** | none | none | none | AU target adapter only. Reference rate from **refunds + ads anchors only** (`reconcile_au.py:425-444`); **absolute** band `FX_RATE_TOLERANCE = 0.02` (`sellerboard.py:389`), floor $5.00 (`:398`) |
 | **Tax pass-through families** | `MarketplaceFacilitatorTax-{Principal,Shipping,Other}` (`bucket_map.py:82-84`) | `Shipment.Tax` (`:221-222`); `ShippingTaxDiscount` (`:92`) | `MarketplaceFacilitatorVAT-{Principal,Shipping}` (`:85-86`); `OurPriceTaxDiscount` (`:94`) | `Shipment.Tax` = 10 % GST (`:221-222`); `LowValueGoodsTax-{Principal,Shipping}` (`:87-88`). **`UNVERIFIED`** — D3.3 |
 | ↳ *refund side* | MFT/VAT/LVGT-Principal → `refundsObject."Tax Withheld"` (`bucket_map.py:104-111`), resolved before passthrough (`:209-210`) | ← shared table | ← shared table | ← shared table |
 | ↳ *rule scope* | The `Shipment`/`Refund` `.Tax` → passthrough rule (`bucket_map.py:221-222`) is **marketplace-agnostic**; it fires for any market emitting a bare `Tax` leaf, not just CA/AU | | | |
 | **Marketplace-specific mappings** | — | `Shipment.Tax`, `ShippingTaxDiscount` → passthrough | `DigitalServicesFee` + `DigitalServicesFeeFBA` → `feesObject` (`bucket_map.py:133-134`); DSF reversal → `refundsObject` (`:176`); `EPRChargeback{EcoFee,ServiceFee}` → expected expenses (`aggregate.py:271-272`) | **MCF exclusion is not code.** No `S03`/`Non-Amazon` filter exists in `backend/`. MCF orders post no financial event, so `listTransactions` never returns them (`reconcile_au.py:103-113`) |
 | **Ads — account** | single NA account, chosen by `"US" in countryCodes` (`ads_spend.py:314-315`) | ← same account | ← same account | ← same account |
-| **Ads — SB Video** | `hsaCost + hsaVideoCost` merged into `Sponsored Brands` (`reconcile.py:624`; documented `:360`) | ← same rule | ← same rule | n/a (ads used only as an FX anchor) |
+| **Ads — SB Video** | `hsaCost + hsaVideoCost` merged into `Sponsored Brands` (`reconcile.py:683`; documented `:380`) | ← same rule | ← same rule | n/a (ads used only as an FX anchor) |
 | **Ads — write filter** | keeps only `budgetCurrency.value == "USD"` (`ads_spend.py:140`) | ← **same filter drops all CAD rows** | ← **drops all GBP rows** | ← **drops all AUD rows** |
-| **Ads — read filter** | `budget_currency = 'USD'` (`reconcile.py:336`) | `= 'CAD'` (`:336`) | `= 'GBP'` | `= 'AUD'` (`reconcile_au.py:195`) |
+| **Ads — read filter** | `budget_currency = 'USD'` (`reconcile.py:356`) | `= 'CAD'` (`:356`) | `= 'GBP'` | `= 'AUD'` (`reconcile_au.py:225`) |
 | ↳ *write ∩ read* | ✅ USD ∩ USD | ❌ **∅** — B2 | ❌ **∅** | ❌ **∅** |
 | **Ads — observed Δ** | −$5.75 … +$3.06, one `FAIL` | **$0.00 all 6 months** | **$0.00 all 6 months** | anchor only, no band |
-| **Drift bands — vs target** | `_US_SETTLED_BANDS` (`drift_bands.py:38-78`) | `_CA_SETTLED_BANDS` (`:87-117`) | `_UK_SETTLED_BANDS` (`:136-185`). Both its `cog` and `fbaObject` bands were sized to post-fix residuals that will never arrive; those 9 cells are now **pinned** in `TARGET_DEFECTS` instead. Neither band widened — D2.7 | **none** (`:192-197`, AU absent). `band_for()` silently falls back to **US dollar bands** (`:276`) — D2.4. AU's 4 Jan cells are pinned in `TARGET_DEFECTS`, read by `reconcile_au.py` directly |
-| **Drift bands — vs prior pull** | `_US_PRIOR_PULL_BANDS` (`:319-354`) | `_CA_PRIOR_PULL_BANDS` (`:358-392`) | `_UK_PRIOR_PULL_BANDS` (`:396-431`) | **none** (`:436-440`) → US fallback |
+| **Drift bands — vs target** | `_US_SETTLED_BANDS` (`drift_bands.py:39-79`) | `_CA_SETTLED_BANDS` (`:88-118`) | `_UK_SETTLED_BANDS` (`:137-186`). Both its `cog` and `fbaObject` bands were sized to post-fix residuals that will never arrive; those 9 cells are now **pinned** in `TARGET_DEFECTS` instead. Neither band widened — D2.7 | **none** (`:193-198`, AU absent). `band_for()` silently falls back to **US dollar bands** (`:312`) — D2.4. AU's 4 Jan cells are pinned in `TARGET_DEFECTS`, read by `reconcile_au.py` directly |
+| **Drift bands — vs prior pull** | `_US_PRIOR_PULL_BANDS` (`:366-401`) | `_CA_PRIOR_PULL_BANDS` (`:405-439`) | `_UK_PRIOR_PULL_BANDS` (`:443-478`) | **none** (`:483-487`) → US fallback |
 | **Restatement profile sizing the bands** | Amazon/Sellerise: revenue-side ±$4,358.81 abs over 6 mo; ads $0.00 over ~13 h (`drift_baseline.md`); bands = 1.5–2× observed max | ← same profile, CA scale (~1/10 US) | ← same profile, UK scale (~1/6 US) | Sellerboard: **trailing settled month only, ≈$0.10** (`AU_SELLERBOARD_VERIFICATION.md:377-378,788`). Bands deliberately **unwired** pending a 5-clean-month derivation (`:784`) |
 | **Known target-side defects** | none named; snapshot staleness is bidirectional | Sellerise restates month-boundary attribution Feb→Mar ±$199.50 / ±$9.98 | **`KNOWN_TARGET_DEFECT` — Sellerise understates the UK-exclusive bundle cog.** Registered: 4 `cog` cells, pinned at +242.84 / +177.87 / +184.41 / +122.62, tolerance ±25. Direction established by the component cost build-up (external); per-SKU magnitudes **`UNVERIFIED`**, see D3.5. **Second `KNOWN_TARGET_DEFECT`: Sellerise omits GMAKER-3's FBA fee** (£479.15 charged vs £27.75 carried, 142 units). Registered: 5 `fbaObject` cells, pinned at −80.06 / −135.09 / −96.03 / −60.35 / −64.30, tolerance ±15. Plus (unregistered, inside band): `Commission ↔ ReferralFee` split (net −£118, cancels except Jan); `chargesObject.Promotion` +£63 rounding; storage reclassified into `expenses.FBAFees` some months | **`KNOWN_TARGET_DEFECT` ×2, 4 cells** — Sellerboard **omitted GST from Jan storage** (−$52.75) (`AU_SELLERBOARD_VERIFICATION.md:638-658`); **counted 1 of 3 MCF units in Jan** (`:696,759`), moving Jan `cog` −86.71, `Commission` +30.07, `FBA` +30.27. All four registered |
-| **Accepted net residual (Jan–Jun)** | **+$3,568.15 (+1.70 %)**, mixed-sign, per-cause labeled → ACCEPT (`reconcile_report_US.md:25`) | **−$374.48 (−3.50 %)**, mixed-sign, post cog-fix → ACCEPT (`reconcile_report_CA.md:25`) | **−$1,593.57 (−13.39 %)**, same-signed (`reconcile_report_UK.md:24`). **Not accepted, but re-attributed**: **both arms are now target-side defects, pinned**: the cog arm (~63 %, Sellerise understates per-SKU cost) and the FBA arm (~37 %, Sellerise omits GMAKER-3's fulfilment fee). Neither is our error. See D3.4 | **Σ −$232.57**, mixed-sign per month (`au_sellerboard_reconcile.md:115`). Jan closed at cause — both causes Sellerboard-side |
+| **Accepted net residual (Jan–Jun)** | **+$3,568.15 (+1.70 %)**, mixed-sign, per-cause labeled → ACCEPT (`reconcile_report_US.md:25`) | **−$374.48 (−3.50 %)**, mixed-sign, post cog-fix → ACCEPT (`reconcile_report_CA.md:25`) | **−$1,593.57 (−13.39 %)**, same-signed (`reconcile_report_UK.md:24`). **Not accepted, but re-attributed**: **both arms are now target-side defects, pinned**: the cog arm (~63 %, Sellerise understates per-SKU cost) and the FBA arm (~37 %, Sellerise omits GMAKER-3's fulfilment fee). Neither is our error. See D3.4 | **Σ −$232.57**, mixed-sign per month (`au_sellerboard_reconcile.md:118`). Jan closed at cause — both causes Sellerboard-side |
 | **Locked validation targets** | 15 (`reconcile.py:73-89`) | **`[]`** (`:95`) | **`[]`** (`:96`) | **`[]`** (`:97`) |
 | **INVESTIGATE, latest run** | 0 vs target / 0 vs prior pull | 0 / 0 | **0 vs target** **+ 9 `KNOWN_TARGET_DEFECT`** (4 `cog`, 5 `fbaObject`) / 0 vs prior pull. Was 9 INVESTIGATE before S6+S2′ | n/a (no bands) + **3 `KNOWN_TARGET_DEFECT`, 0 undiagnosed CONTENT flags** (`au_sellerboard_reconcile.md:87`) |
-| **Exit code, latest run** | **1** — locked targets 9/15 PASS (pre-existing) | **0** | **0** — 0 INVESTIGATE. `KNOWN_TARGET_DEFECT` cells do not fail the run (`reconcile.py:1316`) | **0** — `reconcile_au.py` never gated on content flags |
-| **cog residual, Jan–Jun** | Σ\|Δ\| $4,084.20, ΣΔ −$4,061.34, mixed-sign | Σ\|Δ\| $909.31, ΣΔ +$197.57, mixed-sign | Σ\|Δ\| $1,000.62, ΣΔ +$1,000.62, **6/6 same-signed** *(measured)* | gross-cog Σ −$86.71, all in Jan (`au_sellerboard_reconcile.md:135`) |
+| **Exit code, latest run** | **0** — 9 PASS · 6 ACCEPTED_DRIFT · 0 FAIL locked targets (S10) | **0** | **0** — 0 INVESTIGATE. `KNOWN_TARGET_DEFECT` cells do not fail the run (`reconcile.py:1531`) | **0** — `reconcile_au.py` never gated on content flags |
+| **cog residual, Jan–Jun** | Σ\|Δ\| $4,084.20, ΣΔ −$4,061.34, mixed-sign | Σ\|Δ\| $909.31, ΣΔ +$197.57, mixed-sign | Σ\|Δ\| $1,000.62, ΣΔ +$1,000.62, **6/6 same-signed** *(measured)* | gross-cog Σ −$86.71, all in Jan (`au_sellerboard_reconcile.md:138`) |
 
 ---
 
@@ -89,14 +117,15 @@ workbook. § 6 lists every check that was run.
 
 ### D1 — Code vs doc
 
-**D1.1 — No file in the repository can produce the CA/UK/AU rows the reconciler reads.** ⚠ *highest severity*
+**D1.1 — No file in the repository can produce the CA/UK/AU rows the reconciler reads.** ⚠ *highest
+severity* — ✅ **FIXED**, § 9. *(Line numbers below are pre-fix.)*
 
 `ads_spend.py:140` drops every CSV row whose `budgetCurrency.value != "USD"`, and it is the **only**
 writer of `ad_spend_daily` (`:156` DELETE, `:164` INSERT — no other statement touches the table
 anywhere in `backend/`). `:314-315` additionally pins the advertiser to the account with
 `"US" in countryCodes`, regardless of `--marketplace`. But the readers select
-`budget_currency = MARKETPLACE_CURRENCY[mp]` → `'CAD'` / `'GBP'` (`reconcile.py:336`) and `'AUD'`
-(`reconcile_au.py:195`). Write set ∩ read set = ∅ for CA, UK and AU.
+`budget_currency = MARKETPLACE_CURRENCY[mp]` → `'CAD'` / `'GBP'` (`reconcile.py:356`) and `'AUD'`
+(`reconcile_au.py:225`). Write set ∩ read set = ∅ for CA, UK and AU.
 
 Those rows nevertheless exist. *(measured)* `ad_spend_daily` holds 5,190 CAD, 3,032 GBP and 3,010 AUD
 rows. Three independent facts show `ads_spend.py` did not write them:
@@ -131,9 +160,9 @@ key, so removing both filters yields the identical six months. It is a live trap
 and it is the precise failure the docstring was written to prevent.
 
 **D1.3 — `reconcile_au.py` tells the reader one term is borrowed from Sellerboard. Four are.**
-The rendered text at `reconcile_au.py:574` reads *"Only the inventory-loss gap is borrowed from
-Sellerboard."* The formula immediately below (`:581-592`) takes `refundsObject` (`:586`), `expenses`
-(`:587`), `inventory_gap` (`:590`) **and** `adExpenses` (`:591`) from `theirs`.
+The rendered text at `reconcile_au.py:714` reads *"Only the inventory-loss gap is borrowed from
+Sellerboard."* The formula immediately below (`:721-731`) takes `refundsObject` (`:726`), `expenses`
+(`:727`), `inventory_gap` (`:730`) **and** `adExpenses` (`:731`) from `theirs`.
 
 Consequence: AU's Σ −$232.57 net residual is **not an independent check of refunds, expenses or ad
 spend** — those three cancel identically on both sides by construction. The residual tests only
@@ -170,8 +199,8 @@ consequence of removal. Three sites still record the old, refuted one and would 
 together:
 
 - `cogs.py:155` — *"CA sheet is US×1.35, wrong basis"*
-- `reconcile.py:260` — *"marketplaces whose workbook sheet has provisional cost values"*
-- `drift_bands.py:83` and `:114` — *"a spurious FX-like multiplier"*, *"the now-fixed US×1.35
+- `reconcile.py:268` — *"marketplaces whose workbook sheet has provisional cost values"*
+- `drift_bands.py:84` and `:115` — *"a spurious FX-like multiplier"*, *"the now-fixed US×1.35
   cost-basis bug"*
 
 The correct reading: the CA cost column is **CAD**, and 1.350 is the CAD/USD rate — a real
@@ -191,9 +220,9 @@ thing that retires it is Sellerise-CA reporting `cog` in CAD.
 CAD txns) and UK (USD cog vs GBP txns). Its own docstring at `config.py:66-67` says such a
 marketplace *"needs explicit FX handling at the point of use."* No such handling exists: the only
 caller outside AU is `cogs.py:254`, which logs a warning and moves on. `_compute_net_ours`
-(`reconcile.py:463-479`) subtracts a USD `cog` from CAD/GBP revenue.
+(`reconcile.py:483-499`) subtracts a USD `cog` from CAD/GBP revenue.
 
-This is **correct in effect and wrong in principle**: `_compute_net_theirs` (`:482-495`) makes the
+This is **correct in effect and wrong in principle**: `_compute_net_theirs` (`:502-515`) makes the
 identical category error on Sellerise's side, because Sellerise-CA reports a USD `cog` inside a CAD
 P&L. The two errors are the same error and cancel.
 
@@ -207,19 +236,19 @@ its target were native-currency" — which is true only for AU.
 `config.py:75` labels the AU sheet USD while AU transactions are AUD. *(measured)* The AU sheet is
 genuinely **mixed**: its cost column tracks US (GMAKER-3 30.99 vs US 30.76, ratio 1.0075) while its
 retail column tracks AUD (AU/US retail 1.27–1.67, consistent with AUD/USD ≈ 0.67). Two different
-multipliers in one sheet. It is guarded (`reconcile_au.py:296-299` raises if the flag flips) and
+multipliers in one sheet. It is guarded (`reconcile_au.py:352-356` raises if the flag flips) and
 canary-tested (`GMAKER-3` must land in 40–50 AUD, `config.py:158-159`) precisely because both failure
 modes produce believable numbers: ~21 AUD if multiplied instead of divided, ~63 AUD if divided twice.
 
 **What breaks:** "correcting" AU's sheet currency to `AUD` — the obvious-looking cleanup, since the
 sheet's retail column *is* AUD — makes `cog_needs_fx(AU)` return `False`, which trips the guard at
-`reconcile_au.py:296` and hard-fails AU. That is the good outcome. The bad outcome is someone
+`reconcile_au.py:352` and hard-fails AU. That is the good outcome. The bad outcome is someone
 removing the guard first.
 
 **D2.4 — `band_for()` falls back to US dollar bands for any unknown marketplace, and AU is unknown.**
 
-`drift_bands.py:276`: `DRIFT_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_SETTLED_BANDS)`.
-Same at `:476` for prior-pull bands and `:224` for ad bands. AU is deliberately absent (`:192-197`).
+`drift_bands.py:312`: `DRIFT_BANDS_BY_MARKETPLACE.get(marketplace_id or "", _US_SETTLED_BANDS)`.
+Same at `:523` for prior-pull bands and `:225` for ad bands. AU is deliberately absent (`:193-198`).
 `reconcile_au.py` never calls `band_for`, so today this is inert.
 
 **What breaks:** the moment anyone routes AU through `reconcile.py`'s guard — the natural move when
@@ -233,7 +262,7 @@ for an unbanded marketplace is to refuse, not to inherit US.
 `config.py:144-149` records refund-dollar bases for all four marketplaces. Its only consumer is
 `reconcile_au.py:78` *(grep-verified)*. For US/CA/UK the value is **decorative**:
 
-- `reconcile.py:551` re-derives the winner at runtime by minimising Σ\|Δ\| on `refundsObject`
+- `reconcile.py:610` re-derives the winner at runtime by minimising Σ\|Δ\| on `refundsObject`
   (`refund_winner = "posted" if posted_delta <= purchase_delta else "purchase"`).
 - `aggregate.py` — the module that actually writes `pnl_monthly` — defaults to `"posted"` (`:52,59`),
   and `__main__.py:90` calls `aggregate_marketplace(conn, marketplace_id)` without the argument, so
@@ -246,7 +275,7 @@ writing `posted`, and `pnl_monthly` would diverge from the report that "validate
 
 **D2.6 — `reconcile.py` never reads `pnl_monthly`.** `load_pnl` (`:130-146`) is defined and **never
 called** *(grep-verified: one hit, the definition)*. Every number in the reports comes from
-`compute_pnl_in_memory` (`:149`) and `compute_cog_by_basis` (`:238`). This is what keeps the reports
+`compute_pnl_in_memory` (`:149`) and `compute_cog_by_basis` (`:246`). This is what keeps the reports
 correct while the table is stale (D4.1), and it means **a green reconcile report says nothing about
 the contents of `pnl_monthly`** — the table the dashboard is specified to read (`PLAN.md`).
 
@@ -256,16 +285,16 @@ the contents of `pnl_monthly`** — the table the dashboard is specified to read
 As found, `_UK_SETTLED_BANDS` sized `cog.(scalar)` to `$100` and
 `fbaObject.FBAPerUnitFulfillmentFee` to `$50` against residuals it expected to disappear — the
 comments read *"SIZED TO POST-WORKBOOK-FIX"* and *"SIZED TO POST-RESTATEMENT-FIX"*, with *"Once the
-workbook is corrected, INVESTIGATE goes quiet."* (`drift_bands.py:156-158,179-183`; the fbaObject
+workbook is corrected, INVESTIGATE goes quiet."* (`drift_bands.py:157-159,180-184`; the fbaObject
 comment has since been corrected — see § 8.)
 
 Under the corrected classification **the workbook will never be corrected** — it is right, and
 Sellerise is wrong. So the 4 `cog` INVESTIGATE cells fire permanently. The 5 `fbaObject` cells fire
-until S2 is run. Because `reconcile.py:1316` gates the exit code on `inv_s == 0`,
+until S2 is run. Because `reconcile.py:1531` gates the exit code on `inv_s == 0`,
 `python -m sync.reconcile --marketplace UK` **returns 1 forever**, with no remediation path that is
 permitted.
 
-**Resolution (S6):** the 4 `cog` cells are now pinned in `drift_bands.TARGET_DEFECTS` (`:553`) and
+**Resolution (S6):** the 4 `cog` cells are now pinned in `drift_bands.TARGET_DEFECTS` (`:615`) and
 read `KNOWN_TARGET_DEFECT`, which does not fail the run. Neither band was widened. The 5 `fbaObject`
 cells were **not** registered — at that point their "restatement" label was an untested inference,
 and pinning them would have asserted as diagnosed what had never been measured. **UK therefore still
@@ -296,7 +325,7 @@ asserted, not measured. Re-running the A/B under the override is a ~10-minute jo
 **D3.2 — UK's FBA −£458 label was the project's last untested claim. It has now been tested, and it
 was wrong.** *(**RESOLVED as refuted** — see § 8)*
 
-- Refund **dollars**: measured, and re-measured on *every* reconcile run (`reconcile.py:551`):
+- Refund **dollars**: measured, and re-measured on *every* reconcile run (`reconcile.py:610`):
   `posted £407.08 vs purchase £3,210.63`. Not inherited.
 - Refund **COGS**: measured independently — `purchase £1,000.62 vs posted £2,135.40`. It coincides
   with US; it was not copied from US. CA's `posted` in the same table proves the test discriminates
@@ -403,11 +432,12 @@ that `cog_needs_fx` now means what its docstring says for every marketplace but 
 is deliberate (D2.2), not an accident.
 
 **D3.7 — CA, UK and AU have no locked validation targets.** `reconcile.py:95-97` — all three are `[]`.
-US carries 15 (`:73-89`). `main()` requires `locked_pass == len(result["locked"])` (`:1316`), so for
-CA/UK/AU that clause is `0 == 0` — vacuously true. Their exit codes are governed by the drift guards
-alone.
+US carries 15 (`:73-89`). CA/UK/AU exit codes are governed by the drift guards alone. **US's 15 were
+the source of its permanent exit 1 (locked targets 9/15 PASS); resolved by S10** — the gate now keys on
+`locked_fail == 0` (`:1531`) rather than "all PASS", so accepted restatement drift no longer fails the
+run. See § 12.
 
-**D3.8 — AU drift bands are unwired by design.** `drift_bands.py:192-197`. The intended derivation —
+**D3.8 — AU drift bands are unwired by design.** `drift_bands.py:193-198`. The intended derivation —
 five clean months, excluding January's two Sellerboard artifacts — is specified but not done
 (`AU_SELLERBOARD_VERIFICATION.md:784-788`). See D2.4 for what the fallback does meanwhile.
 
@@ -451,7 +481,7 @@ all buckets, including `cog`. `cogs_per_sku` has 13 AU SKUs, but nothing reached
 
 **D4.3 — the stale cog has already propagated into `pnl_monthly_snapshots`.** Snapshot `pull_at`
 values are two days *newer* than the CA cog rows they nominally correspond to. Narrower than it looks:
-`reconcile.py:931-937` snapshots the **in-memory** `diffs`, so the snapshot's `cog` cell is the
+`reconcile.py:1049-1058` snapshots the **in-memory** `diffs`, so the snapshot's `cog` cell is the
 override value, not the table's. The two disagree; nothing reconciles them.
 
 **D4.4 — the evidence base is still not under version control.** The 22 spec/prompt docs are now at
@@ -468,7 +498,12 @@ because staging was outside this audit's remit.**
 
 ### Blocks the live pipeline / dashboard
 
-**B1 — `python -m sync` crashes on every marketplace.** `__main__.py:94` reads `agg_stats["groups"]`.
+> **B1, B2, B3 and B4 were all closed on 2026-07-10.** The findings below are left as written — they
+> are the diagnosis. What each fix actually did, and the two ingestion findings the work turned up,
+> are in § 9 and [`backend_blockers_fix.md`](backend_blockers_fix.md).
+
+**B1 — `python -m sync` crashes on every marketplace.** ✅ **FIXED** *(pre-fix: `__main__.py:94` read
+`agg_stats["groups"]`)*.
 `aggregate_marketplace` returns no `"groups"` key (`aggregate.py:61-70` returns `transactions`,
 `leaves`, `mapped`, `unmapped_pairs`, `skipped_zero`, `pnl_rows`, `fallback_txns`,
 `fallback_by_month`). The `KeyError` fires **after** Phase 2 has committed its `pnl_monthly` writes
@@ -477,19 +512,19 @@ completed for any marketplace, and it fails in the worst possible place: `pnl_mo
 `cog` rows left untouched from the previous run. **This is also why D4.1 exists.**
 
 **B2 — the ads loader for CA/UK/AU does not exist in the repo, and running the one that does is
-destructive.** (D1.1) Reproducing today's CA/UK/AU ad spend from a clean checkout is impossible.
+destructive.** ✅ **FIXED** (D1.1) Reproducing today's CA/UK/AU ad spend from a clean checkout is impossible.
 `sync.ads_spend --marketplace CA` deletes the reconciled CAD rows first (`ads_spend.py:155-158`),
 then inserts USD rows the reader will never select. Either commit the loader that produced the
 current rows, or teach `ads_spend.py` to route rows to marketplaces by `budgetCurrency.value` instead
 of filtering to USD. Until then `ad_spend_daily` is unreproducible state, and CA/UK/AU net residuals
 depend on it.
 
-**B3 — `pnl_monthly` CA `cog` is stale by +$2,425.58 (+29.1 %) and mislabelled `USD`.** (D4.1)
+**B3 — `pnl_monthly` CA `cog` is stale by +$2,425.58 (+29.1 %) and mislabelled `USD`.** ✅ **FIXED** (D4.1)
 Harmless to `reconcile.py`, fatal to the dashboard, which `PLAN.md` specifies reads `pnl_monthly`
 only. Fixed by re-running `sync.cogs --marketplace CA` — which requires B1 first if run via
 `python -m sync`, though `python -m sync.cogs --marketplace CA` reaches it directly.
 
-**B4 — AU has no `pnl_monthly` rows at all.** (D4.2) `PLAN.md`'s acceptance check is unmet. AU's
+**B4 — AU has no `pnl_monthly` rows at all.** ✅ **FIXED** (D4.2) `PLAN.md`'s acceptance check is unmet. AU's
 reconciliation lives entirely in `reconcile_au.py`, which bypasses the table.
 
 **B5 — `band_for()` silently hands AU the US dollar bands.** (D2.4) Inert today, live the moment AU is
@@ -521,7 +556,7 @@ entries. Leaving it as-is guarantees someone eventually edits a value and observ
 the current file and were written to be impossible. One of the two is wrong.
 
 **S5 — correct the three remaining sites that record the CA override's refuted rationale.** (D2.1)
-`cogs.py:155`, `reconcile.py:260`, `drift_bands.py:83,114`. `config.py` was corrected this run.
+`cogs.py:155`, `reconcile.py:268`, `drift_bands.py:84,115`. `config.py` was corrected this run.
 
 **S6 — give the drift guard a way to express `KNOWN_TARGET_DEFECT`.** (D2.7) ✅ **DONE** — § 7.
 
@@ -670,10 +705,10 @@ not the CAD basis 10,600.85)*. That is the whole reason the override exists.
 
 One status, one registry, no new files, no band widened.
 
-- `drift_bands.py:248` — the status constant. `:252` — `TargetDefect(expected_delta, tolerance, note)`
-  with a `matches()` predicate. `:553` — `TARGET_DEFECTS`, keyed `(marketplace, month, bucket,
-  sub_line)`. `:590` — `target_defect_for()`.
-- `classify()` (`:288`) takes an optional defect. A registered cell reads `KNOWN_TARGET_DEFECT` only
+- `drift_bands.py:249` — the status constant. `:272` — `TargetDefect(expected_delta, tolerance, note)`
+  with a `matches()` predicate. `:615` — `TARGET_DEFECTS`, keyed `(marketplace, month, bucket,
+  sub_line)`. `:656` — `target_defect_for()`.
+- `classify()` (`:324`) takes an optional defect. A registered cell reads `KNOWN_TARGET_DEFECT` only
   while its Δ sits within tolerance of the measured value, and `INVESTIGATE` otherwise. **It never
   falls back to the band**, so a pinned cell whose Δ moved is a finding even when the new Δ is small
   — including Δ = 0, i.e. the target fixed its bug.
@@ -686,7 +721,7 @@ One status, one registry, no new files, no band widened.
   `drift_vs_prior`). That guard compares our-now to our-then, where a target defect contributes
   nothing; suppressing cells there would blind the one guard that can still catch a code regression
   in them.
-- Exit code needed no change: `reconcile.py:1316` already gated on `INVESTIGATE` alone.
+- Exit code needed no change: `reconcile.py:1531` already gated on `INVESTIGATE` alone.
 
 **Registered (8 cells, 3 defects):**
 
@@ -719,7 +754,7 @@ evidence refutes. See § 8.)*
 
 | marketplace | before | after | exit |
 |---|---|---|---:|
-| US | 0 INVESTIGATE | 0 INVESTIGATE, 0 pinned | 1 *(unchanged; locked targets 9/15)* |
+| US | 0 INVESTIGATE | 0 INVESTIGATE, 0 pinned | 1 at the time; **0 after S10** |
 | CA | 0 INVESTIGATE | 0 INVESTIGATE, 0 pinned | 0 *(unchanged)* |
 | UK | **9 INVESTIGATE** | **5 INVESTIGATE** + 4 `KNOWN_TARGET_DEFECT` | 1 *(the 5 were then closed by S2′ — § 8)* |
 | AU | 3 CONTENT flags | **0 CONTENT flags** + 3 `KNOWN_TARGET_DEFECT` (+ Jan cog pinned) | 0 *(unchanged)* |
@@ -888,7 +923,7 @@ still moving; a trailing month is never pinned.
 
 | marketplace | before | after | exit |
 |---|---|---|---:|
-| US | 0 INVESTIGATE | unchanged | 1 *(locked targets 9/15, pre-existing)* |
+| US | 0 INVESTIGATE | unchanged | 1 at the time; **0 after S10** |
 | CA | 0 INVESTIGATE | unchanged | 0 |
 | **UK** | **5 INVESTIGATE + 4 pinned** | **0 INVESTIGATE + 9 pinned** | **0** ← first green run |
 | AU | 3 pinned | unchanged | 0 |
@@ -931,3 +966,231 @@ The label was **refuted before the cause was found**, and the cells were held at
 between. Had they been pinned to the restatement label to make UK green, the guard would now be
 certifying a claim the evidence kills — and the real defect, sitting in one SKU's fee, would never
 have been looked for.
+
+---
+
+## 9. B1–B4, fixed — and the two ingestion findings
+
+Full workings: [`backend_blockers_fix.md`](backend_blockers_fix.md). Backups first
+(`reference/data/backups/`), then two files changed: `__main__.py` (one log line) and `ads_spend.py`.
+
+| blocker | fix | evidence |
+|---|---|---|
+| **B1** `KeyError` on `agg_stats["groups"]` | read `agg_stats["leaves"]`, the key that exists and matches the sentence | all four marketplaces complete `python -m sync` end to end |
+| **B2** ads loader missing / destructive | `_parse_rows` + `_route_by_currency` split the one NA report by `budgetCurrency.value` into US/CA/UK/AU, one shared `as_of` per month | reproduces the backup **to the cent** three independent ways (offline from the archived CSVs; live into a scratch table; live into the real table) |
+| **B3** stale + mislabelled CA cog | **no code change needed** — `cogs.py` already resolved the override and already wrote `cog_currency()`. B1 was the only reason Phase 3 never ran | CA 10,749.76 → **8,324.18**; `pnl_monthly.cog` == reconcile's in-memory cog, Δ = 0.0000, every marketplace, every month |
+| **B4** AU absent from `pnl_monthly` | consequence of B1 | AU now has 146 rows (139 + 7 cog) |
+
+UK's cog rows were also relabelled `USD → GBP` — S7 landed in `config.py:74` but `cogs.py` had not
+re-run since. `pnl_monthly_snapshots` was not rewritten; it only gained new `pull_at` batches.
+
+**No reported number moved.** Every numeric token in all four reconcile reports is identical to the
+golden baseline, in order. Exit codes unchanged (US 1, CA 0, UK 0, AU 0).
+
+### 9.1 A pinned Δ is measured against a frozen *Amazon* pull too, not just a frozen Sellerise snapshot
+
+Phase 1 ingests. A read-only probe of the exact window `python -m sync` would pull found, per
+marketplace, dozens of new transactions and a handful of *existing* June rows whose JSON has changed.
+Most new in-window rows are `RELEASED` release events, which the pipeline correctly drops. One does not:
+
+> **UK: a new `Refund`, posted 2026-07-04, on an order purchased 2026-01-18.** UK's refund-COGS basis
+> is **purchase**, so it nets that unit out of **January's** cog. The pinned Jan `cog.(scalar)` Δ would
+> move `242.84 → 236.14` — inside the ±25 tolerance by £18.30. Had the refunded SKU been `ABDB`
+> (£78.53) instead of `4C-76GT-VAWZ` (£6.70), the pinned cell would have fired `INVESTIGATE`.
+
+(CA's eight equivalent July-posted refunds of January orders are harmless: CA's refund-COGS basis is
+**posted**, so their cog lands in July, outside the window.)
+
+**So `TARGET_DEFECTS` pins a Δ measured against a frozen Sellerise snapshot *and* a frozen Amazon
+pull.** Re-pulling can move a pinned Δ and fire `INVESTIGATE` where nothing is wrong. That is the pin
+working as designed — it alarms on movement — but it means **"ingest new data" and "keep the guard
+green" are not independent operations.** An ingest must be a deliberate act followed by re-deriving the
+pinned Δs, never a side effect of fixing a crash. Phase 1 was therefore held to a no-op for every
+verification run. → **S8**
+
+### 9.2 Amazon's ads restatement, measured
+
+June's ad rows did not reproduce the backup. Identical PK set (8,363 / 8,363); **8 rows** changed,
+every one revised **downward**, all in the last three weeks of June:
+
+| | net change, 2026-07-07 pull → 2026-07-10 pull |
+|---|---:|
+| US | **−$8.34** |
+| UK | **−£0.48** |
+| CA, AU | 0.00 |
+
+Nothing in Jan–May moved by a cent. This is exactly what `as_of` exists for — *"makes restatement
+drift distinguishable from a real pipeline bug"* — and it puts a number on a claim that previously
+rested on a 13-hour window: **Amazon's own ads restatement is real, confined to the trailing month,
+and at 3 days it is −$8.82 across 8 rows.** June was therefore **not** written; its rows still carry
+their original `2026-07-07` `as_of`.
+
+### 9.3 The 20-minute batch cap cannot pull January
+
+`sweep_ad_spend` hard-coded `deadline = time.time() + 20 * 60`. 2026-01 is the largest month (11,337
+rows) and its report takes **~19 minutes** to generate; the batch timed out and reported `failed`.
+
+It failed **safely** — `_replace_month` is only reached on `COMPLETED`, so a timed-out month is never
+deleted. Worth keeping. Fixed with `--batch-timeout-s` (default unchanged), alongside the existing
+`--submit-gap-s` / `--poll-round-s`. January then completed and reproduced the backup exactly.
+
+### Still open
+
+**S8 — the ingest protocol.** ✅ **DONE** — § 10. Related: **B5** (`band_for()` hands AU the US dollar
+bands) is still open and still inert.
+
+---
+
+## 10. S8 — pinned defects survive live ingestion
+
+Full workings: [`s8_pin_semantics.md`](s8_pin_semantics.md). Read-only against the data; every numeric
+token in all four reports is identical to the pre-S8 baseline; exit codes unchanged.
+
+### The problem, restated
+
+§ 9.1 found that a pinned Δ is measured against a frozen Sellerise/Sellerboard snapshot **and** a frozen
+Amazon pull. A UK Refund posted 2026-07-04 on an order purchased 2026-01-18 nets that unit out of
+January's cog (UK's refund-COGS basis is *purchase*), moving the pinned Δ `242.84 → 236.14` — inside
+±25 by £18.30. Had the SKU been `ABDB` (£78.53) the cell would have fired `INVESTIGATE` on a correct
+pipeline, correct ingestion, and an unchanged target defect.
+
+### Rate-pinning was measured, and rejected
+
+The obvious fix — pin the per-unit rate, not the dollars — does not survive the data:
+
+| | measured |
+|---|---|
+| UK `cog`, Δ / net-unit across the pinned months | 0.179 → 1.858, **CV 55.5 %** |
+| UK `fbaObject`, Δ / GMAKER-3-unit | **CV 16.0 %**; April is a genuine outlier (the one month Sellerise booked anything) |
+| the `ABDB` refund under a *rate* pin | rate 1.2986 → 0.8834, **−32.0 %** — it fires |
+
+Sellerise's snapshot is a frozen file: it does not shed the refunded unit's cost. Our numerator loses a
+high-cost unit's full cost while the denominator loses one unit. **Nothing — dollars, rate, or ratio —
+is invariant to a frozen target.** The missing ingredient was never a denominator; it was knowing which
+rows the pin was taken over.
+
+### What was built instead: an ingestion horizon
+
+Because the target's side is frozen, a pinned Δ moves **only** when our side does — and our side moves
+for exactly two reasons: rows were ingested, or our code changed.
+`sp_transactions.ingested_at` / `order_purchase_date.ingested_at` separate them exactly.
+
+Each entry gains `measured_at` (the horizon its Δ was measured over) and `kind` (`rate` | `content`).
+`classify()` gains `delta_as_of` — the same cell recomputed with `ingested_before=measured_at`:
+
+| what happened | current Δ | Δ at horizon | status |
+|---|---|---|---|
+| nothing | pinned | pinned | `KNOWN_TARGET_DEFECT` |
+| new rows ingested | moved | **still pinned** | `DEFECT_REMEASURED` — loud, does not fail the run |
+| our code changed | moved | **moved too** | `INVESTIGATE` |
+| the target fixed its bug | moved | moved | `INVESTIGATE` |
+
+**`DEFECT_REMEASURED` cannot fire on a run that ingested nothing** — with no rows past the horizon the
+as-of Δ *is* the current Δ, so if one fails to match the pin, so does the other. That is structural, not
+a test result. The recompute is lazy: it never runs unless a pin is actually off.
+
+### Classification (all 13 cells)
+
+| marketplace | cells | kind | why |
+|---|---|---|---|
+| UK | 4 `cog`, 5 `fbaObject` | **rate** | the target derives a per-unit value wrong; the Δ scales with that month's units and mix, so a new settled month still needs its own entry |
+| AU | 4 (Jan storage GST, Jan MCF ×3) | **content** | the target omits/includes specific *items* in one month; the Δ is fixed to those items |
+
+### The ingest protocol
+
+1. Phase 1 (ingest) and the guards are **separate operations**. A verification or reporting run must not
+   ingest — hold `--start` past the `now − 48h` boundary and pass `--skip-orders`.
+2. Order: **ingest → reconcile → guards**, once, deliberately.
+3. `DEFECT_REMEASURED` on the first guarded run after an ingest is **expected**. On a run that ingested
+   nothing it is impossible; if you see it there, it is a bug.
+4. **Re-pin promptly.** The report prints each entry's new `expected_delta`. Update `TARGET_DEFECTS` and
+   set `measured_at` past the ingest. Until then the cell keeps reading `DEFECT_REMEASURED` — correct,
+   loud, and stale.
+5. **Never re-measure silently.** The Δ changes in source, by hand, with the report's evidence.
+
+Every current entry carries `measured_at = 2026-07-10T00:00:00Z`; the latest `ingested_at` in
+`sp_transactions` is `2026-07-07 07:38:39Z`.
+
+### Known gap → closed by S9
+
+The horizon covered `sp_transactions` and `order_purchase_date`, not `ad_spend_daily`. AU's pins read ad
+spend indirectly (its FX rate is anchored on refunds *and* advertising). **S9 closed this two ways** (§ 11):
+an append-only `ad_spend_history` extends the horizon to ads, *and* the FX median was measured to give
+AU pins ~127× headroom against any ads restatement — the case was vacuous for the current cells.
+
+---
+
+## 11. S9 — the ingestion horizon covers ad spend
+
+Full workings: [`s9_ads_horizon.md`](s9_ads_horizon.md). Read-only against production; no number moved.
+
+**Gate:** `ad_spend_daily.as_of` is a pull timestamp (`_replace_month` sets `dt.datetime.now()`), but
+`_replace_month` deletes-and-reinserts, so a restatement overwrites the prior row at the same PK and the
+old value is gone. Filtering the live table on `as_of` cannot reconstruct the pre-restatement state —
+proven live: after the blockers task re-pulled Jan–May, **zero** rows carry the old `as_of <= 2026-07-08`.
+That is Step 2b, not 2a.
+
+**Fix (minimal):** an append-only `ad_spend_history` (migration `f6a7b8c9d0e1`) with `superseded_at`.
+`_replace_month` snapshots the rows it is about to delete; `load_au_ad_spend(ingested_before=H)`
+reconstructs each cell from its `[as_of, superseded_at)` validity interval. Only AU needs it. Nothing on
+the normal path changes.
+
+**A latent bug S9 forced out:** the pins' `measured_at` was `2026-07-10T00:00`, but the Jan–May ads were
+re-pulled at `13:xx` — after that horizon. Extending the horizon to ads at midnight would have excluded
+the current AU ad rows on every run, breaking the no-op guarantee. Corrected to `2026-07-10T23:59:59Z`
+(after all three horizoned tables' latest stamps). Verified a no-op at the pin.
+
+**The finding that matters more than the fix:** AU's FX reference rate is the **median** of its
+content-insensitive anchors — two refunds (0.6735, 0.6736) and ads (0.6790). A median is robust to any
+one anchor, so an ads restatement of ×10 or ×0.001 moves the rate by at most the refund spread (0.0001),
+i.e. **£0.15 on a pinned cell against £19.24 — ~127× headroom.** The false positive S8 flagged as a
+"margin, not a proof" is, for the current January cells, prevented by the FX design itself. The horizon
+extension is kept for completeness (a future refund-less pinned month would fall back to the all-anchor
+rate and *would* be ads-weighted), and it makes the as-of reconstruction cover every input uniformly.
+
+**Verified** (§ 3 of the S9 doc): reconstruction exact to the cent against the real backup; the
+full DEFECT_REMEASURED-via-ads path fires under a tight back-dated pin; teeth intact (code change →
+INVESTIGATE, no-ingest → DEFECT_REMEASURED unreachable); all S8 suites pass; every report number
+unchanged. A defensive guard makes a mis-set `measured_at` degrade to `INVESTIGATE` rather than crash.
+
+`ad_spend_daily` is byte-for-byte the Step-0 backup; `ad_spend_history` is empty (no real restatement
+occurred). **S9 is done. B5 remains open and inert.**
+
+---
+
+## 12. S10 — US's permanent exit 1 resolved
+
+Full workings: [`us_locked_targets.md`](us_locked_targets.md). Read-only; no financial number moved;
+CA/UK/AU byte-identical; US now exits **0**.
+
+**"Locked targets 9/15" was the pass count** — 6 failures, not 9. All 6 are decision-D/E
+`Promotion`/`RestockingFee` cells (`refundsObject.RestockingFee` Apr; `refundsObject.Promotion` Mar,
+Jun; `chargesObject.Promotion` Feb, Mar, Jun), Δ from the golden figure ranging +0.28 to −8.92.
+
+**A locked target** (`reconcile.py:73-89`) is a third construct: a hardcoded golden figure from
+RECONCILIATION.md that the pipeline's `pnl_after` must reproduce to ±$0.01. Distinct from the drift
+guard (vs the live Sellerise file, per-cell band) and `KNOWN_TARGET_DEFECT` (a pinned our-vs-target Δ).
+
+**All 6 are accepted restatement drift**, established three ways: (a) our value correctly sums the
+current Amazon leaves (`Promotion` = `OurPriceDiscount + ShippingDiscount`, exact); (b) the golden
+figure still equals Sellerise, so the lock is a frozen snapshot and our value differs by restatement;
+(c) the Δ is within the cell's own drift band — the guard already accepts all six (US: 0 INVESTIGATE),
+and the `chargesObject.Promotion` band is literally sized `Decimal("60")  # decision-E residual`. None
+is stale-predating-a-fix (no fix moved them), none is a bug.
+
+**The exact-match lock was the wrong tool:** an exact assertion against a frozen figure on a
+restating cell fails permanently for a non-regression — the "red every run → ignored" trap this task
+exists to prevent. **Updating the 6 to "current" was rejected**: the current value drifts too, so it
+would reset the clock.
+
+**Fix (`reconcile.py` only):** a locked target now grades `PASS` (exact) / `ACCEPTED_DRIFT` (within the
+cell's drift band — read via `band_for`, never altered) / `FAIL` (outside = regression). The gate moves
+from "all PASS" to `locked_fail == 0` (`:1531`). The structural decision-A zeros still require exact
+PASS.
+
+**Verified:** US 1 → 0 (9 PASS · 6 ACCEPTED_DRIFT · 0 FAIL); a golden figure corrupted beyond its band
+still `FAIL`s and exits 1; a Δ just inside band is `ACCEPTED_DRIFT`; CA/UK/AU reports byte-identical and
+still exit 0; US report identical outside the locked-targets section (expected/actual/delta unchanged,
+only status labels + summary); every S8/S9 suite passes; no band, `TARGET_DEFECTS` entry, or golden
+figure touched. The exit code now means the same on all four marketplaces: **red iff a real regression
+or an unexplained residual.** B5 remains the only open item, still inert.
