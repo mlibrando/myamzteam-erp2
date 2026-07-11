@@ -1,8 +1,20 @@
 """Amazon Ads monthly-spend pull → ad_spend_daily.
 
 Per Phase-4 Step-2 design: one report per month, `date.value` + `campaign.id` +
-`adProduct.value` + `budgetCurrency.value` + `metric.totalCost`, USD filter,
-persisted with a per-row `as_of` timestamp.
+`adProduct.value` + `budgetCurrency.value` + `metric.totalCost`, persisted with a
+per-row `as_of` timestamp.
+
+**One NA report carries every marketplace.** Amazon returns a single report per
+month for the NA advertiser account, and its rows are separated only by
+`budgetCurrency.value`: USD→US, CAD→CA, GBP→UK, AUD→AU. Each row is routed to the
+marketplace whose native ad currency it carries, which is exactly what the readers
+select (`reconcile.py`'s `budget_currency = MARKETPLACE_AD_CURRENCY[mp]` and
+`reconcile_au.py`'s `'AUD'`).
+
+This module previously dropped every non-USD row and tagged what was left with
+whatever `--marketplace` said. Against CA/UK/AU that deleted the reconciled rows
+and inserted USD rows the readers could never select. Do not reintroduce a
+single-currency filter here.
 
 Restatement handling: rows include `as_of`. Re-pulling a month deletes and
 re-inserts its rows with a fresh `as_of`. This makes restatement drift
@@ -16,10 +28,17 @@ Rate handling (empirical, Step 1 findings + this build):
   serial by default. Set `--parallel-submit N` to try more at once.
 - `POST /adsApi/v1/retrieve/reports` accepts ONE reportId per call (400000 on
   a list). Poll each report individually.
+- Report generation is slow and scales with the month: 2026-01 (11,337 rows) took
+  ~19 min, past the 20-minute default batch cap. Raise `--batch-timeout-s` for
+  large months. A month that times out is never written, so its rows survive.
 
 Usage:
-    python -m sync.ads_spend [--marketplace US] [--start 2026-01-01]
-                             [--end YYYY-MM-DD] [--parallel-submit 1]
+    # regenerate every marketplace for a range, straight into the real table
+    python -m sync.ads_spend --marketplace ALL --start 2026-01-01 --end 2026-05-31
+
+    # verify a pull before it touches the reconciled rows
+    python -m sync.ads_spend --marketplace ALL --start 2026-01-01 --end 2026-05-31 \
+                             --table ad_spend_daily_scratch --batch-timeout-s 2700
 """
 
 from __future__ import annotations
@@ -41,13 +60,21 @@ from dotenv import load_dotenv
 
 from .ads_client import AdsClient, AdsAPIError
 from .ads_probe import create_probe_report, list_accounts
-from .config import MARKETPLACE_ALIASES, US_MARKETPLACE_ID
+from .config import MARKETPLACE_AD_CURRENCY, MARKETPLACE_ALIASES, US_MARKETPLACE_ID
 
 log = logging.getLogger(__name__)
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 _TERMINAL = {"COMPLETED", "FAILED"}
+
+# `budgetCurrency.value` → marketplace_id. The inverse of MARKETPLACE_AD_CURRENCY,
+# which is what `load_ad_spend` filters on. The four currencies are distinct, so
+# the mapping is total.
+_CURRENCY_TO_MARKETPLACE: dict[str, str] = {c: m for m, c in MARKETPLACE_AD_CURRENCY.items()}
+
+AD_SPEND_TABLE = "ad_spend_daily"
+AD_SPEND_HISTORY_TABLE = "ad_spend_history"
 
 
 def _months_in_range(start: dt.date, end: dt.date):
@@ -133,35 +160,77 @@ def _download_all_parts(client: AdsClient, report: dict) -> bytes:
 
 # ── persistence ──────────────────────────────────────────────────────────────
 
-def _parse_and_filter_usd(csv_bytes: bytes) -> list[dict]:
+def _parse_rows(csv_bytes: bytes) -> list[dict]:
+    """Every row of the report, in every currency. No filtering."""
     text = csv_bytes.decode("utf-8-sig")
     rows: list[dict] = []
     for r in csv.DictReader(io.StringIO(text)):
-        if (r.get("budgetCurrency.value") or "") != "USD":
-            continue
         rows.append({
             "date": r["date.value"],
             "campaign_id": r["campaign.id"],
             "ad_product": r["adProduct.value"],
-            "budget_currency": r["budgetCurrency.value"],
+            "budget_currency": (r.get("budgetCurrency.value") or ""),
             "total_cost": Decimal(r["metric.totalCost"]),
         })
     return rows
 
 
+def _route_by_currency(rows: list[dict], marketplace_ids: list[str]) -> dict[str, list[dict]]:
+    """Split report rows across marketplaces by `budgetCurrency.value`.
+
+    Rows whose currency belongs to a marketplace we were not asked to write are
+    dropped, and so are rows in a currency no marketplace claims. Both are logged:
+    a silently dropped currency is how the CA/UK/AU rows went missing before.
+    """
+    wanted = {c: m for c, m in _CURRENCY_TO_MARKETPLACE.items() if m in marketplace_ids}
+    out: dict[str, list[dict]] = {m: [] for m in marketplace_ids}
+    skipped: dict[str, int] = {}
+    for r in rows:
+        mp = wanted.get(r["budget_currency"])
+        if mp is None:
+            skipped[r["budget_currency"]] = skipped.get(r["budget_currency"], 0) + 1
+            continue
+        out[mp].append(r)
+    for currency, n in sorted(skipped.items()):
+        known = currency in _CURRENCY_TO_MARKETPLACE
+        log.info("  skipped %d row(s) in %s (%s)", n, currency or "<blank>",
+                 "marketplace not requested" if known else "no marketplace claims this currency")
+    return out
+
+
 def _replace_month(conn: psycopg.Connection, marketplace_id: str,
-                   month_start: dt.date, month_end: dt.date, rows: list[dict], as_of: dt.datetime) -> int:
+                   month_start: dt.date, month_end: dt.date, rows: list[dict], as_of: dt.datetime,
+                   table: str = AD_SPEND_TABLE,
+                   history_table: str | None = AD_SPEND_HISTORY_TABLE) -> int:
     with conn.cursor() as cur:
+        # Before deleting, snapshot the rows being superseded into history, with
+        # `superseded_at = as_of` (the moment they stop being current). This is
+        # what makes the pre-restatement state reconstructable — `as_of` on the
+        # live table is a horizon only in combination with this. Skipped for
+        # scratch runs (history_table=None), so verification never pollutes it.
+        if history_table is not None:
+            cur.execute(
+                f"""
+                INSERT INTO {history_table}
+                    (marketplace_id, date, campaign_id, ad_product, campaign_name,
+                     campaign_country, budget_currency, total_cost, updated_at, as_of, superseded_at)
+                SELECT marketplace_id, date, campaign_id, ad_product, campaign_name,
+                       campaign_country, budget_currency, total_cost, updated_at, as_of, %s
+                FROM {table}
+                WHERE marketplace_id = %s AND date >= %s AND date <= %s
+                """,
+                (as_of, marketplace_id, month_start, month_end),
+            )
         cur.execute(
-            "DELETE FROM ad_spend_daily WHERE marketplace_id = %s AND date >= %s AND date <= %s",
+            f"DELETE FROM {table} WHERE marketplace_id = %s AND date >= %s AND date <= %s",
             (marketplace_id, month_start, month_end),
         )
         if not rows:
             conn.commit()
             return 0
         cur.executemany(
-            """
-            INSERT INTO ad_spend_daily
+            f"""
+            INSERT INTO {table}
                 (marketplace_id, date, campaign_id, ad_product,
                  campaign_name, campaign_country, budget_currency, total_cost, updated_at, as_of)
             VALUES (%s, %s, %s, %s, NULL, NULL, %s, %s, now(), %s)
@@ -202,7 +271,7 @@ def _check_report_once(client: AdsClient, report_id: str) -> dict[str, Any] | No
 def sweep_ad_spend(
     conn: psycopg.Connection,
     client: AdsClient,
-    marketplace_id: str,
+    marketplace_ids: list[str],
     advertiser_id: str,
     *,
     start: dt.date,
@@ -210,8 +279,15 @@ def sweep_ad_spend(
     concurrency: int = 2,
     submit_gap_s: int = 60,
     poll_round_s: int = 45,
+    batch_timeout_s: int = 20 * 60,
+    table: str = AD_SPEND_TABLE,
+    history_table: str | None = None,
 ) -> dict:
-    """Pull ad spend for each month in [start, end] and persist.
+    """Pull ad spend for each month in [start, end] and persist, per marketplace.
+
+    One report per month covers every marketplace; rows are routed by
+    `budgetCurrency.value`. All marketplaces in `marketplace_ids` share one
+    `as_of` per month, because one pull produced them.
 
     Empirical rate/concurrency finding: `POST /adsApi/v1/create/reports` allows
     ~2 reports in flight at once. Attempts to submit a 3rd concurrently return
@@ -244,8 +320,12 @@ def sweep_ad_spend(
             if submit_gap_s > 0 and len(in_flight) < len(batch):
                 time.sleep(submit_gap_s)
 
-        # Poll each until terminal, download+persist
-        deadline = time.time() + 20 * 60  # 20 min per batch cap
+        # Poll each until terminal, download+persist. A month that never reaches
+        # a terminal status is simply never written — `_replace_month` is only
+        # reached on COMPLETED, so a timeout leaves that month's existing rows
+        # intact rather than deleting them. Large months need headroom: 2026-01
+        # (11,337 rows) exceeds the 20-minute default.
+        deadline = time.time() + batch_timeout_s
         pending = list(in_flight)
         while pending and time.time() < deadline:
             still: list[tuple[str, dt.date, dt.date, str]] = []
@@ -260,12 +340,17 @@ def sweep_ad_spend(
                     stats["failed"] += 1
                     continue
                 data = _download_all_parts(client, report)
-                usd_rows = _parse_and_filter_usd(data)
+                rows = _parse_rows(data)
+                by_mp = _route_by_currency(rows, marketplace_ids)
+                # One pull, one as_of — shared across every marketplace it wrote.
                 as_of = dt.datetime.now(dt.timezone.utc)
-                n = _replace_month(conn, marketplace_id, ms, me, usd_rows, as_of)
+                for mp in marketplace_ids:
+                    n = _replace_month(conn, mp, ms, me, by_mp[mp], as_of,
+                                       table=table, history_table=history_table)
+                    stats["rows"] += n
+                    log.info("%s %s: %d rows persisted into %s (as_of=%s)",
+                             ym, mp, n, table, as_of.isoformat())
                 stats["completed"] += 1
-                stats["rows"] += n
-                log.info("%s: %d USD rows persisted (as_of=%s)", ym, n, as_of.isoformat())
             pending = still
             if pending:
                 time.sleep(poll_round_s)
@@ -281,7 +366,9 @@ def sweep_ad_spend(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="sync.ads_spend")
-    parser.add_argument("--marketplace", default="US")
+    parser.add_argument("--marketplace", default="US",
+                        help="US/CA/UK/AU, a literal marketplaceId, or ALL. One report covers "
+                             "every marketplace; this selects which of them get written.")
     parser.add_argument("--start", default="2026-01-01", help="YYYY-MM-DD; first day of first month")
     parser.add_argument("--end", default=None, help="YYYY-MM-DD; defaults to today")
     parser.add_argument("--concurrency", type=int, default=2,
@@ -290,6 +377,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Seconds between submits within a batch.")
     parser.add_argument("--poll-round-s", type=int, default=45,
                         help="Seconds between poll rounds.")
+    parser.add_argument("--batch-timeout-s", type=int, default=20 * 60,
+                        help="How long to wait for a batch's reports. A month that times out is "
+                             "left untouched, not deleted. 2026-01 needs more than the default.")
+    parser.add_argument("--table", default=AD_SPEND_TABLE,
+                        help="Destination table. Point at a scratch copy to verify a pull "
+                             "before it touches the reconciled rows.")
     parser.add_argument("--region", default="NA")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
@@ -304,7 +397,10 @@ def main(argv: list[str] | None = None) -> int:
         print("DATABASE_URL not set", file=sys.stderr)
         return 1
 
-    marketplace_id = MARKETPLACE_ALIASES.get(args.marketplace.upper(), args.marketplace)
+    if args.marketplace.upper() == "ALL":
+        marketplace_ids = list(_CURRENCY_TO_MARKETPLACE.values())
+    else:
+        marketplace_ids = [MARKETPLACE_ALIASES.get(args.marketplace.upper(), args.marketplace)]
     start = dt.date.fromisoformat(args.start)
     end = dt.date.fromisoformat(args.end) if args.end else dt.date.today()
 
@@ -317,11 +413,17 @@ def main(argv: list[str] | None = None) -> int:
             log.error("No US account.")
             return 2
         advertiser_id = us["adsAccountId"]
-        stats = sweep_ad_spend(conn, client, marketplace_id, advertiser_id,
+        # Snapshot superseded rows to history only when writing the real table.
+        # A scratch verification run leaves history untouched.
+        history_table = AD_SPEND_HISTORY_TABLE if args.table == AD_SPEND_TABLE else None
+        log.info("Writing %s -> %s (history: %s)", marketplace_ids, args.table, history_table)
+        stats = sweep_ad_spend(conn, client, marketplace_ids, advertiser_id,
                                 start=start, end=end,
                                 concurrency=args.concurrency,
                                 submit_gap_s=args.submit_gap_s,
-                                poll_round_s=args.poll_round_s)
+                                poll_round_s=args.poll_round_s,
+                                batch_timeout_s=args.batch_timeout_s,
+                                table=args.table, history_table=history_table)
 
     log.info("Done: %d months, %d submitted, %d completed, %d failed, %d rows",
              stats["months"], stats["submitted"], stats["completed"], stats["failed"], stats["rows"])
