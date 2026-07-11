@@ -52,7 +52,7 @@ from .config import (
     cog_needs_fx,
     cog_source_marketplace,
 )
-from .drift_bands import KNOWN_TARGET_DEFECT, target_defect_for
+from .drift_bands import DEFECT_REMEASURED, KNOWN_TARGET_DEFECT, target_defect_for
 from .sellerboard import (
     ANCHOR_SPREAD_WARN,
     AU_MARKETPLACE_ID,
@@ -142,7 +142,20 @@ _ORDER_JOIN = """
     ) rel ON true
     LEFT JOIN order_purchase_date opd
       ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+      {opd_horizon}
 """
+
+
+def _horizon(ingested_before: dt.datetime | None) -> tuple[str, str, tuple]:
+    """(txn predicate, order-map predicate, params) for an ingestion horizon.
+
+    Used only by the drift guard, to reconstruct a cell as it stood at a pinned
+    defect's `measured_at`. Empty strings and no params when None — the normal
+    path is byte-for-byte the query it always was.
+    """
+    if ingested_before is None:
+        return "", "", ()
+    return "AND t.ingested_at <= %s", "AND opd.ingested_at <= %s", (ingested_before,)
 
 
 def _date_expr(basis: str) -> str:
@@ -161,6 +174,7 @@ def load_au_leaves(
     conn: psycopg.Connection,
     shipment_basis: str = AU_SHIPMENT_BASIS,
     refund_basis: str = "posted",
+    ingested_before: dt.datetime | None = None,
 ) -> dict[str, dict[str, Decimal]]:
     """{year_month: {"<TxnType>.<breakdown_type>": AUD amount}} for settled AU rows.
 
@@ -169,6 +183,7 @@ def load_au_leaves(
     postedDate.
     """
     ym_expr = _ym_expr(shipment_basis, refund_basis)
+    txn_h, opd_h, hp = _horizon(ingested_before)
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -177,12 +192,13 @@ def load_au_leaves(
                    SUM(b.breakdown_amount)
             FROM sp_breakdowns b
             JOIN sp_transactions t ON t.transaction_id = b.transaction_id
-            {_ORDER_JOIN}
+            {_ORDER_JOIN.format(opd_horizon=opd_h)}
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
+              {txn_h}
             GROUP BY 1, 2
             """,
-            (AU_MARKETPLACE_ID,),
+            hp + (AU_MARKETPLACE_ID,) + hp,
         )
         out: dict[str, dict[str, Decimal]] = defaultdict(dict)
         for ym, leaf, amount in cur.fetchall():
@@ -190,19 +206,53 @@ def load_au_leaves(
     return dict(out)
 
 
-def load_au_ad_spend(conn: psycopg.Connection) -> dict[str, Decimal]:
-    """{year_month: AUD ad spend} from ad_spend_daily (GST-exclusive)."""
+def load_au_ad_spend(conn: psycopg.Connection,
+                     ingested_before: dt.datetime | None = None) -> dict[str, Decimal]:
+    """{year_month: AUD ad spend} from ad_spend_daily (GST-exclusive).
+
+    `ingested_before` reconstructs the ad spend as it stood at that horizon, for
+    the drift guard's DEFECT_REMEASURED test. `ad_spend_daily` is replace-in-place
+    (`_replace_month` deletes and reinserts), so the pre-restatement value cannot
+    be read from the live table — it lives in `ad_spend_history`, keyed by the
+    validity interval `[as_of, superseded_at)`. The reconstruction takes the live
+    row if it was already current at the horizon, else the historical version
+    whose interval contains it. On the normal path (`None`) it is the live query
+    unchanged. AU is the only ads-anchored marketplace, so only this loader needs
+    it; table names come from the ads_spend constants so a test can point them at
+    scratch copies.
+    """
+    from . import ads_spend
     currency = MARKETPLACE_CURRENCY[AU_MARKETPLACE_ID]
+    live, hist = ads_spend.AD_SPEND_TABLE, ads_spend.AD_SPEND_HISTORY_TABLE
     with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT to_char(date, 'YYYY-MM'), SUM(total_cost)
-            FROM ad_spend_daily
-            WHERE marketplace_id = %s AND budget_currency = %s
-            GROUP BY 1
-            """,
-            (AU_MARKETPLACE_ID, currency),
-        )
+        if ingested_before is None:
+            cur.execute(
+                f"""
+                SELECT to_char(date, 'YYYY-MM'), SUM(total_cost)
+                FROM {live}
+                WHERE marketplace_id = %s AND budget_currency = %s
+                GROUP BY 1
+                """,
+                (AU_MARKETPLACE_ID, currency),
+            )
+        else:
+            cur.execute(
+                f"""
+                SELECT to_char(date, 'YYYY-MM'), SUM(total_cost) FROM (
+                    SELECT date, total_cost
+                    FROM {live}
+                    WHERE marketplace_id = %s AND budget_currency = %s AND as_of <= %s
+                    UNION ALL
+                    SELECT date, total_cost
+                    FROM {hist}
+                    WHERE marketplace_id = %s AND budget_currency = %s
+                      AND as_of <= %s AND superseded_at > %s
+                ) v
+                GROUP BY 1
+                """,
+                (AU_MARKETPLACE_ID, currency, ingested_before,
+                 AU_MARKETPLACE_ID, currency, ingested_before, ingested_before),
+            )
         return {ym: Decimal(str(v)) for ym, v in cur.fetchall()}
 
 
@@ -210,6 +260,7 @@ def load_au_cog_units(
     conn: psycopg.Connection,
     shipment_basis: str = AU_SHIPMENT_BASIS,
     refund_cogs_basis: str = "posted",
+    ingested_before: dt.datetime | None = None,
 ) -> tuple[dict[str, dict[str, int]], dict[str, dict[str, int]]]:
     """(shipped_units, refunded_units), each {year_month: {sku: units}}.
 
@@ -218,6 +269,7 @@ def load_au_cog_units(
     units inside `refundCostsTotal`.
     """
     ship_d, refund_d = _date_expr(shipment_basis), _date_expr(refund_cogs_basis)
+    txn_h, opd_h, hp = _horizon(ingested_before)
     out: tuple[dict, dict] = (defaultdict(dict), defaultdict(dict))
     with conn.cursor() as cur:
         for idx, (txn_type, date_expr) in enumerate((("Shipment", ship_d), ("Refund", refund_d))):
@@ -227,14 +279,15 @@ def load_au_cog_units(
                        SUM(i.quantity_shipped)
                 FROM sp_transaction_items i
                 JOIN sp_transactions t ON t.transaction_id = i.transaction_id
-                {_ORDER_JOIN}
+                {_ORDER_JOIN.format(opd_horizon=opd_h)}
                 WHERE t.marketplace_id = %s
                   AND t.is_deferred_release_event = false
                   AND (t.raw_json->>'transactionType') = %s
                   AND i.quantity_shipped > 0
+                  {txn_h}
                 GROUP BY 1, 2
                 """,
-                (AU_MARKETPLACE_ID, txn_type),
+                hp + (AU_MARKETPLACE_ID, txn_type) + hp,
             )
             for ym, sku, qty in cur.fetchall():
                 out[idx][ym][sku] = int(qty)
@@ -245,10 +298,12 @@ def load_au_net_units(
     conn: psycopg.Connection,
     shipment_basis: str = AU_SHIPMENT_BASIS,
     refund_cogs_basis: str = "posted",
+    ingested_before: dt.datetime | None = None,
 ) -> dict[str, dict[str, int]]:
     """{year_month: {sku: net units}} — shipments minus refunds, matching Sellerboard's
     `(units_sold - units_refunded) x unit_cog` COGS definition."""
     ym_expr = _ym_expr(shipment_basis, refund_cogs_basis)
+    txn_h, opd_h, hp = _horizon(ingested_before)
     with conn.cursor() as cur:
         cur.execute(
             f"""
@@ -258,14 +313,15 @@ def load_au_net_units(
                             WHEN 'Refund'   THEN -i.quantity_shipped END)
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
-            {_ORDER_JOIN}
+            {_ORDER_JOIN.format(opd_horizon=opd_h)}
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
               AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
               AND i.quantity_shipped > 0
+              {txn_h}
             GROUP BY 1, 2
             """,
-            (AU_MARKETPLACE_ID,),
+            hp + (AU_MARKETPLACE_ID,) + hp,
         )
         out: dict[str, dict[str, int]] = defaultdict(dict)
         for ym, sku, qty in cur.fetchall():
@@ -412,6 +468,92 @@ def family_rates(rates: dict[str, tuple[Decimal, bool]]) -> dict[str, Decimal]:
     return out
 
 
+# ── pinned-defect bookkeeping ──────────────────────────────────────────────
+# The cells that carry a registry entry, in this module's own vocabulary.
+_PINNED_BUCKET_LINES: tuple[tuple[str, str, str], ...] = (
+    ("commission", "feesObject", "Commission"),
+    ("fbaFee", "fbaObject", "FBAPerUnitFulfillmentFee"),
+    ("storageFee", "storageFee", "storageFee"),
+)
+
+
+def _build_rows(conn: psycopg.Connection, sb_months: dict, ad_aud: dict,
+                cog_rates: dict, ingested_before: dt.datetime | None = None) -> list[dict]:
+    """Per-month comparison rows. `ingested_before` rebuilds them at a horizon.
+
+    At a horizon, ad spend is reconstructed too (it anchors the FX rate) — so the
+    `ad_aud` argument is ignored and re-read at the horizon.
+    """
+    leaves = load_au_leaves(conn, refund_basis=AU_REFUND_BASIS, ingested_before=ingested_before)
+    net_units = load_au_net_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS,
+                                  ingested_before=ingested_before)
+    ship_units, refund_units = load_au_cog_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS,
+                                                 ingested_before=ingested_before)
+    if ingested_before is not None:
+        ad_aud = load_au_ad_spend(conn, ingested_before=ingested_before)
+    rows: list[dict] = []
+    for ym, period in sb_months.items():
+        theirs = map_to_buckets(period)
+        ours = our_buckets_aud(leaves.get(ym, {}))
+        ad_usd = theirs.get("adExpenses", {}).get("(aggregate)", ZERO)
+        rates = anchor_rates(ours, theirs, ad_aud.get(ym, ZERO), ad_usd)
+        rate, spread, basis = reference_rate(rates)
+        rows.append({
+            "ym": ym, "rate": rate, "spread": spread, "basis": basis,
+            "rates": rates, "fams": family_rates(rates), "ours": ours, "theirs": theirs,
+            "period": period, "ad_aud": ad_aud.get(ym, ZERO),
+            "cog_usd": sum((cog_rates.get(s, ZERO) * q for s, q in net_units.get(ym, {}).items()), start=ZERO),
+            "gross_cog_usd": sum((cog_rates.get(s, ZERO) * q for s, q in ship_units.get(ym, {}).items()), start=ZERO),
+            "returned_cog_usd": sum((cog_rates.get(s, ZERO) * q for s, q in refund_units.get(ym, {}).items()), start=ZERO),
+            "inventory_gap": inventory_loss_gap(period),
+        })
+    return rows
+
+
+def _cell_deltas(rows: list[dict]) -> dict[tuple[str, str, str], Decimal]:
+    """Every pinned cell's Δ in the registry's convention: ours − theirs."""
+    out: dict[tuple[str, str, str], Decimal] = {}
+    for r in rows:
+        for key, bucket, line in _PINNED_BUCKET_LINES:
+            ours_usd = r["ours"][key] * r["rate"]
+            out[(r["ym"], bucket, line)] = ours_usd - r["theirs"].get(bucket, {}).get(line, ZERO)
+        out[(r["ym"], "cog", "(salesCosts)")] = r["gross_cog_usd"] - r["theirs"]["cog"]["(salesCosts)"]
+    return out
+
+
+def _as_of_deltas(conn: psycopg.Connection, sb_months: dict, ad_aud: dict,
+                  cog_rates: dict, rows: list[dict]) -> dict[tuple[str, str, str], Decimal]:
+    """For any pinned cell whose Δ has moved, its Δ at the pin's ingestion horizon.
+
+    Lazy: nothing is recomputed unless a pin is actually off.
+    """
+    current = _cell_deltas(rows)
+    horizons = {
+        d.measured_at
+        for key, delta in current.items()
+        if (d := target_defect_for(AU_MARKETPLACE_ID, *key)) is not None and not d.matches(delta)
+    }
+    out: dict[tuple[str, str, str], Decimal] = {}
+    for horizon in sorted(horizons):
+        log.warning("A pinned AU defect has moved — recomputing at its ingestion horizon %s", horizon)
+        try:
+            as_of = _cell_deltas(_build_rows(conn, sb_months, ad_aud, cog_rates, ingested_before=horizon))
+        except SellerboardParseError as exc:
+            # A horizon so early a month loses all its FX anchors cannot happen for
+            # a correctly-set pin (measured_at is always after all ingested data).
+            # If it does — a mis-set measured_at — do not crash the run: leave those
+            # cells without an as-of Δ, so they classify INVESTIGATE (the safe
+            # default: we could not prove ingestion explains the move).
+            log.error("Could not reconstruct AU cells at horizon %s (%s); "
+                      "affected cells will read INVESTIGATE, not DEFECT_REMEASURED.", horizon, exc)
+            continue
+        for key, delta in current.items():
+            d = target_defect_for(AU_MARKETPLACE_ID, *key)
+            if d is not None and not d.matches(delta) and d.measured_at == horizon and key in as_of:
+                out[key] = as_of[key]
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="sync.reconcile_au")
     parser.add_argument("--report", default="reference/data/au_sellerboard_reconcile.md")
@@ -433,34 +575,15 @@ def main(argv: list[str] | None = None) -> int:
     log.info("Sellerboard gates passed: %d complete months", len(sb_months))
 
     with psycopg.connect(db_url) as conn:
-        leaves = load_au_leaves(conn, refund_basis=AU_REFUND_BASIS)
         ad_aud = load_au_ad_spend(conn)
-        net_units = load_au_net_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS)
-        ship_units, refund_units = load_au_cog_units(conn, refund_cogs_basis=AU_REFUND_COGS_BASIS)
         cog_rates = load_cog_rates(conn)
+        rows = _build_rows(conn, sb_months, ad_aud, cog_rates)
 
-    rows: list[dict] = []
-    for ym, period in sb_months.items():
-        theirs = map_to_buckets(period)
-        ours = our_buckets_aud(leaves.get(ym, {}))
-        ad_usd = theirs.get("adExpenses", {}).get("(aggregate)", ZERO)
-        rates = anchor_rates(ours, theirs, ad_aud.get(ym, ZERO), ad_usd)
-        rate, spread, basis = reference_rate(rates)
-        fams = family_rates(rates)
-
-        cog_usd = sum((cog_rates.get(sku, ZERO) * qty for sku, qty in net_units.get(ym, {}).items()),
-                      start=ZERO)
-        gross_cog_usd = sum((cog_rates.get(s, ZERO) * q for s, q in ship_units.get(ym, {}).items()),
-                            start=ZERO)
-        returned_cog_usd = sum((cog_rates.get(s, ZERO) * q for s, q in refund_units.get(ym, {}).items()),
-                               start=ZERO)
-        rows.append({
-            "ym": ym, "rate": rate, "spread": spread, "basis": basis,
-            "rates": rates, "fams": fams, "ours": ours, "theirs": theirs, "period": period,
-            "ad_aud": ad_aud.get(ym, ZERO), "cog_usd": cog_usd,
-            "gross_cog_usd": gross_cog_usd, "returned_cog_usd": returned_cog_usd,
-            "inventory_gap": inventory_loss_gap(period),
-        })
+        # ── Has any pinned AU defect moved, and did newly-ingested rows do it? ──
+        # Sellerboard's file is frozen, so a pinned Δ moves only when our side
+        # does. Rebuild the affected months at the pin's ingestion horizon: if the
+        # Δ is unchanged there, rows ingested since account for all of it.
+        as_of_delta = _as_of_deltas(conn, sb_months, ad_aud, cog_rates, rows)
 
     # Guard on the median settled rate, not a single month's.
     median_rate = Decimal(str(statistics.median([float(r["rate"]) for r in rows])))
@@ -468,7 +591,7 @@ def main(argv: list[str] | None = None) -> int:
     log.info("cog FX guard passed: %s = %s USD -> %.2f AUD at rate %.4f",
              COG_FX_GUARD_SKU, cog_rates[COG_FX_GUARD_SKU], guard_aud, median_rate)
 
-    report = _render(rows, cog_rates, median_rate, guard_aud)
+    report = _render(rows, cog_rates, median_rate, guard_aud, as_of_delta)
     out = repo_root / args.report
     out.write_text(report)
     log.info("Wrote %s", out)
@@ -477,7 +600,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _render(rows: list[dict], cog_rates: dict[str, Decimal],
-            median_rate: Decimal, guard_aud: Decimal) -> str:
+            median_rate: Decimal, guard_aud: Decimal,
+            as_of_delta: dict[tuple[str, str, str], Decimal] | None = None) -> str:
     L: list[str] = []
     a = L.append
     a("# AU reconciliation vs Sellerboard\n")
@@ -527,8 +651,10 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
         ("refundPrincipal", "refundsObject", "Principal"),
         ("refundCommission", "refundsObject", "Commission"),
     ]
+    as_of_delta = as_of_delta or {}
     content_flags: list[str] = []
     defect_flags: list[tuple[str, str]] = []
+    remeasured_flags: list[str] = []
     for r in rows:
         for key, bucket, line in bucket_lines:
             ours_usd = r["ours"][key] * r["rate"]
@@ -538,14 +664,23 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
             pct = (delta / abs(ours_usd) * 100) if ours_usd else ZERO
             # The registry speaks in `ours - theirs`; this table renders `theirs - ours`.
             defect = target_defect_for(AU_MARKETPLACE_ID, r["ym"], bucket, line)
+            as_of = as_of_delta.get((r["ym"], bucket, line))
             if defect is not None and defect.matches(ours_usd - theirs):
                 verdict = f"**{KNOWN_TARGET_DEFECT}**"
                 defect_flags.append((f"{r['ym']} {bucket}.{line} {delta:+,.2f}", defect.note))
+            elif defect is not None and as_of is not None and defect.matches(as_of):
+                verdict = f"**{DEFECT_REMEASURED}**"
+                remeasured_flags.append(
+                    f"{r['ym']} {bucket}.{line}: pinned {defect.expected_delta:+,.2f}, now "
+                    f"{ours_usd - theirs:+,.2f}, at the pin's horizon still {as_of:+,.2f} "
+                    f"-> newly-ingested rows moved it. Re-pin."
+                )
             elif defect is not None:
                 verdict = "**CONTENT (pinned defect moved)**"
                 content_flags.append(
                     f"{r['ym']} {bucket}.{line} {delta:+,.2f} "
-                    f"— pinned at {-defect.expected_delta:+,.2f} ±{defect.tolerance:,.2f}, it MOVED"
+                    f"— pinned at {-defect.expected_delta:+,.2f} ±{defect.tolerance:,.2f}, it MOVED "
+                    f"and ingestion does not explain it"
                 )
             elif abs(delta) > band:
                 verdict = "**CONTENT**"
@@ -562,6 +697,11 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
         a("")
         for note in dict.fromkeys(n for _f, n in defect_flags):
             a(f"- {note}")
+
+    a(f"\n**{len(remeasured_flags)} DEFECT_REMEASURED** (pinned Δ moved; rows ingested since the pin "
+      f"account for all of it — the defect is unchanged, its figure is not):\n")
+    for f in remeasured_flags:
+        a(f"- {f}")
 
     a(f"\n**{len(content_flags)} CONTENT flags** (post-FX residual beyond the FX band, undiagnosed):\n")
     for f in content_flags:
@@ -616,10 +756,15 @@ def _render(rows: list[dict], cog_rates: dict[str, Decimal],
         tot_ret += dr
         tot_gap += r["inventory_gap"]
         defect = target_defect_for(AU_MARKETPLACE_ID, r["ym"], "cog", "(salesCosts)")
-        if defect is not None:
-            verdict = f"**{KNOWN_TARGET_DEFECT}**" if defect.matches(d) else "**CONTENT (pinned defect moved)**"
-        else:
+        as_of = as_of_delta.get((r["ym"], "cog", "(salesCosts)"))
+        if defect is None:
             verdict = "exact" if d == ZERO else "—"
+        elif defect.matches(d):
+            verdict = f"**{KNOWN_TARGET_DEFECT}**"
+        elif as_of is not None and defect.matches(as_of):
+            verdict = f"**{DEFECT_REMEASURED}**"
+        else:
+            verdict = "**CONTENT (pinned defect moved)**"
         a(f"| {r['ym']} | {r['gross_cog_usd']:,.2f} | {sc:,.2f} | {d:+,.2f} | {verdict} | "
           f"{r['returned_cog_usd']:,.2f} | {vri:,.2f} | {dr:+,.2f} | {r['inventory_gap']:+,.2f} |")
     a(f"| **Σ** | | | **{tot_sc:+,.2f}** | | | | **{tot_ret:+,.2f}** | **{tot_gap:+,.2f}** |")

@@ -29,6 +29,7 @@ Design:
 
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -247,6 +248,25 @@ TRAILING_MULTIPLIER = Decimal("3")
 # band for Sellerboard cells), never a multiple of the defect's size.
 KNOWN_TARGET_DEFECT = "KNOWN_TARGET_DEFECT"
 
+# The pinned Δ is `ours − theirs`, and the target's side is a **frozen file**.
+# So any movement in Δ is, identically, movement in *our* side. There are only
+# two ways our side moves:
+#
+#   * new source rows were ingested (legitimate), or
+#   * our code/config changed (a regression).
+#
+# `sp_transactions.ingested_at` and `order_purchase_date.ingested_at` tell those
+# apart exactly. Recompute the cell using only rows ingested at or before the
+# pin's `measured_at`; if the Δ is *still* at its pinned value, the whole
+# movement came from newly-ingested rows and the defect itself has not changed.
+# That reads DEFECT_REMEASURED. If the as-of Δ has also moved, our code did it,
+# and that is INVESTIGATE.
+#
+# This is why DEFECT_REMEASURED cannot fire on a run that ingested nothing: with
+# no rows past the horizon the as-of Δ *is* the current Δ, so if one fails to
+# match, so does the other.
+DEFECT_REMEASURED = "DEFECT_REMEASURED"
+
 
 @dataclass(frozen=True)
 class TargetDefect:
@@ -255,11 +275,27 @@ class TargetDefect:
     `expected_delta` is always **ours − theirs**, matching `reconcile.py`'s
     `diffs`. `reconcile_au.py` renders `theirs − ours` in its own table and
     negates before consulting this registry.
+
+    `kind` records how the Δ behaves under volume, which is what tells you
+    whether a new settled month needs its own entry:
+
+      * `"rate"`    — the target derives a per-unit value wrong, so the Δ scales
+                      with that month's units and mix. A new settled month needs
+                      a new entry. (Measured: no single rate covers the months —
+                      see reference/data/s8_pin_semantics.md.)
+      * `"content"` — the target includes or omits specific *items*. The Δ is a
+                      fixed amount tied to those items, in that month only.
+
+    `measured_at` is the **ingestion horizon** the Δ was measured against: every
+    row with `ingested_at <= measured_at` is inside the pinned figure. It is what
+    makes "has this moved since we pinned it, and did new rows do it?" answerable.
     """
 
     expected_delta: Decimal
     tolerance: Decimal
     note: str
+    kind: str
+    measured_at: dt.datetime
 
     def matches(self, delta_ours_minus_theirs: Decimal) -> bool:
         return abs(delta_ours_minus_theirs - self.expected_delta) <= self.tolerance
@@ -286,17 +322,28 @@ def band_for(bucket: str, sub_line: str, is_trailing: bool,
 
 
 def classify(delta: Decimal, band: Decimal, is_trailing: bool,
-             defect: TargetDefect | None = None) -> str:
-    """Return KNOWN_TARGET_DEFECT | WITHIN_DRIFT | TRAILING | INVESTIGATE.
+             defect: TargetDefect | None = None,
+             delta_as_of: Decimal | None = None) -> str:
+    """Return KNOWN_TARGET_DEFECT | DEFECT_REMEASURED | WITHIN_DRIFT | TRAILING | INVESTIGATE.
 
     A registered defect takes precedence over the band, in both directions: the
     cell is KNOWN_TARGET_DEFECT only while `delta` sits at the defect's measured
-    magnitude, and INVESTIGATE the moment it leaves that tolerance. It never
-    falls back to the band — a pinned cell whose Δ has moved is a finding even
-    if the new Δ happens to be small.
+    magnitude. It never falls back to the band — a pinned cell whose Δ has moved
+    is a finding even if the new Δ happens to be small.
+
+    `delta_as_of` is the same cell's Δ recomputed from only those rows ingested
+    at or before `defect.measured_at`. If the current Δ has moved but the as-of Δ
+    has not, every bit of the movement came from rows ingested since the pin, and
+    the defect itself is unchanged: DEFECT_REMEASURED. If the as-of Δ moved too,
+    our own code moved it: INVESTIGATE. Pass `None` when no rows were ingested
+    since the pin — then a moved Δ can only be INVESTIGATE, which is the point.
     """
     if defect is not None:
-        return KNOWN_TARGET_DEFECT if defect.matches(delta) else "INVESTIGATE"
+        if defect.matches(delta):
+            return KNOWN_TARGET_DEFECT
+        if delta_as_of is not None and defect.matches(delta_as_of):
+            return DEFECT_REMEASURED
+        return "INVESTIGATE"
     if is_trailing:
         return "TRAILING" if abs(delta) < band else "INVESTIGATE"
     return "WITHIN_DRIFT" if abs(delta) < band else "INVESTIGATE"
@@ -550,40 +597,59 @@ _UK_FBA_TOL = _UK_PRIOR_PULL_BANDS[("fbaObject", "FBAPerUnitFulfillmentFee")]   
 # (max(|ours_aud| x FX_RATE_TOLERANCE, $5.00)) — the residual a monthly rate can
 # produce on its own. Below that, a move cannot be distinguished from FX noise;
 # above it, the defect has changed.
+
+# Every current pin was measured against the source state of 2026-07-10, whose
+# latest stamps across the horizoned tables are:
+#   sp_transactions.ingested_at        2026-07-07 07:38:39Z
+#   order_purchase_date.ingested_at    2026-07-09 13:33:19Z
+#   ad_spend_daily.as_of               2026-07-10 13:57:27Z   (S9: ads now horizoned)
+# The horizon must sit AFTER all three and before any future write, so that on a
+# run which ingested nothing every horizoned query is a no-op and the as-of Δ
+# equals the current Δ (the DEFECT_REMEASURED-impossible-without-ingest
+# guarantee). Midnight 2026-07-10 predated the ad re-pull, so the horizon is the
+# end of that day.
+_PINNED_2026_07_10 = dt.datetime(2026, 7, 10, 23, 59, 59, tzinfo=dt.timezone.utc)
+
+RATE, CONTENT = "rate", "content"
+
 TARGET_DEFECTS: dict[tuple[str, str, str, str], TargetDefect] = {
     # ── UK: Sellerise-side per-SKU cog understatement (4 settled cells) ──
-    (_UK, "2026-01", "cog", "(scalar)"): TargetDefect(Decimal("242.84"), _UK_COG_TOL, _UK_COG_NOTE),
-    (_UK, "2026-02", "cog", "(scalar)"): TargetDefect(Decimal("177.87"), _UK_COG_TOL, _UK_COG_NOTE),
-    (_UK, "2026-04", "cog", "(scalar)"): TargetDefect(Decimal("184.41"), _UK_COG_TOL, _UK_COG_NOTE),
-    (_UK, "2026-05", "cog", "(scalar)"): TargetDefect(Decimal("122.62"), _UK_COG_TOL, _UK_COG_NOTE),
+    (_UK, "2026-01", "cog", "(scalar)"):
+        TargetDefect(Decimal("242.84"), _UK_COG_TOL, _UK_COG_NOTE, RATE, _PINNED_2026_07_10),
+    (_UK, "2026-02", "cog", "(scalar)"):
+        TargetDefect(Decimal("177.87"), _UK_COG_TOL, _UK_COG_NOTE, RATE, _PINNED_2026_07_10),
+    (_UK, "2026-04", "cog", "(scalar)"):
+        TargetDefect(Decimal("184.41"), _UK_COG_TOL, _UK_COG_NOTE, RATE, _PINNED_2026_07_10),
+    (_UK, "2026-05", "cog", "(scalar)"):
+        TargetDefect(Decimal("122.62"), _UK_COG_TOL, _UK_COG_NOTE, RATE, _PINNED_2026_07_10),
 
     # ── UK: Sellerise omits GMAKER-3's FBA fee (5 settled cells) ──
     # 2026-06 carries the same defect (-61.20) but is the trailing month and is
     # still moving; its band handles it. Do not pin a trailing month.
     (_UK, "2026-01", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("-80.06"), _UK_FBA_TOL, _UK_FBA_NOTE),
+        TargetDefect(Decimal("-80.06"), _UK_FBA_TOL, _UK_FBA_NOTE, RATE, _PINNED_2026_07_10),
     (_UK, "2026-02", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("-135.09"), _UK_FBA_TOL, _UK_FBA_NOTE),
+        TargetDefect(Decimal("-135.09"), _UK_FBA_TOL, _UK_FBA_NOTE, RATE, _PINNED_2026_07_10),
     (_UK, "2026-03", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("-96.03"), _UK_FBA_TOL, _UK_FBA_NOTE),
+        TargetDefect(Decimal("-96.03"), _UK_FBA_TOL, _UK_FBA_NOTE, RATE, _PINNED_2026_07_10),
     (_UK, "2026-04", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("-60.35"), _UK_FBA_TOL, _UK_FBA_NOTE),
+        TargetDefect(Decimal("-60.35"), _UK_FBA_TOL, _UK_FBA_NOTE, RATE, _PINNED_2026_07_10),
     (_UK, "2026-05", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("-64.30"), _UK_FBA_TOL, _UK_FBA_NOTE),
+        TargetDefect(Decimal("-64.30"), _UK_FBA_TOL, _UK_FBA_NOTE, RATE, _PINNED_2026_07_10),
 
     # ── AU: Sellerboard omitted GST from one storage line, one month ──
     (_AU, "2026-01", "storageFee", "storageFee"):
-        TargetDefect(Decimal("52.75"), Decimal("17.00"), _AU_STORAGE_GST_NOTE),
+        TargetDefect(Decimal("52.75"), Decimal("17.00"), _AU_STORAGE_GST_NOTE, CONTENT, _PINNED_2026_07_10),
 
     # ── AU: Sellerboard counted 1 of 3 MCF units in 2026-01 ──
     (_AU, "2026-01", "feesObject", "Commission"):
-        TargetDefect(Decimal("30.07"), Decimal("19.24"), _AU_MCF_NOTE),
+        TargetDefect(Decimal("30.07"), Decimal("19.24"), _AU_MCF_NOTE, CONTENT, _PINNED_2026_07_10),
     (_AU, "2026-01", "fbaObject", "FBAPerUnitFulfillmentFee"):
-        TargetDefect(Decimal("30.27"), Decimal("21.65"), _AU_MCF_NOTE),
+        TargetDefect(Decimal("30.27"), Decimal("21.65"), _AU_MCF_NOTE, CONTENT, _PINNED_2026_07_10),
     # cog is compared USD-to-USD with no FX on either side, so its tolerance is
     # cent-rounding, not an FX band. One more MCF unit would move it by ~86.71.
     (_AU, "2026-01", "cog", "(salesCosts)"):
-        TargetDefect(Decimal("-86.71"), Decimal("1.00"), _AU_MCF_NOTE),
+        TargetDefect(Decimal("-86.71"), Decimal("1.00"), _AU_MCF_NOTE, CONTENT, _PINNED_2026_07_10),
 }
 
 

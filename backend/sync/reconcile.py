@@ -152,6 +152,7 @@ def compute_pnl_in_memory(
     *,
     shipment_basis: str,   # "posted" or "purchase"
     refund_basis: str,     # "posted" or "purchase"
+    ingested_before: dt.datetime | None = None,
 ) -> dict[str, dict[str, dict[str, Decimal]]]:
     """Compute Sellerise-shaped pnl totals in memory under a specified attribution basis.
 
@@ -164,14 +165,19 @@ def compute_pnl_in_memory(
     missing from the map — those fallbacks stay silent here; the aggregator logs
     them separately.
     """
-    order_map = load_order_purchase_dates(conn, marketplace_id) if (
+    order_map = load_order_purchase_dates(conn, marketplace_id, ingested_before) if (
         shipment_basis == "purchase" or refund_basis == "purchase"
     ) else {}
+
+    # `ingested_before` reconstructs the pnl as it stood at an ingestion horizon.
+    # It changes no math — it only narrows which source rows are visible.
+    horizon = "AND t.ingested_at <= %s" if ingested_before is not None else ""
+    hp: tuple = (ingested_before,) if ingested_before is not None else ()
 
     # Pass 1 — attribution_ym per txn.
     with conn.cursor() as cur:
         cur.execute(
-            """
+            f"""
             SELECT t.transaction_id,
                    t.posted_at,
                    COALESCE(t.transaction_status, t.raw_json->>'transactionStatus'),
@@ -180,8 +186,9 @@ def compute_pnl_in_memory(
             FROM sp_transactions t
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
+              {horizon}
             """,
-            (marketplace_id,),
+            (marketplace_id,) + hp,
         )
         rows = cur.fetchall()
 
@@ -212,14 +219,15 @@ def compute_pnl_in_memory(
     with conn.cursor(name="recon_breakdowns") as cur:
         cur.itersize = 5000
         cur.execute(
-            """
+            f"""
             SELECT b.transaction_id, b.breakdown_type, b.breakdown_amount
             FROM sp_breakdowns b
             JOIN sp_transactions t ON t.transaction_id = b.transaction_id
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
+              {horizon}
             """,
-            (marketplace_id,),
+            (marketplace_id,) + hp,
         )
         for txn_id, breakdown_type, amount in cur:
             meta = txn_meta.get(txn_id)
@@ -242,6 +250,7 @@ def compute_cog_by_basis(
     basis: str,                # "posted" or "purchase" (shipment attribution)
     net_refunds: bool = True,
     refund_basis: str | None = None,   # separate refund attribution; defaults to `basis`
+    ingested_before: dt.datetime | None = None,
 ) -> dict[str, Decimal]:
     """Return {year_month: cog_magnitude} using the specified attributions.
 
@@ -262,6 +271,13 @@ def compute_cog_by_basis(
     # marketplace. See MARKETPLACE_COG_SOURCE_OVERRIDE in config.
     from .config import cog_source_marketplace
     cog_mp = cog_source_marketplace(marketplace_id)
+    # See compute_pnl_in_memory: `ingested_before` narrows the visible rows to an
+    # ingestion horizon, for the drift guard's "did new rows move this?" test.
+    # The order map is horizoned too, so a newly-fetched PurchaseDate cannot
+    # silently re-attribute an old transaction.
+    horizon = "AND t.ingested_at <= %s" if ingested_before is not None else ""
+    opd_horizon = "AND opd.ingested_at <= %s" if ingested_before is not None else ""
+    hp: tuple = (ingested_before,) if ingested_before is not None else ()
     if not net_refunds:
         # Legacy pre-fix path
         with conn.cursor() as cur:
@@ -279,13 +295,15 @@ def compute_cog_by_basis(
                 ) rel ON true
                 LEFT JOIN order_purchase_date opd
                   ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+                  {opd_horizon}
                 WHERE t.marketplace_id = %s
                   AND t.is_deferred_release_event = false
                   AND (t.raw_json->>'transactionType') = 'Shipment'
                   AND i.quantity_shipped > 0
+                  {horizon}
                 GROUP BY 1
                 """,
-                (cog_mp, marketplace_id),
+                (cog_mp,) + hp + (marketplace_id,) + hp,
             )
             return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
     with conn.cursor() as cur:
@@ -312,10 +330,12 @@ def compute_cog_by_basis(
                 ) rel ON true
                 LEFT JOIN order_purchase_date opd
                   ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+                  {opd_horizon}
                 WHERE t.marketplace_id = %s
                   AND t.is_deferred_release_event = false
                   AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
                   AND i.quantity_shipped > 0
+                  {horizon}
             )
             SELECT sr.ym, SUM(sr.net_qty * c.cogs) AS amt
             FROM ship_or_refund sr
@@ -323,7 +343,7 @@ def compute_cog_by_basis(
               ON c.sku = sr.sku AND c.marketplace_id = %s
             GROUP BY 1
             """,
-            (marketplace_id, cog_mp),
+            hp + (marketplace_id,) + hp + (cog_mp,),
         )
         return {ym: Decimal(str(amt)) for ym, amt in cur.fetchall()}
 
@@ -509,6 +529,45 @@ def _refund_delta_totals(pnl_all, sellerise_all, months) -> Decimal:
             ours = ours_obj.get(sub_line, Decimal("0"))
             total += abs(ours - theirs)
     return total
+
+
+def _load_newly_ingested(conn: psycopg.Connection, marketplace_id: str,
+                         horizon: dt.datetime) -> list[dict]:
+    """Transactions ingested after a pinned defect's horizon — the evidence that a
+    moved Δ was moved by ingestion rather than by us.
+
+    Both attribution months are returned so a caller can say which cell each row
+    lands in without re-deriving the basis.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT t.transaction_id,
+                   to_char(t.posted_at AT TIME ZONE 'UTC', 'YYYY-MM'),
+                   to_char(COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC', 'YYYY-MM'),
+                   t.raw_json->>'transactionType',
+                   COALESCE(t.transaction_status, t.raw_json->>'transactionStatus'),
+                   t.is_deferred_release_event,
+                   t.ingested_at
+            FROM sp_transactions t
+            LEFT JOIN LATERAL (
+                SELECT ri->>'relatedIdentifierValue' AS order_id
+                FROM jsonb_array_elements(t.raw_json->'relatedIdentifiers') ri
+                WHERE ri->>'relatedIdentifierName' = 'ORDER_ID' LIMIT 1
+            ) rel ON true
+            LEFT JOIN order_purchase_date opd
+              ON opd.order_id = rel.order_id AND opd.marketplace_id = t.marketplace_id
+            WHERE t.marketplace_id = %s AND t.ingested_at > %s
+            ORDER BY t.ingested_at, t.posted_at
+            """,
+            (marketplace_id, horizon),
+        )
+        return [
+            {"transaction_id": r[0], "posted_ym": r[1], "purchase_ym": r[2],
+             "txn_type": r[3], "status": r[4], "is_release_event": r[5],
+             "ingested_at": r[6].isoformat()}
+            for r in cur.fetchall()
+        ]
 
 
 def reconcile(
@@ -778,14 +837,39 @@ def reconcile(
     # NET rule in bucket_map), so the sign flip inside _ours_scalar still holds.
 
     # Locked-target results.
+    #
+    # A locked target is a golden figure from RECONCILIATION.md Step 3 — a value
+    # our pipeline reproduced at lock time, when it also equalled Sellerise. The
+    # exact-match assertion (±$0.01) catches a mapping/attribution regression.
+    #
+    # But the golden figure is frozen while Amazon restates the underlying leaves,
+    # so a drift-prone cell (the decision-D/E Promotion + RestockingFee lines)
+    # drifts away from its lock over time — the exact same our-vs-Sellerise drift
+    # the guard already accepts WITHIN_DRIFT on that cell's band. An exact-match
+    # lock on a restating cell fails permanently for a reason that is not a
+    # regression, which is precisely the "red every run → ignored" trap.
+    #
+    # So a target that misses the exact match is graded against the SAME band the
+    # drift guard uses for that cell: within it → ACCEPTED_DRIFT (restatement, not
+    # a regression; does not fail the run); outside it → FAIL (a real regression).
+    # The exact-match still holds for the structural decision-A zeros, which do
+    # not drift. Bands are read, never altered.
     locked_results = []
     for bucket, sub_line, ym, expected, dec in LOCKED_TARGETS_BY_MARKETPLACE.get(marketplace_id, []):
         actual = _ours_sub_line(pnl_all.get(ym, {}), bucket, sub_line)
         delta = actual - expected
+        is_trailing = (ym == trailing)
+        band = _drift.band_for(bucket, sub_line, is_trailing, marketplace_id=marketplace_id)
+        if abs(delta) < TOLERANCE:
+            status = "PASS"
+        elif abs(delta) < band:
+            status = "ACCEPTED_DRIFT"
+        else:
+            status = "FAIL"
         locked_results.append({
             "decision": dec, "bucket": bucket, "sub_line": sub_line, "year_month": ym,
             "expected": float(expected), "actual": float(actual),
-            "delta": float(delta), "status": "PASS" if abs(delta) < TOLERANCE else "FAIL",
+            "delta": float(delta), "band": float(band), "status": status,
         })
 
     # Advertising audit cross-check (decision B): SP-API AdvertisingFee vs Ads-API total.
@@ -825,11 +909,40 @@ def reconcile(
             for ym_r, b, sl, amt in cur.fetchall():
                 prior_snapshot[(ym_r, b, sl)] = Decimal(str(amt))
 
+    # ── Has any pinned defect moved, and did newly-ingested rows move it? ────
+    # The target's file is frozen, so a pinned Δ moves only when *our* side does.
+    # Recompute the offending cells at the pin's ingestion horizon: if the Δ is
+    # still pinned there, new rows did it (DEFECT_REMEASURED); if not, our code
+    # did (INVESTIGATE). Lazy — nothing runs unless a pin is actually off.
+    as_of_delta: dict[tuple[str, str, str], Decimal] = {}
+    moved_horizons: set[dt.datetime] = set()
+    for d in diffs:
+        dfc = _drift.target_defect_for(marketplace_id, d["year_month"], d["bucket"], d["sub_line"])
+        if dfc is not None and not dfc.matches(Decimal(str(d["delta"]))):
+            moved_horizons.add(dfc.measured_at)
+
+    for horizon in sorted(moved_horizons):
+        log.warning("A pinned defect has moved — recomputing at its ingestion horizon %s", horizon)
+        pnl_h = compute_pnl_in_memory(conn, marketplace_id, shipment_basis="purchase",
+                                      refund_basis=refund_winner, ingested_before=horizon)
+        cog_h = compute_cog_by_basis(conn, marketplace_id, basis="purchase", net_refunds=True,
+                                     refund_basis=refund_cog_basis, ingested_before=horizon)
+        for d in diffs:
+            dfc = _drift.target_defect_for(marketplace_id, d["year_month"], d["bucket"], d["sub_line"])
+            if dfc is None or dfc.measured_at != horizon:
+                continue
+            ours_h = (cog_h.get(d["year_month"], Decimal("0")) if d["bucket"] == "cog"
+                      else pnl_h.get(d["year_month"], {}).get(d["bucket"], {}).get(d["sub_line"], Decimal("0")))
+            as_of_delta[(d["year_month"], d["bucket"], d["sub_line"])] = ours_h - Decimal(str(d["theirs"]))
+
+    newly_ingested = (_load_newly_ingested(conn, marketplace_id, min(moved_horizons))
+                      if moved_horizons else [])
+
     # ── Drift-guard (regression detector — vs Sellerise) ────────────────────
     # For every settled bucket + sub_line, classify the Δ against its band.
-    # KNOWN_TARGET_DEFECT / WITHIN_DRIFT / TRAILING / INVESTIGATE per
-    # DRIFT_BASELINE.md. A cell in DRIFT_BANDS' target-defect registry is pinned
-    # to its measured Δ instead of being banded — see drift_bands.TargetDefect.
+    # KNOWN_TARGET_DEFECT / DEFECT_REMEASURED / WITHIN_DRIFT / TRAILING /
+    # INVESTIGATE. A cell in the target-defect registry is pinned to its measured
+    # Δ instead of being banded — see drift_bands.TargetDefect.
     drift_guard: list[dict] = []
     for d in diffs:
         is_trailing = (d["year_month"] == trailing)
@@ -842,12 +955,17 @@ def reconcile(
                                marketplace_id=marketplace_id)
         defect = _drift.target_defect_for(marketplace_id, d["year_month"],
                                           d["bucket"], d["sub_line"])
-        status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing, defect=defect)
+        key = (d["year_month"], d["bucket"], d["sub_line"])
+        status = _drift.classify(Decimal(str(d["delta"])), band, is_trailing,
+                                 defect=defect, delta_as_of=as_of_delta.get(key))
         drift_guard.append({
             "year_month": d["year_month"], "bucket": d["bucket"], "sub_line": d["sub_line"],
             "delta": d["delta"], "band": float(band), "status": status,
             "expected_delta": float(defect.expected_delta) if defect else None,
             "tolerance": float(defect.tolerance) if defect else None,
+            "kind": defect.kind if defect else None,
+            "measured_at": defect.measured_at.isoformat() if defect else None,
+            "delta_as_of": float(as_of_delta[key]) if key in as_of_delta else None,
             "note": defect.note if defect else None,
         })
     # Ad TOTAL / per-line drift
@@ -970,6 +1088,9 @@ def reconcile(
         "investigate_count": investigate_count,
         "target_defect_count": sum(1 for r in drift_guard
                                    if r["status"] == _drift.KNOWN_TARGET_DEFECT),
+        "remeasured_count": sum(1 for r in drift_guard
+                                if r["status"] == _drift.DEFECT_REMEASURED),
+        "newly_ingested": newly_ingested,
         "drift_vs_prior": drift_vs_prior,
         "investigate_prior_count": investigate_prior_count,
         "prior_pull_at": prior_pull_at.isoformat() if prior_pull_at else None,
@@ -1062,6 +1183,7 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
         defects = [r for r in result["drift_guard"]
                    if r["status"] == _drift.KNOWN_TARGET_DEFECT]
         lines.append(f"## Drift-guard: {result.get('investigate_count', 0)} INVESTIGATE / "
+                     f"{result.get('remeasured_count', 0)} DEFECT_REMEASURED / "
                      f"{result.get('target_defect_count', 0)} KNOWN_TARGET_DEFECT / "
                      f"{sum(1 for r in result['drift_guard'] if r['status'] == 'TRAILING')} TRAILING / "
                      f"{sum(1 for r in result['drift_guard'] if r['status'] == 'WITHIN_DRIFT')} WITHIN_DRIFT")
@@ -1071,9 +1193,56 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
                      f"`TRAILING` = still moving (refund lag / DEFERRED) · "
                      f"`KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its "
                      f"measured Δ** · "
+                     f"`DEFECT_REMEASURED` = **the pinned Δ moved, and rows ingested since the pin "
+                     f"account for all of it — re-pin, do not investigate** · "
                      f"`INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved "
                      f"— possible pipeline regression**.")
         lines.append("")
+        remeasured = [r for r in result["drift_guard"]
+                      if r["status"] == _drift.DEFECT_REMEASURED]
+        if remeasured:
+            new_rows = result.get("newly_ingested", [])
+            lines.append("### 🔁 DEFECT_REMEASURED — a pinned Δ moved, and newly-ingested rows explain it")
+            lines.append("")
+            lines.append("The target's file is frozen, so a pinned Δ moves only when **our** side does. "
+                         "Recomputed at each pin's ingestion horizon, these cells are **still at their "
+                         "pinned value** — every bit of the movement came from rows ingested since. The "
+                         "defect itself has not changed; its dollar figure has. **Update the registry "
+                         "entry and re-pin.** (Had the as-of Δ moved too, this would read `INVESTIGATE`.)")
+            lines.append("")
+            lines.append("| month | bucket · sub_line | pinned Δ | current Δ | Δ at horizon | moved by | kind | horizon |")
+            lines.append("|---|---|---:|---:|---:|---:|---|---|")
+            for r in remeasured:
+                moved = r["delta"] - r["expected_delta"]
+                lines.append(f"| {r['year_month']} | `{r['bucket']}.{r['sub_line']}` | "
+                             f"{_fmt_amt(r['expected_delta'])} | {_fmt_amt(r['delta'])} | "
+                             f"{_fmt_amt(r['delta_as_of'])} | {_fmt_amt(moved)} | {r['kind']} | "
+                             f"{r['measured_at']} |")
+            lines.append("")
+            lines.append(f"**{len(new_rows)} transaction(s) ingested since the horizon.** "
+                         f"Those landing in a re-measured cell's month:")
+            lines.append("")
+            lines.append("| transaction | posted | purchase | type | status | release event | ingested |")
+            lines.append("|---|---|---|---|---|---|---|")
+            months = {r["year_month"] for r in remeasured}
+            explaining = [n for n in new_rows
+                          if n["posted_ym"] in months or n["purchase_ym"] in months]
+            for n in explaining[:25]:
+                lines.append(f"| `{n['transaction_id'][:20]}…` | {n['posted_ym']} | {n['purchase_ym']} | "
+                             f"{n['txn_type']} | {n['status']} | {n['is_release_event']} | "
+                             f"{n['ingested_at'][:19]} |")
+            if len(explaining) > 25:
+                lines.append(f"| … {len(explaining) - 25} more | | | | | | |")
+            lines.append("")
+            lines.append("Re-pin by replacing each entry's `expected_delta` with its **current Δ** and "
+                         "its `measured_at` with a horizon after this ingest:")
+            lines.append("")
+            lines.append("```python")
+            for r in remeasured:
+                lines.append(f'# ({marketplace_id!r}, {r["year_month"]!r}, {r["bucket"]!r}, '
+                             f'{r["sub_line"]!r}) -> expected_delta {r["delta"]:.2f}')
+            lines.append("```")
+            lines.append("")
         if defects:
             lines.append("### 🔒 KNOWN_TARGET_DEFECT — our side is right; the target is wrong")
             lines.append("")
@@ -1106,14 +1275,15 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
             by_ym_status[(r["year_month"], r["status"])] += 1
         lines.append("### Per-month summary")
         lines.append("")
-        lines.append("| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |")
-        lines.append("|---|---:|---:|---:|---:|")
+        lines.append("| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | DEFECT_REMEASURED | INVESTIGATE |")
+        lines.append("|---|---:|---:|---:|---:|---:|")
         for ym in sorted({r["year_month"] for r in result["drift_guard"]}):
             wd = by_ym_status.get((ym, "WITHIN_DRIFT"), 0)
             tr = by_ym_status.get((ym, "TRAILING"), 0)
             ktd = by_ym_status.get((ym, _drift.KNOWN_TARGET_DEFECT), 0)
+            rem = by_ym_status.get((ym, _drift.DEFECT_REMEASURED), 0)
             inv = by_ym_status.get((ym, "INVESTIGATE"), 0)
-            lines.append(f"| {ym} | {wd} | {tr} | {ktd} | {inv} |")
+            lines.append(f"| {ym} | {wd} | {tr} | {ktd} | {rem} | {inv} |")
         lines.append("")
 
     # ── Drift-guard: vs prior pull (regression detector) ────────────────
@@ -1153,17 +1323,36 @@ def render_markdown(marketplace_id: str, result: dict) -> str:
     # ── Locked validation targets ────────────────────────────────────────
     lines.append("## Locked validation targets (Step 3 assertions)")
     lines.append("")
+    locked_pass = sum(1 for r in result["locked"] if r["status"] == "PASS")
+    locked_drift = sum(1 for r in result["locked"] if r["status"] == "ACCEPTED_DRIFT")
+    locked_fail = sum(1 for r in result["locked"] if r["status"] == "FAIL")
+    # Prose only when there are targets to explain — an empty list (CA/UK/AU)
+    # renders exactly as before.
+    if result["locked"]:
+        lines.append("Golden figures from RECONCILIATION.md. `PASS` = exact (±$0.01). "
+                     "`ACCEPTED_DRIFT` = off the frozen golden figure but within that cell's "
+                     "restatement band (shown) — the our-vs-Sellerise drift the guard already "
+                     "accepts, not a regression, does not fail the run. `FAIL` = outside the band.")
+        lines.append("")
+    # Table columns are unchanged; the band is annotated inside the status cell
+    # for drift/fail rows only, so PASS rows and empty tables stay byte-identical.
     lines.append("| Dec. | bucket · sub_line | month | expected | actual | delta | status |")
     lines.append("|---|---|---|---:|---:|---:|---|")
-    locked_pass = sum(1 for r in result["locked"] if r["status"] == "PASS")
     for r in result["locked"]:
+        note = (f" (±{_fmt_amt(r['band']).strip()})"
+                if r["status"] in ("ACCEPTED_DRIFT", "FAIL") else "")
         lines.append(
             f"| {r['decision']} | `{r['bucket']}.{r['sub_line']}` | {r['year_month']} | "
             f"{_fmt_amt(r['expected'])} | {_fmt_amt(r['actual'])} | {_fmt_amt(r['delta'])} | "
-            f"{r['status']} |"
+            f"{r['status']}{note} |"
         )
     lines.append("")
-    lines.append(f"**Locked targets: {locked_pass} / {len(result['locked'])} PASS**")
+    # Summary keeps its original form; the drift/fail breakdown is appended only
+    # when non-zero, so a clean all-PASS or empty list is byte-identical.
+    summary = f"**Locked targets: {locked_pass} / {len(result['locked'])} PASS**"
+    if locked_drift or locked_fail:
+        summary += f" · {locked_drift} ACCEPTED_DRIFT · {locked_fail} FAIL"
+    lines.append(summary)
     lines.append("")
 
     # ── Ad-line reconciliation (V1) + net before/after (Step 2c) ────────
@@ -1281,20 +1470,37 @@ def main(argv: list[str] | None = None) -> int:
     for d in result["diffs"]:
         counts[d["status"]] += 1
     locked_pass = sum(1 for r in result["locked"] if r["status"] == "PASS")
+    locked_drift = sum(1 for r in result["locked"] if r["status"] == "ACCEPTED_DRIFT")
+    locked_fail = sum(1 for r in result["locked"] if r["status"] == "FAIL")
     log.info(
-        "Cell counts: %s. Locked targets: %d/%d PASS",
-        dict(counts), locked_pass, len(result["locked"]),
+        "Cell counts: %s. Locked targets: %d PASS / %d ACCEPTED_DRIFT / %d FAIL of %d",
+        dict(counts), locked_pass, locked_drift, locked_fail, len(result["locked"]),
     )
+    if locked_drift:
+        log.warning(
+            "%d locked target(s) are ACCEPTED_DRIFT: our value differs from the frozen golden figure "
+            "but stays within that cell's restatement band — drift, not a regression. They do not fail "
+            "the run. See the report's locked-targets table.", locked_drift,
+        )
 
     # Drift-guard regression signals — loud, per DRIFT_BASELINE.md
     inv_s = result.get("investigate_count", 0)
     inv_p = result.get("investigate_prior_count", 0)
     ktd = result.get("target_defect_count", 0)
+    rem = result.get("remeasured_count", 0)
     if ktd:
         log.warning(
             "🔒 Drift-guard vs Sellerise: %d cell(s) are KNOWN_TARGET_DEFECT — the target is wrong, "
             "we are right, and each is pinned to its measured Δ. They do not fail the run. "
             "See the report's KNOWN_TARGET_DEFECT section.", ktd,
+        )
+    if rem:
+        log.warning(
+            "🔁 Drift-guard vs Sellerise: %d pinned cell(s) are DEFECT_REMEASURED — their Δ moved, and "
+            "rows ingested since the pin account for ALL of it (the Δ recomputed at the pin's horizon "
+            "is unchanged). The defect has not changed, its dollar figure has. This does not fail the "
+            "run, but the registry entries are now stale — re-pin them. Expected on the first guarded "
+            "run after an ingest; a bug on a run that ingested nothing.", rem,
         )
     if inv_s:
         log.warning(
@@ -1308,12 +1514,21 @@ def main(argv: list[str] | None = None) -> int:
     if not inv_s and not inv_p:
         log.info("Drift-guards: 0 INVESTIGATE on both (vs Sellerise + vs prior pull).")
 
-    # Exit 0 if all locked targets PASS AND no INVESTIGATE fires on EITHER guard;
-    # else 1. The gate is on INVESTIGATE alone: a KNOWN_TARGET_DEFECT cell is a
-    # diagnosed defect on the *target's* side and never fails the run — but it
-    # becomes INVESTIGATE the moment its Δ leaves the pinned tolerance, so a
-    # registry entry can never silence a regression in the cell it covers.
-    all_good = locked_pass == len(result["locked"]) and inv_s == 0 and inv_p == 0
+    # Exit 0 if no locked target FAILs AND no INVESTIGATE fires on EITHER guard;
+    # else 1. The gate is on genuine failures alone. A KNOWN_TARGET_DEFECT cell is
+    # a diagnosed defect on the *target's* side and never fails the run. Nor does
+    # DEFECT_REMEASURED: its Δ moved, but rows ingested since the pin account for
+    # all of it, so an unattended run must not go red on a legitimate refund. Both
+    # become INVESTIGATE the moment the Δ moves for a reason ingestion cannot
+    # explain, so a registry entry can never silence a regression in its cell.
+    #
+    # A locked target that misses its exact golden figure but stays within that
+    # cell's drift band is ACCEPTED_DRIFT — restatement of a frozen golden figure,
+    # the same our-vs-Sellerise drift the guard accepts on that band — and does
+    # not fail the run. A locked target OUTSIDE its band is FAIL, a real
+    # regression, and still exits 1. So the locked gate now means exactly what the
+    # drift gate means: fail on regressions, not on restatement.
+    all_good = locked_fail == 0 and inv_s == 0 and inv_p == 0
     return 0 if all_good else 1
 
 

@@ -26,13 +26,21 @@ import psycopg
 log = logging.getLogger(__name__)
 
 
-def load_order_purchase_dates(conn: psycopg.Connection, marketplace_id: str) -> dict[str, datetime]:
-    """Return {order_id: purchase_date_utc} for one marketplace."""
+def load_order_purchase_dates(conn: psycopg.Connection, marketplace_id: str,
+                              ingested_before: datetime | None = None) -> dict[str, datetime]:
+    """Return {order_id: purchase_date_utc} for one marketplace.
+
+    `ingested_before` restricts the map to orders ingested at or before that
+    instant. Used only by the drift guard, to reconstruct a cell as it stood at a
+    pinned defect's `measured_at` horizon. Leave it None for normal operation.
+    """
+    sql = "SELECT order_id, purchase_date FROM order_purchase_date WHERE marketplace_id = %s"
+    params: tuple = (marketplace_id,)
+    if ingested_before is not None:
+        sql += " AND ingested_at <= %s"
+        params += (ingested_before,)
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT order_id, purchase_date FROM order_purchase_date WHERE marketplace_id = %s",
-            (marketplace_id,),
-        )
+        cur.execute(sql, params)
         return {r[0]: r[1] for r in cur.fetchall()}
 
 
