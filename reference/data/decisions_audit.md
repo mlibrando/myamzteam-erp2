@@ -1194,3 +1194,47 @@ still exit 0; US report identical outside the locked-targets section (expected/a
 only status labels + summary); every S8/S9 suite passes; no band, `TARGET_DEFECTS` entry, or golden
 figure touched. The exit code now means the same on all four marketplaces: **red iff a real regression
 or an unexplained residual.** B5 remains the only open item, still inert.
+
+## 13. Cron runner committed + `pnl_monthly_snapshots` integrity closed
+
+`backend/sync/cron.py` (`python -m sync.cron`, committed `79320bb`) runs ingest → reconcile → guards
+for US/CA/UK/AU in turn, isolates per-marketplace crashes, and maps guard status to an exit code
+(`0` OK/drift/known-defect/DEFECT_REMEASURED · `1` INVESTIGATE · `2` crash, crash-dominates). Guard
+code untouched; US/CA/UK call `reconcile()` in-process, AU shells out to `reconcile_au` and parses its
+report. Railway will read the exit code as its native alert — no notification code in-app.
+
+**The snapshot-baseline hazard (the reason for this §).** `reconcile()` **commits a
+`pnl_monthly_snapshots` row per call** (`reconcile.py:1059-70`) — the vs-prior-pull guard's baseline,
+read as `MAX(pull_at)`. So the runner is **not read-only**: every run advances the baseline. This is
+the S8/S9 "running the thing changes the thing" hazard one layer out. Building the cron, a `cog×1.5`
+perturbation test drove the real `reconcile()` and committed a poisoned baseline snapshot, which made
+the next run fire a spurious prior-pull INVESTIGATE. Found, deleted, and the test made self-cleaning
+(delete the `pull_at` it creates). Documented in the `cron.py` docstring and at the `reconcile()` call
+site.
+
+**Step 2 — swept the whole table for other poison.** For US/CA/UK, per `(marketplace, month, cog|net)`
+the consensus (mode) value is golden; outliers were flagged and classified. **86 outlier rows across 9
+pulls, all dated 2026-07-07 (CA 6, UK 3) — all legitimate pre-fix history, none test poison.** Proof:
+(a) revenue (`chargesObject`) is byte-identical to golden in every flagged pull, so nothing broad moved;
+(b) the CA cog outliers are **non-uniform per month** (ratio 1.079–1.540, spread 0.34 within a single
+pull) — a `cog×constant` perturbation is uniform by construction, so this is a *basis* change: the
+pre-CA-cog-fix CAD-basis cog (`ours` ≈ 1914 CAD → 1445.51 USD post-fix, matching the CA report's
+col-1/col-2); (c) the UK outliers are all `net`, with UK `cog` always golden — net moved because ads
+persistence/expenses evolved before UK was finished. A table-wide scan for the poison signature
+(`cog = golden × {1.2, 1.5}` uniform across all months) returns **0 pulls**. The only real poison —
+the uniform US `cog×1.5` — was already removed during the cron build. **Per the append-only guardrail,
+nothing was deleted here.** Each marketplace's next-run baseline (`MAX(pull_at)`, 2026-07-13) was
+confirmed to equal the golden consensus and the committed reports.
+
+**Step 3 — crash path is all-or-nothing, no fix needed.** The snapshot write is deliberately the last
+DB op in `reconcile()` (`reconcile.py:1043`: *"Do this LAST — after everything else succeeds … if we
+crash we don't want a partial baseline"*): one `executemany` + one `commit`, after all computation. A
+crash anywhere earlier (SQL, Sellerise parse, drift compute) writes **nothing**, so the next run reads
+the same prior baseline this run would have. `reconcile_au` never writes the table at all (AU has no
+baseline there; its DEFECT_REMEASURED uses the live as-of horizon). No partial-write window exists — the
+speculative transactionality fix was **not** implemented, per the guardrail.
+
+**Step 4 — deployment landmine (config, not code).** Railway must run the scheduled job against the
+**production** DB, but any perturbation/CI test that drives the real `reconcile()` must run against a
+**separate** DB or self-clean its `pull_at` — otherwise it corrupts the prior-pull baseline the next
+production run trusts. Recorded in the `cron.py` docstring. No guard/math/band/number changed.
