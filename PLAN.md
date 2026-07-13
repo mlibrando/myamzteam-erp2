@@ -1,3 +1,9 @@
+> **STALE — predates the CA/UK/AU rollout.** Authoritative: `reference/data/` findings + the code.
+>
+> Two of its acceptance checks are still load-bearing and both are currently **unmet**: `pnl_monthly`
+> has no AU rows, and the dashboard it specifies reads `pnl_monthly`, whose CA `cog` is stale.
+> See [`reference/data/decisions_audit.md`](reference/data/decisions_audit.md), blockers B3 and B4.
+
 # MYAMZTEAM P&L ERP — Implementation Plan
 
 ## Context

@@ -1,0 +1,1585 @@
+{
+  "transactions": [
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "FBAInventoryReimbursement",
+      "transactionId": "wHrAbwp1hCVZ15OaNyRtEhF3_2CQeaKE8Rz9RgoX_Sk",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "111-6035639-1290665"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 35.61,
+        "currencyCode": "USD"
+      },
+      "description": "REVERSAL_REIMBURSEMENT",
+      "postedDate": "2026-07-01T08:39:27Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Filter Press \u2013 BPA-Free Reusable Straining System with Plunger & Cleaning Brush \u2013 Mess-Free Infused Oil & Butter Strainer",
+          "totalAmount": {
+            "currencyAmount": 35.61,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": null,
+          "breakdowns": [
+            {
+              "breakdownType": "FBAInventoryReimbursement",
+              "breakdownAmount": {
+                "currencyAmount": 35.61,
+                "currencyCode": "USD"
+              },
+              "breakdowns": []
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B09TLGP2XP",
+              "quantityShipped": 1,
+              "sku": "JU-L51X-ZVP2",
+              "fulfillmentNetwork": null,
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 35.61,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "FBAInventoryReimbursement",
+              "breakdownAmount": {
+                "currencyAmount": 35.61,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        }
+      ],
+      "contexts": null
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "ProductAdsPayment",
+      "transactionId": "b7cV9PsD-dPuqc2IJoUDJsepyankg4pQFeXsULetzSc",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": -517.24,
+        "currencyCode": "USD"
+      },
+      "description": "ProductAdsPayment",
+      "postedDate": "2026-07-01T10:10:44Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Charge",
+          "totalAmount": {
+            "currencyAmount": -517.24,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "INVOICE_ID",
+              "itemRelatedIdentifierValue": "307877122DPA26"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "Base",
+              "breakdownAmount": {
+                "currencyAmount": -517.24,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ],
+          "contexts": null
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": -517.24,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AdvertisingFee",
+              "breakdownAmount": {
+                "currencyAmount": -517.24,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        }
+      ],
+      "contexts": null
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Refund",
+      "transactionId": "74MzG0mfJohaMJIC_tR_dH8Ofy-RAqdeo5u7sm4aPH0",
+      "transactionStatus": "DEFERRED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "xa_h4XQcS83-n-IxXSNT_lfyzA1bWXcT3xX0e6AX4Oo"
+        },
+        {
+          "relatedIdentifierName": "REFUND_ID",
+          "relatedIdentifierValue": "amzn1:crow:EFgFJo1xSm+EV5eVNKjKUQ"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26888003881"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "113-7309945-4376234"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": -17.56,
+        "currencyCode": "USD"
+      },
+      "description": "Refund",
+      "postedDate": "2026-07-04T03:28:55Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Gummy Mix | Homemade Candy Making Mix",
+          "totalAmount": {
+            "currencyAmount": -17.56,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "163832700144881"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "Tax",
+              "breakdownAmount": {
+                "currencyAmount": 0.0,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPriceTax",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                },
+                {
+                  "breakdownType": "MarketplaceFacilitatorTax-Principal",
+                  "breakdownAmount": {
+                    "currencyAmount": 0.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": -19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPricePrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": -19.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": 2.39,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": 2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": 2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "RefundCommission",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.6,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -0.6,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B09887MYDC",
+              "quantityShipped": 1,
+              "sku": "C6-44EP-3LNZ",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Refunded Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 2.39,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": 2.39,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Refunded Sales",
+          "breakdownAmount": {
+            "currencyAmount": -19.95,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": -19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        }
+      ],
+      "contexts": [
+        {
+          "deferralReason": "DD7",
+          "maturityDate": "2026-07-10T19:48:32Z",
+          "contextType": "DeferredContext"
+        }
+      ]
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Refund",
+      "transactionId": "y0BFXiiDe4Wm52AHBZWpxIS_bg78vLfjDsZ-RZjuPcg",
+      "transactionStatus": "DEFERRED_RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "REFUND_ID",
+          "relatedIdentifierValue": "amzn1:crow:hINru+psQ6WXBeYrtyFrVw"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "111-3041295-6660269"
+        },
+        {
+          "relatedIdentifierName": "RELEASE_TRANSACTION_ID",
+          "relatedIdentifierValue": "sMXceo5iuKdEcpExgNIVcPvFaC9U3qIol4mJNtMhXBQ"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": -17.56,
+        "currencyCode": "USD"
+      },
+      "description": "Refund",
+      "postedDate": "2026-07-01T01:25:31Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Gummy Mix | Homemade Candy Making Mix",
+          "totalAmount": {
+            "currencyAmount": -17.56,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "163625973123961"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": -19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPricePrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": -19.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": 2.39,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": 2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": 2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "RefundCommission",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.6,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -0.6,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B09888D2YG",
+              "quantityShipped": 1,
+              "sku": "5G-UNX4-JRF6",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Refunded Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 2.39,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": 2.39,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Refunded Sales",
+          "breakdownAmount": {
+            "currencyAmount": -19.95,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": -19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        }
+      ],
+      "contexts": [
+        {
+          "deferralReason": "DD7",
+          "maturityDate": "2026-07-05T17:42:35Z",
+          "contextType": "DeferredContext"
+        }
+      ]
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Refund",
+      "transactionId": "W7EIJMuQSdtNBgI9itxn_h4mbzNg7DUEc4AFMBhTEJ8",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "REFUND_ID",
+          "relatedIdentifierValue": "amzn1:crow:fkKzTZhwSBWU4JeyJNBU/w"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "111-1971352-7695441"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": -13.23,
+        "currencyCode": "USD"
+      },
+      "description": "DisbursementOnlyRefund",
+      "postedDate": "2026-07-01T13:39:30Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter MB2e Infusion Machine | Complete Infusion System for Oils, Butters & Tinctures",
+          "totalAmount": {
+            "currencyAmount": -13.23,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "162940107846001"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "Other",
+              "breakdownAmount": {
+                "currencyAmount": -13.23,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "GoodwillPrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": -13.23,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B014GNGTBK",
+              "quantityShipped": 1,
+              "sku": "850251005008",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Refunded Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        },
+        {
+          "breakdownType": "Refunded Sales",
+          "breakdownAmount": {
+            "currencyAmount": -13.23,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "Other",
+              "breakdownAmount": {
+                "currencyAmount": -13.23,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        }
+      ],
+      "contexts": null
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "RemovalShipment",
+      "transactionId": "spnhPYICBk9-5-wwY6E01CC8xn_XBo523bwWOYHWQZc",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "xa_h4XQcS83-n-IxXSNT_lfyzA1bWXcT3xX0e6AX4Oo"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26888003881"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "332906152654551"
+        },
+        {
+          "relatedIdentifierName": "DEFERRED_TRANSACTION_ID",
+          "relatedIdentifierValue": "ribYwfPqQA6ppHUzupbz9XWw5-iXv15WdqfExVfgFO4"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 0.09,
+        "currencyCode": "USD"
+      },
+      "description": "RecommerceAfterMarketplaceShipmentItem",
+      "postedDate": "2026-07-02T07:51:17Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Premium Blue Raspberry Gummy Mix 2-Pack \u2013 Organic, Sugar-Free Gelatin Powder for Homemade Gummies \u2013 Easy Candy Making Mix",
+          "totalAmount": {
+            "currencyAmount": 0.09,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "TRANSACTION_ID",
+              "itemRelatedIdentifierValue": "332906152654551"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "RecommerceLiquidation",
+              "breakdownAmount": {
+                "currencyAmount": 0.52,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -0.43,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ],
+          "contexts": [
+            {
+              "asin": null,
+              "quantityShipped": 1,
+              "sku": "X004TT245N",
+              "fulfillmentNetwork": null,
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 0.52,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "RecommerceLiquidation",
+              "breakdownAmount": {
+                "currencyAmount": 0.52,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": -0.43,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -0.43,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "LiquidationProcessingFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.35,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": null
+                },
+                {
+                  "breakdownType": "LiquidationReferralFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.08,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "contexts": null
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "ServiceFee",
+      "transactionId": "SwchbeX3NDaxQZoBVH4981sfpagjFPzyJaoDI8ytfds",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "FBA19CYW6K1B"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 0.0,
+        "currencyCode": "USD"
+      },
+      "description": "FBAInboundConvenience",
+      "postedDate": "2026-07-01T00:18:05Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "FBA Inbound Placement Service Fee",
+          "totalAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [],
+          "breakdowns": [],
+          "contexts": [
+            {
+              "asin": null,
+              "quantityShipped": null,
+              "sku": null,
+              "fulfillmentNetwork": "",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        }
+      ],
+      "contexts": null
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Shipment",
+      "transactionId": "CU_SczehoNxS9oJlwkUsDixjm0Qqm8GNhmdFUER91to",
+      "transactionStatus": "DEFERRED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SHIPMENT_ID",
+          "relatedIdentifierValue": "484350083922301"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "111-0307944-9617047"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 177.85,
+        "currencyCode": "USD"
+      },
+      "description": "Order Payment",
+      "postedDate": "2026-07-01T02:05:59Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter MB2e Infusion Machine | Complete Infusion System for Oils, Butters & Tinctures",
+          "totalAmount": {
+            "currencyAmount": 177.85,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "163677086140801"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 224.45,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPricePrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": 224.45,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "Tax",
+              "breakdownAmount": {
+                "currencyAmount": 0.0,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPriceTax",
+                  "breakdownAmount": {
+                    "currencyAmount": 18.8,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                },
+                {
+                  "breakdownType": "MarketplaceFacilitatorTax-Principal",
+                  "breakdownAmount": {
+                    "currencyAmount": -18.8,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -46.6,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -12.93,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -12.93,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -33.67,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -33.67,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B08VCK232S",
+              "quantityShipped": 1,
+              "sku": "SB-CUAX-FEMW",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 224.45,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 224.45,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": -46.6,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -46.6,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -12.93,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -12.93,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -33.67,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -33.67,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "contexts": [
+        {
+          "deferralReason": "DD7",
+          "maturityDate": "2026-07-10T03:00:00Z",
+          "contextType": "DeferredContext"
+        },
+        {
+          "contextType": "AddressContext"
+        }
+      ]
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Shipment",
+      "transactionId": "aB7861rDRkDazPuuQSaAM74XmymcjqkKz2PEflemIak",
+      "transactionStatus": "DEFERRED_RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SHIPMENT_ID",
+          "relatedIdentifierValue": "484591240305301"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "113-0306428-2213078"
+        },
+        {
+          "relatedIdentifierName": "RELEASE_TRANSACTION_ID",
+          "relatedIdentifierValue": "zy3TKOv-kKsAuGcuLgOKMsWKCKykrkUu9iXfyOhhzEM"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 12.87,
+        "currencyCode": "USD"
+      },
+      "description": "Order Payment",
+      "postedDate": "2026-07-01T00:10:48Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Gummy Mix | Homemade Candy Making Mix",
+          "totalAmount": {
+            "currencyAmount": 12.87,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "163816199292081"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPricePrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": 19.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "Tax",
+              "breakdownAmount": {
+                "currencyAmount": 0.0,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPriceTax",
+                  "breakdownAmount": {
+                    "currencyAmount": 0.2,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                },
+                {
+                  "breakdownType": "MarketplaceFacilitatorTax-Principal",
+                  "breakdownAmount": {
+                    "currencyAmount": -0.2,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -7.08,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -4.09,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -4.09,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B09888D2YG",
+              "quantityShipped": 1,
+              "sku": "5G-UNX4-JRF6",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 19.95,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": -7.08,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -7.08,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -4.09,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -4.09,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "contexts": [
+        {
+          "deferralReason": "DD7",
+          "maturityDate": "2026-07-08T23:47:52Z",
+          "contextType": "DeferredContext"
+        },
+        {
+          "contextType": "AddressContext"
+        }
+      ]
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Shipment",
+      "transactionId": "JDs5A8hOQ0rWEz0FB_FlE9XRSmmFL-rYSBtURual2Po",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "I_1bWF4qbjk1KcJJGbObUrvPZf3TLic-r_NyFBjMrvc"
+        },
+        {
+          "relatedIdentifierName": "SHIPMENT_ID",
+          "relatedIdentifierValue": "481906115492301"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26760211531"
+        },
+        {
+          "relatedIdentifierName": "ORDER_ID",
+          "relatedIdentifierValue": "114-1025459-5872204"
+        },
+        {
+          "relatedIdentifierName": "DEFERRED_TRANSACTION_ID",
+          "relatedIdentifierValue": "ynHEHByxPq3kJKgLHNMWsid19rO7K5SKRi4NEGlCBgU"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 12.87,
+        "currencyCode": "USD"
+      },
+      "description": "Order Payment",
+      "postedDate": "2026-07-01T00:50:30Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [
+        {
+          "description": "Magical Butter Gummy Mix | Homemade Candy Making Mix",
+          "totalAmount": {
+            "currencyAmount": 12.87,
+            "currencyCode": "USD"
+          },
+          "relatedIdentifiers": [
+            {
+              "itemRelatedIdentifierName": "ORDER_ADJUSTMENT_ITEM_ID",
+              "itemRelatedIdentifierValue": "162958500343041"
+            }
+          ],
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "OurPricePrincipal",
+                  "breakdownAmount": {
+                    "currencyAmount": 19.95,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": []
+                }
+              ]
+            },
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -7.08,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -4.09,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -4.09,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "contexts": [
+            {
+              "asin": "B09888D2YG",
+              "quantityShipped": 1,
+              "sku": "5G-UNX4-JRF6",
+              "fulfillmentNetwork": "AFN",
+              "contextType": "ProductContext"
+            }
+          ]
+        }
+      ],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 19.95,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "ProductCharges",
+              "breakdownAmount": {
+                "currencyAmount": 19.95,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": -7.08,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "AmazonFees",
+              "breakdownAmount": {
+                "currencyAmount": -7.08,
+                "currencyCode": "USD"
+              },
+              "breakdowns": [
+                {
+                  "breakdownType": "FBAPerUnitFulfillmentFee",
+                  "breakdownAmount": {
+                    "currencyAmount": -4.09,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -4.09,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                },
+                {
+                  "breakdownType": "Commission",
+                  "breakdownAmount": {
+                    "currencyAmount": -2.99,
+                    "currencyCode": "USD"
+                  },
+                  "breakdowns": [
+                    {
+                      "breakdownType": "Base",
+                      "breakdownAmount": {
+                        "currencyAmount": -2.99,
+                        "currencyCode": "USD"
+                      },
+                      "breakdowns": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "contexts": [
+        {
+          "contextType": "AddressContext"
+        }
+      ]
+    },
+    {
+      "sellingPartnerMetadata": {
+        "sellingPartnerId": "A348DWHA5R9ZQL",
+        "marketplaceId": "ATVPDKIKX0DER",
+        "accountType": "Standard Orders"
+      },
+      "transactionType": "Transfer",
+      "transactionId": "ozALKibc5mDrXQL1D-DjFErAvicApYL6Ytkz4eiCxRw",
+      "transactionStatus": "RELEASED",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifierName": "FINANCIAL_EVENT_GROUP_ID",
+          "relatedIdentifierValue": "xa_h4XQcS83-n-IxXSNT_lfyzA1bWXcT3xX0e6AX4Oo"
+        },
+        {
+          "relatedIdentifierName": "SETTLEMENT_ID",
+          "relatedIdentifierValue": "26888003881"
+        }
+      ],
+      "totalAmount": {
+        "currencyAmount": 23406.53,
+        "currencyCode": "USD"
+      },
+      "description": "Disbursement",
+      "postedDate": "2026-07-03T12:04:50Z",
+      "marketplaceDetails": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "marketplaceName": "Amazon.com"
+      },
+      "items": [],
+      "breakdowns": [
+        {
+          "breakdownType": "Sales",
+          "breakdownAmount": {
+            "currencyAmount": 23406.53,
+            "currencyCode": "USD"
+          },
+          "breakdowns": [
+            {
+              "breakdownType": "FundTransfer",
+              "breakdownAmount": {
+                "currencyAmount": 23406.53,
+                "currencyCode": "USD"
+              },
+              "breakdowns": null
+            }
+          ]
+        },
+        {
+          "breakdownType": "Expenses",
+          "breakdownAmount": {
+            "currencyAmount": 0.0,
+            "currencyCode": "USD"
+          },
+          "breakdowns": []
+        }
+      ],
+      "contexts": null
+    }
+  ]
+}

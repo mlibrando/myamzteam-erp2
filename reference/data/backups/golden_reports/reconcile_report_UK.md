@@ -1,6 +1,6 @@
 # Reconciliation report — marketplace A1F83G8C2ARO7P
 
-Generated 2026-07-07 09:35:12Z.
+Generated 2026-07-10 10:38:08Z.
 Trailing (DEFERRED-estimate) month: **2026-06**.
 Tolerance: ±$0.01. Status legend: PASS · FAIL · EXPECTED (trailing-month estimate).
 
@@ -72,39 +72,44 @@ Winner: **postedDate** (smaller Σ|Δ| against Sellerise's `refundsObject`).
 | 2026-05 |      -604.63 |      -328.35 |      -563.88 |       -40.75 |       235.53 |
 | 2026-06 |      -662.63 |      -537.67 |      -693.07 |        30.44 |       155.40 |
 
-## Drift-guard: 9 INVESTIGATE / 30 TRAILING / 149 WITHIN_DRIFT
+## Drift-guard: 0 INVESTIGATE / 9 KNOWN_TARGET_DEFECT / 30 TRAILING / 149 WITHIN_DRIFT
 
 Regression guard per `DRIFT_BASELINE.md`. Trailing month: **2026-06**.
-`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `INVESTIGATE` = **beyond the settled-month band — possible pipeline regression**.
+`WITHIN_DRIFT` = expected restatement drift · `TRAILING` = still moving (refund lag / DEFERRED) · `KNOWN_TARGET_DEFECT` = **diagnosed defect on the target's side, pinned to its measured Δ** · `INVESTIGATE` = **beyond the settled-month band, or a pinned defect that moved — possible pipeline regression**.
 
-### 🚨 INVESTIGATE — beyond settled-month band
+### 🔒 KNOWN_TARGET_DEFECT — our side is right; the target is wrong
 
-| month | bucket · sub_line | Δ | band (±) |
-|---|---|---:|---:|
-| 2026-01 | `cog.(scalar)` |       242.84 |       100.00 |
-| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` |       -80.06 |        50.00 |
-| 2026-02 | `cog.(scalar)` |       177.87 |       100.00 |
-| 2026-02 | `fbaObject.FBAPerUnitFulfillmentFee` |      -135.09 |        50.00 |
-| 2026-03 | `fbaObject.FBAPerUnitFulfillmentFee` |       -96.03 |        50.00 |
-| 2026-04 | `cog.(scalar)` |       184.41 |       100.00 |
-| 2026-04 | `fbaObject.FBAPerUnitFulfillmentFee` |       -60.35 |        50.00 |
-| 2026-05 | `cog.(scalar)` |       122.62 |       100.00 |
-| 2026-05 | `fbaObject.FBAPerUnitFulfillmentFee` |       -64.30 |        50.00 |
+Pinned, not excused: each cell must hold its measured Δ within a tight tolerance. If it moves in either direction — including toward zero, because the target fixed its bug — it fires `INVESTIGATE`.
+
+| month | bucket · sub_line | Δ | expected Δ | tolerance (±) |
+|---|---|---:|---:|---:|
+| 2026-01 | `cog.(scalar)` |       242.84 |       242.84 |        25.00 |
+| 2026-01 | `fbaObject.FBAPerUnitFulfillmentFee` |       -80.06 |       -80.06 |        15.00 |
+| 2026-02 | `cog.(scalar)` |       177.87 |       177.87 |        25.00 |
+| 2026-02 | `fbaObject.FBAPerUnitFulfillmentFee` |      -135.09 |      -135.09 |        15.00 |
+| 2026-03 | `fbaObject.FBAPerUnitFulfillmentFee` |       -96.03 |       -96.03 |        15.00 |
+| 2026-04 | `cog.(scalar)` |       184.41 |       184.41 |        25.00 |
+| 2026-04 | `fbaObject.FBAPerUnitFulfillmentFee` |       -60.35 |       -60.35 |        15.00 |
+| 2026-05 | `cog.(scalar)` |       122.62 |       122.62 |        25.00 |
+| 2026-05 | `fbaObject.FBAPerUnitFulfillmentFee` |       -64.30 |       -64.30 |        15.00 |
+
+- Sellerise understates UK per-SKU cost. Our workbook is validated against the component cost build-up (ABDB 78.53, GMAKER-3 30.94, MBUKB1 96.06 — all tie out to invoice); Sellerise's values do not. Do NOT edit the workbook; do NOT retune our cog to match. Measured aggregate Δ Jan–Jun = +$1,000.62, of which 2026-03 (+29.34) and 2026-06 (+243.54, trailing) sit inside their bands and are not pinned here. OPEN: the relayed per-SKU magnitudes (ABDB ~28%, MBUKB1 ~2%) do not reconcile with that aggregate — 28% on ABDB alone implies +$2,484.69 — and Sellerise exposes only monthly aggregate cog, so per-SKU cannot be confirmed from this repo. The classification rests on the build-up table; the magnitude is open with Elena.
+- Sellerise books essentially NO FBA fulfilment fee for GMAKER-3. Amazon charged £479.15 over 142 units Jan-Jun (£3.374/unit, straight off the `FBAPerUnitFulfillmentFee` leaves); Sellerise carries £27.75 for the same SKU and the same 142 units (£0.195/unit) — a 94.2% understatement. Proof it is the whole residual: in FIVE of six months the entire `fbaObject` bucket gap equals GMAKER-3's Amazon-charged fee TO THE PENNY (Jan -71.35, Feb -117.25, Mar -87.10, May -61.20, Jun -61.20; only April differs, by exactly £20.70, the one month Sellerise booked anything). Each pinned Δ decomposes exactly into (GMAKER-3's omitted fee) + (Sellerise's `FBAFees` deferred-estimate line, which we no longer have a counterpart for since those shipments released). Do NOT 'fix' our FBA figure: it is the fee Amazon actually billed. Two rival explanations are refuted, not merely unlikely: (1) Amazon post-snapshot restatement — a re-pull of Feb and Mar 2026 returned 867 byte-identical transactions and moved the FBA figure by £0.00, and `chargesObject.Principal` matches Sellerise to the cent in all six months; (2) netting of refunded units' fees — there are zero Refund-side FBA leaves anywhere in the UK feed and Sellerise's `refundsObject` has no FBA line. See reference/data/uk_fba_repull_test.md. NOTE the Δ scales with GMAKER-3's monthly unit volume, so a NEW month needs its own entry — and the right fix is Sellerise correcting the SKU's fee, which would drive these Δs to zero and (correctly) fire INVESTIGATE until the entries are removed.
 
 ### Per-month summary
 
-| month | WITHIN_DRIFT | TRAILING | INVESTIGATE |
-|---|---:|---:|---:|
-| 2026-01 | 33 | 0 | 2 |
-| 2026-02 | 29 | 0 | 2 |
-| 2026-03 | 32 | 0 | 1 |
-| 2026-04 | 27 | 0 | 2 |
-| 2026-05 | 28 | 0 | 2 |
-| 2026-06 | 0 | 30 | 0 |
+| month | WITHIN_DRIFT | TRAILING | KNOWN_TARGET_DEFECT | INVESTIGATE |
+|---|---:|---:|---:|---:|
+| 2026-01 | 33 | 0 | 2 | 0 |
+| 2026-02 | 29 | 0 | 2 | 0 |
+| 2026-03 | 32 | 0 | 1 | 0 |
+| 2026-04 | 27 | 0 | 2 | 0 |
+| 2026-05 | 28 | 0 | 2 | 0 |
+| 2026-06 | 0 | 30 | 0 | 0 |
 
 ## Drift-guard vs prior pull: 0 INVESTIGATE / 30 TRAILING / 158 WITHIN_DRIFT
 
-Prior pull: `2026-07-07T09:34:35.977494+00:00`. Current pull: `2026-07-07T09:35:11.484569+00:00`.
+Prior pull: `2026-07-10T10:35:30.720510+00:00`. Current pull: `2026-07-10T10:38:07.817149+00:00`.
 Bands per `DRIFT_VS_PRIOR_PULL.md` — tight, calibrated to observed pull-to-pull movement (baseline: $0.00 for ads over ~13h).
 
 ## Locked validation targets (Step 3 assertions)

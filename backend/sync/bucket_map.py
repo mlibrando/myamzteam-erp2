@@ -82,17 +82,31 @@ _PASSTHROUGH_BREAKDOWN_TYPES: frozenset[str] = frozenset({
     "MarketplaceFacilitatorTax-Principal",
     "MarketplaceFacilitatorTax-Shipping",
     "MarketplaceFacilitatorTax-Other",
-    "MarketplaceFacilitatorVAT-Principal",
-    "MarketplaceFacilitatorVAT-Shipping",
+    "MarketplaceFacilitatorVAT-Principal",   # UK VAT variant of MFT
+    "MarketplaceFacilitatorVAT-Shipping",    # UK VAT variant of MFT
     "LowValueGoodsTax-Principal",
     "LowValueGoodsTax-Shipping",
+    # Gate 1 (CA/UK rollout): ShippingTaxDiscount does NOT belong in
+    # chargesObject.ShippingTax (target $25.89 hit by ShippingTax alone;
+    # refund target −$1.42 EXACT with ShippingTax alone). Route to passthrough.
+    "ShippingTaxDiscount",
+    # Same rationale for the price-side tax discount seen in UK (17 occ in Jan-Jun).
+    "OurPriceTaxDiscount",
 })
+
+# Shipment-level Tax leaves that behave as MFT-passthrough on non-US markets:
+# - CA `Shipment.Tax` (tiny, Mar sample −$1.32) — CA facilitator tax
+# - AU `Shipment.Tax` (Mar sample −$105) — GST, per Sellerise-side treatment
+# These share the passthrough rule but are only Shipment-scoped (not a fallback
+# for the price/tax leaves), so they're handled inline in classify() below.
 
 # Refund-side MFT variants route to refundsObject."Tax Withheld", not passthrough.
 _REFUND_TAX_WITHHELD_TYPES: frozenset[str] = frozenset({
     "MarketplaceFacilitatorTax-Principal",
     "MarketplaceFacilitatorTax-Shipping",
     "MarketplaceFacilitatorTax-Other",
+    "MarketplaceFacilitatorVAT-Principal",   # UK: routes to refundsObject.Tax Withheld
+    "MarketplaceFacilitatorVAT-Shipping",    # UK
     "LowValueGoodsTax-Principal",
 })
 
@@ -115,6 +129,9 @@ _SHIPMENT_CHARGES: dict[str, str] = {
 _SHIPMENT_FEE_STATIC: dict[str, str] = {
     "ShippingChargeback":  "ShippingChargeback",
     "GiftwrapChargeback":  "GiftwrapChargeback",
+    # UK: DigitalServicesFee family (verified in Mar 2026 UK data)
+    "DigitalServicesFee":     "DigitalServicesFee",
+    "DigitalServicesFeeFBA":  "DigitalServicesFeeFBA",
 }
 
 # Decision A + C — split by status. RELEASED/DEFERRED_RELEASED → settled bucket;
@@ -155,6 +172,8 @@ _REFUND_LINES: dict[str, str] = {
     "RestockingDeductionPrincipal": "RestockingFee",
     "RestockingDeductionTax":       "RestockingFee",
     "GoodwillPrincipal":            "Goodwill",
+    # UK/CA rollout: DigitalServicesFee reversal (positive = refund of the fee)
+    "DigitalServicesFee":           "DigitalServicesFee",
 }
 
 # Wrapper nodes the flattener emits with amount=0. Skip and count separately.
@@ -195,6 +214,12 @@ def classify(
 
     if txn_type == "ProductAdsPayment" and breakdown_type in ("AdvertisingFee", "AdvertisingFeeRefund"):
         return BucketRule(PASSTHROUGH, f"ProductAdsPayment.{breakdown_type}", PASSTHROUGH)
+
+    # CA/UK/AU rollout — Shipment.Tax leaf (CA facilitator tax and AU GST).
+    # Sellerise treats these as net-zero on the AU/CA reconciliation the same
+    # way US treats MFT-Tax variants. Route to passthrough.
+    if txn_type in ("Shipment", "Refund") and breakdown_type == "Tax":
+        return BucketRule(PASSTHROUGH, f"{txn_type}.Tax", PASSTHROUGH)
 
     # Bank movement and reserve bookkeeping — not P&L. Sellerise's `expenses`
     # bucket doesn't include these; they're wash-out lines.

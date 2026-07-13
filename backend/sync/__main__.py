@@ -90,8 +90,8 @@ def main(argv: list[str] | None = None) -> int:
         agg_stats = aggregate_marketplace(conn, marketplace_id)
 
     log.info(
-        "Aggregate done: %d groups → %d mapped, %d unmapped pairs, %d pnl rows",
-        agg_stats["groups"], agg_stats["mapped"],
+        "Aggregate done: %d leaves → %d mapped, %d unmapped pairs, %d pnl rows",
+        agg_stats["leaves"], agg_stats["mapped"],
         agg_stats["unmapped_pairs"], agg_stats["pnl_rows"],
     )
 

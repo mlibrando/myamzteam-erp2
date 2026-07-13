@@ -139,15 +139,22 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
     """
     stats = {"months": 0, "missing_skus": 0}
 
+    from .config import MARKETPLACE_REFUND_COGS_BASIS, cog_source_marketplace
+    refund_basis = MARKETPLACE_REFUND_COGS_BASIS.get(marketplace_id, "purchase")
+    refund_date_expr = (
+        "COALESCE(opd.purchase_date, t.posted_at)"
+        if refund_basis == "purchase" else "t.posted_at"
+    )
+    cog_mp = cog_source_marketplace(marketplace_id)
     with conn.cursor() as cur:
         # Monthly COGS: sum(quantity_shipped × unit_cogs) joined to cogs_per_sku on SKU.
-        # Attribution: PurchaseDate month (from order_purchase_date) with postedDate
-        # fallback. Refunds NET OUT under the same purchase-date basis — Sellerise's
-        # cog nets refunded units, and REFUND_COG_FIX.md Step 2 tested both bases:
-        # purchase-date won by cumulative Σ|Δ| ($5,249 vs $5,971 for posted-date).
-        # Diff = SHIPMENT.qty_shipped − REFUND.qty_shipped, per SKU per month.
+        # Shipment attribution: PurchaseDate month (from order_purchase_date) with
+        # postedDate fallback. Refunds NET OUT — CA uses postedDate for refund
+        # netting; US/UK use purchase-date (per MARKETPLACE_REFUND_COGS_BASIS).
+        # Cog values may come from a different marketplace's sheet when
+        # MARKETPLACE_COG_SOURCE_OVERRIDE is set (CA sheet is US×1.35, wrong basis).
         cur.execute(
-            """
+            f"""
             WITH ship_or_refund AS (
                 SELECT i.sku,
                        CASE (t.raw_json->>'transactionType')
@@ -155,7 +162,10 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
                             WHEN 'Refund'   THEN -i.quantity_shipped
                        END                                              AS net_qty,
                        to_char(
-                           COALESCE(opd.purchase_date, t.posted_at) AT TIME ZONE 'UTC',
+                           CASE (t.raw_json->>'transactionType')
+                               WHEN 'Shipment' THEN COALESCE(opd.purchase_date, t.posted_at)
+                               WHEN 'Refund'   THEN {refund_date_expr}
+                           END AT TIME ZONE 'UTC',
                            'YYYY-MM'
                        )                                                AS year_month
                 FROM sp_transaction_items i
@@ -178,18 +188,20 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
               ON c.sku = sr.sku AND c.marketplace_id = %s
             GROUP BY 1 ORDER BY 1
             """,
-            (marketplace_id, marketplace_id),
+            (marketplace_id, cog_mp),
         )
         monthly_cogs = {r[0]: Decimal(str(r[1])) for r in cur.fetchall()}
 
-        # Find SKUs that have Shipment or Refund activity but no COGS row.
+        # Find SKUs that have Shipment or Refund activity but no COGS row in
+        # the effective cog source marketplace (may differ from transaction mp
+        # under MARKETPLACE_COG_SOURCE_OVERRIDE).
         cur.execute(
             """
             SELECT DISTINCT i.sku, i.asin, (t.raw_json->>'transactionType') AS txn_type
             FROM sp_transaction_items i
             JOIN sp_transactions t ON t.transaction_id = i.transaction_id
             LEFT JOIN cogs_per_sku c
-              ON c.sku = i.sku AND c.marketplace_id = t.marketplace_id
+              ON c.sku = i.sku AND c.marketplace_id = %s
             WHERE t.marketplace_id = %s
               AND t.is_deferred_release_event = false
               AND (t.raw_json->>'transactionType') IN ('Shipment', 'Refund')
@@ -197,7 +209,7 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
               AND i.sku IS NOT NULL
               AND c.sku IS NULL
             """,
-            (marketplace_id,),
+            (cog_mp, marketplace_id),
         )
         missing_rows = cur.fetchall()
 
@@ -232,9 +244,24 @@ def compute_monthly_cogs(conn: psycopg.Connection, marketplace_id: str) -> dict:
         conn.commit()
 
     # Write pnl_monthly rows for COGS. Sellerise's top-level `cog` field.
+    #
+    # The currency is the *sheet's*, not the marketplace's. AU is the case that
+    # forced this: its cog column is USD while its transactions are AUD, so a row
+    # hardcoded to the marketplace currency would silently misdescribe itself and
+    # any net built from it would mix currencies. Label it truthfully and warn.
+    from .config import MARKETPLACE_CURRENCY, cog_currency, cog_needs_fx
+    row_currency = cog_currency(marketplace_id)
+    if cog_needs_fx(marketplace_id):
+        log.warning(
+            "%s cog is denominated in %s but its transactions are %s — these rows are "
+            "NOT directly combinable with the marketplace's other pnl_monthly buckets. "
+            "Convert before computing net.",
+            marketplace_id, row_currency, MARKETPLACE_CURRENCY[marketplace_id],
+        )
+
     pnl_rows = [
         (marketplace_id, ym, "cog", "Cost of goods sold",
-         "cog", abs(amount), "USD")
+         "cog", abs(amount), row_currency)
         for ym, amount in sorted(monthly_cogs.items())
         if amount != 0
     ]
