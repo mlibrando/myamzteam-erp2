@@ -24,14 +24,20 @@ load_dotenv(pathlib.Path(__file__).resolve().parents[2] / ".env")
 
 app = FastAPI(title="MYAMZTEAM P&L dashboard", docs_url=None, redoc_url=None)
 
-# The Next.js dev server calls this API cross-origin. Allow only the dashboard origin(s)
-# and the one custom auth header. Configurable via DASHBOARD_ORIGINS (comma-separated).
-_origins = os.environ.get("DASHBOARD_ORIGINS", "http://localhost:3000").split(",")
+# The Next.js dev server calls this API cross-origin. In prod set DASHBOARD_ORIGINS to an
+# explicit comma-separated allowlist; for local dev (unset) allow any localhost port, so a
+# Next fallback from :3000 to :3001 doesn't surface as an opaque CORS error.
+_origins_env = os.environ.get("DASHBOARD_ORIGINS", "").strip()
+_cors_kwargs = (
+    {"allow_origins": [o.strip() for o in _origins_env.split(",") if o.strip()]}
+    if _origins_env
+    else {"allow_origin_regex": r"https?://localhost:\d+"}
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _origins if o.strip()],
     allow_methods=["GET"],
     allow_headers=["X-Dashboard-Password"],
+    **_cors_kwargs,
 )
 
 _VALID = set(MARKETPLACES) | {"ALL"}
