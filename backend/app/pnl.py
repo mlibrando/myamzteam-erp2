@@ -50,9 +50,10 @@ NET_ROW = "Profit"
 # partition it exactly. Any leaf not listed here is still emitted (appended by raw key) so
 # the children always sum to the Sales row — the invariant can't silently break.
 #
-# `Shipping` has no leaf in the current pipeline (ShippingPrincipal routes to ShippingCharge),
-# so its row is $0.00 until a `Shipping` leaf appears in pnl_monthly — a missing leaf renders
-# as zero via _sub_rows' `.get(key, {})`, never an error.
+# No plain `Shipping` line: our pipeline never emits one (ShippingPrincipal routes to
+# ShippingCharge, and net US shipping is ~$0 — Principal offset by ShippingDiscount→Promotion
+# and ShippingChargeback→Selling Fees). Sellerise's small "Shipping" figure is a month-boundary
+# timing residual on that net-zero quantity, not a distinct amount in our data.
 SALES_CHILDREN: list[tuple[str, str]] = [
     ("Product sales",  "Principal"),
     ("Tax",            "Tax"),
@@ -61,7 +62,6 @@ SALES_CHILDREN: list[tuple[str, str]] = [
     ("Shipping tax",   "ShippingTax"),
     ("Gift wrap",      "GiftWrap"),
     ("Gift wrap tax",  "GiftWrapTax"),
-    ("Shipping",       "Shipping"),
 ]
 
 # Reimbursement family (expenses bucket): the money-IN leaf and its reversal/clawback

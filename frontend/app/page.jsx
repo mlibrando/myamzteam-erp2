@@ -29,6 +29,16 @@ export default function Page() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(() => new Set());
+
+  function toggleRow(name) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const stored = typeof window !== "undefined" ? sessionStorage.getItem("pnl_pw") : null;
@@ -163,9 +173,12 @@ export default function Page() {
                 </tr>
               </thead>
               <tbody>
-                {data.rows.map((row) => {
+                {data.rows.flatMap((row) => {
                   const isNet = row.name === "Profit";
-                  return (
+                  const hasChildren =
+                    Array.isArray(row.children) && row.children.length > 0;
+                  const isOpen = expanded.has(row.name);
+                  const parent = (
                     <tr
                       key={row.name}
                       className={
@@ -175,7 +188,21 @@ export default function Page() {
                       }
                     >
                       <td className="text-left px-4 py-2.5 sticky left-0 bg-white whitespace-nowrap">
-                        {row.name}
+                        {hasChildren ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleRow(row.name)}
+                            aria-expanded={isOpen}
+                            className="inline-flex items-center gap-1.5 hover:text-slate-900"
+                          >
+                            <span className="text-slate-400 text-xs w-3 text-center">
+                              {isOpen ? "▾" : "▸"}
+                            </span>
+                            {row.name}
+                          </button>
+                        ) : (
+                          row.name
+                        )}
                       </td>
                       {row.values.map((v, i) => (
                         <td
@@ -198,6 +225,38 @@ export default function Page() {
                       </td>
                     </tr>
                   );
+                  if (!hasChildren || !isOpen) return [parent];
+
+                  const childRows = row.children.map((child) => (
+                    <tr
+                      key={`${row.name}::${child.name}`}
+                      className="border-t border-slate-50"
+                    >
+                      <td className="text-left pl-10 pr-4 py-2 sticky left-0 bg-white whitespace-nowrap text-slate-500">
+                        {child.name}
+                      </td>
+                      {child.values.map((v, i) => (
+                        <td
+                          key={i}
+                          className={
+                            "text-right px-4 py-2 whitespace-nowrap " +
+                            (v < 0 ? "text-red-500" : "text-slate-500")
+                          }
+                        >
+                          {money(v, data.currency)}
+                        </td>
+                      ))}
+                      <td
+                        className={
+                          "text-right px-4 py-2 whitespace-nowrap border-l border-slate-200 " +
+                          (child.total < 0 ? "text-red-500" : "text-slate-500")
+                        }
+                      >
+                        {money(child.total, data.currency)}
+                      </td>
+                    </tr>
+                  ));
+                  return [parent, ...childRows];
                 })}
               </tbody>
             </table>
