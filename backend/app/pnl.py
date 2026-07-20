@@ -45,6 +45,25 @@ ROW_ORDER: list[str] = [
 ]
 NET_ROW = "Profit"
 
+# Sales breakdown: display label → chargesObject `line_key`, in display order. The Sales row
+# IS the chargesObject bucket (every leaf maps to Sales, sign +1), so these children
+# partition it exactly. Any leaf not listed here is still emitted (appended by raw key) so
+# the children always sum to the Sales row — the invariant can't silently break.
+#
+# `Shipping` has no leaf in the current pipeline (ShippingPrincipal routes to ShippingCharge),
+# so its row is $0.00 until a `Shipping` leaf appears in pnl_monthly — a missing leaf renders
+# as zero via _sub_rows' `.get(key, {})`, never an error.
+SALES_CHILDREN: list[tuple[str, str]] = [
+    ("Product sales",  "Principal"),
+    ("Tax",            "Tax"),
+    ("Promotion",      "Promotion"),
+    ("Shipping charge", "ShippingCharge"),
+    ("Shipping tax",   "ShippingTax"),
+    ("Gift wrap",      "GiftWrap"),
+    ("Gift wrap tax",  "GiftWrapTax"),
+    ("Shipping",       "Shipping"),
+]
+
 # Reimbursement family (expenses bucket): the money-IN leaf and its reversal/clawback
 # (money-out) BOTH net under Reimbursements — Elena's decision that the reversal is a
 # reimbursement clawback, not an operational fee. Matched by an explicit key set (not a
@@ -92,9 +111,16 @@ def _empty_grid() -> dict[str, dict[str, Decimal]]:
     return {r: {m: Decimal("0") for m in SETTLED_MONTHS} for r in ROW_ORDER}
 
 
-def _one_marketplace(conn: psycopg.Connection, mp_id: str, target_ccy: str) -> dict[str, dict[str, Decimal]]:
-    """One marketplace's grid, every value converted to `target_ccy` by its own currency."""
+def _one_marketplace(
+    conn: psycopg.Connection, mp_id: str, target_ccy: str
+) -> tuple[dict[str, dict[str, Decimal]], dict[str, dict[str, Decimal]]]:
+    """One marketplace's grid, every value converted to `target_ccy` by its own currency.
+
+    Also returns the Sales breakdown keyed by raw chargesObject `line_key` (each a
+    month→Decimal map), which partitions the Sales row exactly.
+    """
     grid = _empty_grid()
+    sales_children: dict[str, dict[str, Decimal]] = {}
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -109,7 +135,13 @@ def _one_marketplace(conn: psycopg.Connection, mp_id: str, target_ccy: str) -> d
             if mapped is None:
                 continue  # whitelist — passthrough/unknown never enters a row
             row, sign = mapped
-            grid[row][ym] += _convert(amount, ccy, target_ccy) * sign
+            converted = _convert(amount, ccy, target_ccy) * sign
+            grid[row][ym] += converted
+            # Sales breakdown: chargesObject leaves (sign +1) are the Sales sub-lines.
+            if bucket == "chargesObject":
+                sales_children.setdefault(
+                    line_key, {m: Decimal("0") for m in SETTLED_MONTHS}
+                )[ym] += converted
             # salesTaxes fold-in: buyer tax stays in Sales (collected) AND is booked as a
             # remitted cost in Selling Fees — matches Elena's sheet and the reconcile net
             # (revenue − salesTaxes − …). Net-neutral to Profit; the amount is counted once.
@@ -129,7 +161,7 @@ def _one_marketplace(conn: psycopg.Connection, mp_id: str, target_ccy: str) -> d
         )
         for ym, ccy, total in cur.fetchall():
             grid["Ad Spend"][ym] += _convert(total, ccy, target_ccy) * -1
-    return grid
+    return grid, sales_children
 
 
 def assemble(conn: psycopg.Connection, alias: str) -> dict:
@@ -138,19 +170,35 @@ def assemble(conn: psycopg.Connection, alias: str) -> dict:
     if alias == "ALL":
         target_ccy = "USD"
         grid = _empty_grid()
+        sales_children: dict[str, dict[str, Decimal]] = {}
         for mp_id, _native in MARKETPLACES.values():
-            one = _one_marketplace(conn, mp_id, "USD")
+            one, one_children = _one_marketplace(conn, mp_id, "USD")
             for r in ROW_ORDER:
                 for m in SETTLED_MONTHS:
                     grid[r][m] += one[r][m]
+            for key, months in one_children.items():
+                acc = sales_children.setdefault(key, {m: Decimal("0") for m in SETTLED_MONTHS})
+                for m in SETTLED_MONTHS:
+                    acc[m] += months.get(m, Decimal("0"))
     elif alias in MARKETPLACES:
         mp_id, target_ccy = MARKETPLACES[alias]
-        grid = _one_marketplace(conn, mp_id, target_ccy)
+        grid, sales_children = _one_marketplace(conn, mp_id, target_ccy)
     else:
         raise ValueError(f"unknown marketplace {alias!r}")
 
     def q(v: Decimal) -> float:
         return float(v.quantize(_CENT, rounding=ROUND_HALF_UP))
+
+    def _sub_rows(children_grid: dict[str, dict[str, Decimal]]) -> list[dict]:
+        """Ordered Sales sub-lines; any unlisted leaf is appended so children sum to Sales."""
+        def one(name: str, months: dict[str, Decimal]) -> dict:
+            vals = [months.get(m, Decimal("0")) for m in SETTLED_MONTHS]
+            return {"name": name, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
+
+        known = {key for _label, key in SALES_CHILDREN}
+        out = [one(label, children_grid.get(key, {})) for label, key in SALES_CHILDREN]
+        out += [one(key, months) for key, months in children_grid.items() if key not in known]
+        return out
 
     rows: list[dict] = []
     net = {m: Decimal("0") for m in SETTLED_MONTHS}
@@ -158,7 +206,10 @@ def assemble(conn: psycopg.Connection, alias: str) -> dict:
         vals = [grid[r][m] for m in SETTLED_MONTHS]
         for m in SETTLED_MONTHS:
             net[m] += grid[r][m]
-        rows.append({"name": r, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))})
+        row = {"name": r, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
+        if r == "Sales":
+            row["children"] = _sub_rows(sales_children)
+        rows.append(row)
 
     net_vals = [net[m] for m in SETTLED_MONTHS]
     rows.append({"name": NET_ROW, "values": [q(v) for v in net_vals],
