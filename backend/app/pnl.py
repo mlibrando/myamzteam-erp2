@@ -18,6 +18,8 @@ from decimal import Decimal, ROUND_HALF_UP
 
 import psycopg
 
+from sync.reconcile import _SALES_TAX_LINES  # canonical salesTaxes leaves — reuse, don't re-derive
+
 # Elena's FIXED book rates, native → USD. These are her sheet's rates (NOT the reconcile's
 # implied FX); used only for the ALL(USD) view and to show CA/AU's USD cog in native.
 BOOK_RATES_TO_USD: dict[str, Decimal] = {
@@ -41,11 +43,16 @@ ROW_ORDER: list[str] = [
     "Sales", "COGS", "Ad Spend", "Selling Fees",
     "Operational Fees", "Refunds", "Reimbursements from AMZ",
 ]
-NET_ROW = "Net"
+NET_ROW = "Profit"
 
-# The single expenses leaf that is money-IN (Reimbursements). Every other expenses leaf —
-# including FBAReversedReimbursement (money out) — is Operational Fees.
-REIMB_LEAF = "FBAInventoryReimbursement.FBAInventoryReimbursement"
+# Reimbursement family (expenses bucket): the money-IN leaf and its reversal/clawback
+# (money-out) BOTH net under Reimbursements — Elena's decision that the reversal is a
+# reimbursement clawback, not an operational fee. Matched by an explicit key set (not a
+# prefix) so the money-in leaf can never fall through to Operational Fees.
+REIMB_LEAVES = frozenset({
+    "FBAInventoryReimbursement.FBAInventoryReimbursement",  # money in  (+)
+    "FBAInventoryReimbursement.FBAReversedReimbursement",   # reversal  (−)
+})
 
 _CENT = Decimal("0.01")
 
@@ -73,9 +80,9 @@ def _map_row(bucket: str, line_key: str) -> tuple[str, int] | None:
     if bucket == "storageFee":
         return ("Operational Fees", 1)           # stored −
     if bucket == "expenses":
-        if line_key == REIMB_LEAF:
-            return ("Reimbursements from AMZ", 1)  # stored + (money in)
-        return ("Operational Fees", 1)             # everything else, incl. money-out clawbacks
+        if line_key in REIMB_LEAVES:
+            return ("Reimbursements from AMZ", 1)  # money-in (+) and reversal (−) net here
+        return ("Operational Fees", 1)             # every other expenses leaf
     if bucket == "refundsObject":
         return ("Refunds", 1)                    # stored −
     return None                                  # passthrough & anything unknown → ignored
@@ -103,6 +110,11 @@ def _one_marketplace(conn: psycopg.Connection, mp_id: str, target_ccy: str) -> d
                 continue  # whitelist — passthrough/unknown never enters a row
             row, sign = mapped
             grid[row][ym] += _convert(amount, ccy, target_ccy) * sign
+            # salesTaxes fold-in: buyer tax stays in Sales (collected) AND is booked as a
+            # remitted cost in Selling Fees — matches Elena's sheet and the reconcile net
+            # (revenue − salesTaxes − …). Net-neutral to Profit; the amount is counted once.
+            if bucket == "chargesObject" and line_key in _SALES_TAX_LINES:
+                grid["Selling Fees"][ym] += _convert(amount, ccy, target_ccy) * -1
 
         # Ad Spend is NOT in pnl_monthly — sum ad_spend_daily.total_cost (a positive cost,
         # in budget_currency) and negate it for display.

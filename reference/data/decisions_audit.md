@@ -1238,3 +1238,56 @@ speculative transactionality fix was **not** implemented, per the guardrail.
 **production** DB, but any perturbation/CI test that drives the real `reconcile()` must run against a
 **separate** DB or self-clean its `pull_at` — otherwise it corrupts the prior-pull baseline the next
 production run trusts. Recorded in the `cron.py` docstring. No guard/math/band/number changed.
+
+## 14. Dashboard P&L — three presentation-layer fixes (dedupe op fee, fold tax, Profit row)
+
+Three changes confirmed with Elena, all in the **aggregation/presentation layer** (`backend/app/pnl.py`
++ `frontend/app/page.jsx`). **Extraction, `pnl_monthly` schema, and `sync/reconcile.py` are untouched.**
+Footprint: ~12 lines backend, 2 lines frontend. Verified against live `pnl_monthly` for all four
+marketplaces (US/CA/UK/AU) + the ALL(USD) view; per-marketplace V1/V2 self-checks below all pass.
+
+**Change 1 — dedupe the reimbursement reversal (profit-NEUTRAL reclassification).** The reversal leaf
+`expenses.FBAInventoryReimbursement.FBAReversedReimbursement` (money-out clawback) previously landed in
+**Operational Fees** while its money-in sibling
+`…FBAInventoryReimbursement.FBAInventoryReimbursement` landed in **Reimbursements** — the
+direction-split flagged provisional in the pnl_dashboard_probe §6b (and in the frontend note now
+removed). Elena's decision: the reversal is a reimbursement clawback, not an operational fee, so both
+directions net under **Reimbursements from AMZ**. Implemented as an explicit two-key set
+`REIMB_LEAVES`, **not** a prefix — the proposed `"FBAInventoryReimbursement."` prefix was audited (V1)
+and rejected because both stored keys are compound; an explicit set makes it impossible for money-in to
+fall through to Operational. **Self-check (US 2026-01):** Operational Fees Δ **+1,037.16**,
+Reimbursements Δ **−1,037.16** (equal & opposite); Profit unchanged. Per-marketplace reversal moved:
+US −1,037.16, CA −152.14, UK −24.45, **AU 0.00 (no reversal leaf — unchanged)**.
+
+**Change 2 — fold salesTaxes into Selling Fees (the ONLY profit-moving change).** Buyer-collected tax
+stays in **Sales** (tax-inclusive, unchanged) and is now **also** booked as a remitted cost in
+**Selling Fees**, reusing reconcile's canonical `_SALES_TAX_LINES = ("Tax","ShippingTax","GiftWrapTax")`
+(imported, not re-derived). This is proper collect-and-remit double-entry: net-neutral to Profit *as a
+concept*, but it corrects a real prior **omission** — the facilitator remittance was in the ignored
+`passthrough` bucket, so the old dashboard "Net" over-stated profit by salesTaxes and disagreed with the
+reconcile net formula (`revenue − salesTaxes − …`). Post-fix, dashboard Profit matches that formula.
+**Self-check — Selling Fees Δ = −salesTaxes (V2, non-zero ⇒ match fired):** US **−9,033.01**,
+CA **−890.66**, UK **−2,127.82**, AU **−44.78**. Audit note: the offset uses reconcile's buyer-collected
+`salesTaxes` (9,033.01), not the raw facilitator passthrough (9,027.50) — they differ ~$5/mo (US),
+immaterial and deliberate, for consistency with the reconcile net.
+
+**Change 3 — rename bottom row `Net` → `Profit`.** With the sign convention (costs stored negative,
+reimbursements a positive credit), "total sales − Σ costs + reimbursement credit" is exactly the
+existing column-sum row. No second row added (a duplicate would be clutter). Frontend `isNet` reference
+updated to match `"Profit"`. **Profit = old Net − salesTaxes** (Change 1 contributes 0): US
+34,243.46 → **25,210.45**; CA 2,446.37 → 1,555.71; UK 4,122.92 → 1,995.10; AU 2,305.64 → 2,260.86;
+ALL 43,095.99 → 30,548.43.
+
+**Profit impact attribution.** The entire month-over-baseline profit swing is **Change 2 (tax)**;
+Change 1 is profit-neutral; Change 3 is a rename. The ~**$9k/mo US reduction** (and CA/UK/AU analogues)
+is the **correction of previously-omitted tax passthrough**, not a new loss — Sales already carried the
+tax with no offsetting remittance.
+
+**Sellerise → dashboard-Profit bridge (US 2026-01, not forced to tie).** Sellerise net (their formula)
+34,059.22 → **+1,439.72** reconcile residual (documented US basis/restatement) → our reconcile net
+35,498.94 → **−10,288.49** for the `expenses` bucket (Operational Fees −15,513.09 + Reimbursements
++1,750.14; storageFee already in both nets) that Sellerise's *net* excludes → **dashboard Profit
+25,210.45** (ties exactly). Tax is net-neutral on both sides (not a bridge line). Dashboard **Sales**
+174,304.82 vs Sellerise revenue 175,191.94 (Δ −887.12 restatement drift) — both tax-inclusive, so no
+sales-line definitional mismatch. **The definition of "Profit" (reconcile net + operational fees +
+reimbursements) awaits Elena's sign-off before it is treated as final.**

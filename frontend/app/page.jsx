@@ -164,7 +164,7 @@ export default function Page() {
               </thead>
               <tbody>
                 {data.rows.map((row) => {
-                  const isNet = row.name === "Net";
+                  const isNet = row.name === "Profit";
                   return (
                     <tr
                       key={row.name}
@@ -204,14 +204,6 @@ export default function Page() {
           </div>
         )}
 
-        {data && !loading && (
-          <p className="text-xs text-slate-500 max-w-3xl">
-            Note: the split between <span className="font-medium">Operational Fees</span> and{" "}
-            <span className="font-medium">Reimbursements from AMZ</span> is pending review — their{" "}
-            <span className="font-medium">combined</span> total is reconciled and trustworthy; only the
-            boundary between the two rows is provisional.
-          </p>
-        )}
       </div>
     </main>
   );
