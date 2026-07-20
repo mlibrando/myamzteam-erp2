@@ -1,0 +1,13 @@
+# Build the backend from its Dockerfile. dockerfilePath is relative to the
+# service's Root Directory (set Root Directory = "backend" in Railway).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+# Start command + migrations live in the Dockerfile CMD. This repo's app exposes
+# /healthz (the old project used /api/health — do not copy that path here).
+[deploy]
+healthcheckPath = "/healthz"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
