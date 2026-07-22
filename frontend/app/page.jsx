@@ -233,7 +233,27 @@ export default function Page() {
                       className="border-t border-slate-50"
                     >
                       <td className="text-left pl-10 pr-4 py-2 sticky left-0 bg-white whitespace-nowrap text-slate-500">
-                        {child.name}
+                        <span className="inline-flex items-start gap-1">
+                          {child.name}
+                          {child.hint && (
+                            <span className="group relative inline-block">
+                              <span
+                                role="img"
+                                aria-label={child.hint}
+                                tabIndex={0}
+                                className="cursor-help align-super text-[10px] leading-none text-slate-400 hover:text-slate-600 focus:text-slate-600 focus:outline-none"
+                              >
+                                &#9432;
+                              </span>
+                              <span
+                                role="tooltip"
+                                className="pointer-events-none absolute bottom-full left-0 z-20 mb-1 w-60 whitespace-normal rounded-md bg-slate-800 px-2.5 py-1.5 text-xs font-normal leading-snug text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                              >
+                                {child.hint}
+                              </span>
+                            </span>
+                          )}
+                        </span>
                       </td>
                       {child.values.map((v, i) => (
                         <td
