@@ -38,6 +38,9 @@ pick a marketplace.
   in `app/pnl.py` are only a fallback. CA/AU `cog` is stored in USD and converted like any USD value —
   never double-converted. See `reference/data/currency_selector_fx.md`.
 - **Ad Spend** comes from `ad_spend_daily` (not in `pnl_monthly`).
+- **Custom date range:** the date-range picker (two native date inputs + Apply/Clear) switches the
+  grid to a single-column P&L for any day range, served from `pnl_daily` via `GET /pnl?start&end`.
+  Clear returns to the month columns. See `reference/data/custom_date_ranges.md`.
 - An inline note flags that the Operational Fees / Reimbursements **split** is provisional (their
   combined total is reconciled).
 

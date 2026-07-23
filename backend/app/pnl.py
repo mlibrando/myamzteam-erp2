@@ -15,6 +15,7 @@ treated as CAD/AUD.
 from __future__ import annotations
 
 import calendar
+from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 import psycopg
@@ -202,169 +203,97 @@ def _map_row(bucket: str, line_key: str) -> tuple[str, int] | None:
     return None                                  # passthrough & anything unknown → ignored
 
 
-def _empty_grid() -> dict[str, dict[str, Decimal]]:
-    return {r: {m: Decimal("0") for m in SETTLED_MONTHS} for r in ROW_ORDER}
+Accum = tuple  # (grid, sales_children, sf_children, of_children, ad_children)
 
 
-def _one_marketplace(
-    conn: psycopg.Connection, mp_id: str, target_ccy: str, rates: Rates
-) -> tuple[dict[str, dict[str, Decimal]], dict[str, dict[str, Decimal]],
-           dict[str, dict[str, Decimal]], dict[str, dict[str, Decimal]]]:
-    """One marketplace's grid, every value converted to `target_ccy` at each month's rate.
-
-    Also returns three breakdowns, each a {child → month→Decimal} map that sums to its row:
-    the Sales breakdown (keyed by raw chargesObject `line_key`), the Selling Fees breakdown
-    (SF_CHILD_ORDER names), and the Operational Fees breakdown (OF_CHILD_ORDER names).
+def _accumulate(periods: list[str], pnl_rows, adspend_rows, target_ccy: str, rates: Rates) -> Accum:
+    """Accumulate pre-shaped source rows into the grid + breakdowns over a generic `periods`
+    list. Each pnl row is (period, rate_month, bucket, line_key, amount, ccy); each adspend row
+    is (period, rate_month, ad_product, ccy, total). `rate_month` picks the FX rate; `period`
+    is the column key. This is the ONE place the row/breakdown logic lives — the monthly view
+    (periods = months, from pnl_monthly) and the range view (one period, from pnl_daily) both
+    feed it.
     """
-    grid = _empty_grid()
+    z = lambda: {p: Decimal("0") for p in periods}
+    grid = {r: z() for r in ROW_ORDER}
     sales_children: dict[str, dict[str, Decimal]] = {}
-    sf_children: dict[str, dict[str, Decimal]] = {
-        name: {m: Decimal("0") for m in SETTLED_MONTHS} for name in SF_CHILD_ORDER
-    }
-    of_children: dict[str, dict[str, Decimal]] = {
-        name: {m: Decimal("0") for m in SETTLED_MONTHS} for name in OF_CHILD_ORDER
-    }
+    sf_children = {name: z() for name in SF_CHILD_ORDER}
+    of_children = {name: z() for name in OF_CHILD_ORDER}
     ad_children: dict[str, dict[str, Decimal]] = {}
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT year_month, bucket, line_key, amount, currency
-            FROM pnl_monthly
-            WHERE marketplace_id = %s AND year_month = ANY(%s)
-            """,
-            (mp_id, SETTLED_MONTHS),
-        )
-        for ym, bucket, line_key, amount, ccy in cur.fetchall():
-            mapped = _map_row(bucket, line_key)
-            if mapped is None:
-                continue  # whitelist — passthrough/unknown never enters a row
-            row, sign = mapped
-            converted = _convert(amount, ccy, target_ccy, ym, rates) * sign
-            grid[row][ym] += converted
-            # Sales breakdown: chargesObject leaves (sign +1) are the Sales sub-lines.
-            if bucket == "chargesObject":
-                sales_children.setdefault(
-                    line_key, {m: Decimal("0") for m in SETTLED_MONTHS}
-                )[ym] += converted
-            # Selling Fees breakdown: fbaObject → FBA fees; feesObject → Referral vs Other.
-            if row == "Selling Fees":
-                if bucket == "fbaObject":
-                    sf_children["FBA fees"][ym] += converted
-                elif bucket == "feesObject":
-                    key = "Referral fees" if line_key in SF_REFERRAL_LEAVES else "Other fees"
-                    sf_children[key][ym] += converted
-            # Operational Fees breakdown: storageFee + expenses leaves rolled into groups.
-            elif row == "Operational Fees":
-                of_children[_of_group(bucket, line_key)][ym] += converted
-            # salesTaxes fold-in: buyer tax stays in Sales (collected) AND is booked as a
-            # remitted cost in Selling Fees — matches Elena's sheet and the reconcile net
-            # (revenue − salesTaxes − …). Net-neutral to Profit; the amount is counted once.
-            if bucket == "chargesObject" and line_key in _SALES_TAX_LINES:
-                fold = _convert(amount, ccy, target_ccy, ym, rates) * -1
-                grid["Selling Fees"][ym] += fold
-                sf_children["Taxes"][ym] += fold
 
-        # Ad Spend is NOT in pnl_monthly — sum ad_spend_daily.total_cost (a positive cost,
-        # in budget_currency) and negate it for display.
-        cur.execute(
-            """
-            SELECT to_char(date, 'YYYY-MM') AS ym, budget_currency, ad_product, SUM(total_cost)
-            FROM ad_spend_daily
-            WHERE marketplace_id = %s AND to_char(date, 'YYYY-MM') = ANY(%s)
-            GROUP BY 1, 2, 3
-            """,
-            (mp_id, SETTLED_MONTHS),
-        )
-        for ym, ccy, ad_product, total in cur.fetchall():
-            spend = _convert(total, ccy, target_ccy, ym, rates) * -1
-            grid["Ad Spend"][ym] += spend
-            name = ad_product or "Other"
-            ad_children.setdefault(
-                name, {m: Decimal("0") for m in SETTLED_MONTHS}
-            )[ym] += spend
+    for period, rate_month, bucket, line_key, amount, ccy in pnl_rows:
+        mapped = _map_row(bucket, line_key)
+        if mapped is None:
+            continue  # whitelist — passthrough/unknown never enters a row
+        row, sign = mapped
+        converted = _convert(amount, ccy, target_ccy, rate_month, rates) * sign
+        grid[row][period] += converted
+        # Sales breakdown: chargesObject leaves (sign +1) are the Sales sub-lines.
+        if bucket == "chargesObject":
+            sales_children.setdefault(line_key, z())[period] += converted
+        # Selling Fees breakdown: fbaObject → FBA fees; feesObject → Referral vs Other.
+        if row == "Selling Fees":
+            if bucket == "fbaObject":
+                sf_children["FBA fees"][period] += converted
+            elif bucket == "feesObject":
+                key = "Referral fees" if line_key in SF_REFERRAL_LEAVES else "Other fees"
+                sf_children[key][period] += converted
+        # Operational Fees breakdown: storageFee + expenses leaves rolled into groups.
+        elif row == "Operational Fees":
+            of_children[_of_group(bucket, line_key)][period] += converted
+        # salesTaxes fold-in: buyer tax stays in Sales (collected) AND is booked as a remitted
+        # cost in Selling Fees. Net-neutral to Profit; the amount is counted once.
+        if bucket == "chargesObject" and line_key in _SALES_TAX_LINES:
+            fold = _convert(amount, ccy, target_ccy, rate_month, rates) * -1
+            grid["Selling Fees"][period] += fold
+            sf_children["Taxes"][period] += fold
+
+    for period, rate_month, ad_product, ccy, total in adspend_rows:
+        spend = _convert(total, ccy, target_ccy, rate_month, rates) * -1
+        grid["Ad Spend"][period] += spend
+        ad_children.setdefault(ad_product or "Other", z())[period] += spend
+
     return grid, sales_children, sf_children, of_children, ad_children
 
 
-def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = None) -> dict:
-    """Return the display-ready grid for a marketplace alias or ALL.
-
-    US and ALL are always USD. CA/UK/AU default to native; pass view_currency="USD" to convert
-    them to USD at each month's rate (the native↔USD toggle).
-    """
-    alias = alias.upper()
-    rates = _load_monthly_rates(conn)
-    if alias == "ALL":
-        target_ccy = "USD"
-        grid = _empty_grid()
-        sales_children: dict[str, dict[str, Decimal]] = {}
-        sf_children: dict[str, dict[str, Decimal]] = {
-            name: {m: Decimal("0") for m in SETTLED_MONTHS} for name in SF_CHILD_ORDER
-        }
-        of_children: dict[str, dict[str, Decimal]] = {
-            name: {m: Decimal("0") for m in SETTLED_MONTHS} for name in OF_CHILD_ORDER
-        }
-        ad_children: dict[str, dict[str, Decimal]] = {}
-        for mp_id, _native in MARKETPLACES.values():
-            one, one_children, one_sf, one_of, one_ad = _one_marketplace(conn, mp_id, "USD", rates)
-            for r in ROW_ORDER:
-                for m in SETTLED_MONTHS:
-                    grid[r][m] += one[r][m]
-            for key, months in one_children.items():
-                acc = sales_children.setdefault(key, {m: Decimal("0") for m in SETTLED_MONTHS})
-                for m in SETTLED_MONTHS:
-                    acc[m] += months.get(m, Decimal("0"))
-            for name in SF_CHILD_ORDER:
-                for m in SETTLED_MONTHS:
-                    sf_children[name][m] += one_sf[name][m]
-            for name in OF_CHILD_ORDER:
-                for m in SETTLED_MONTHS:
-                    of_children[name][m] += one_of[name][m]
-            for name, months in one_ad.items():
-                acc = ad_children.setdefault(name, {m: Decimal("0") for m in SETTLED_MONTHS})
-                for m in SETTLED_MONTHS:
-                    acc[m] += months.get(m, Decimal("0"))
-    elif alias in MARKETPLACES:
-        mp_id, native = MARKETPLACES[alias]
-        target_ccy = "USD" if (view_currency or "").upper() == "USD" else native
-        grid, sales_children, sf_children, of_children, ad_children = _one_marketplace(conn, mp_id, target_ccy, rates)
-    else:
-        raise ValueError(f"unknown marketplace {alias!r}")
+def _finalize(alias: str, periods: list[str], period_days: dict[str, int], target_ccy: str,
+              native_currency: str, accum: Accum, fx_rate_values: dict[str, Decimal] | None,
+              extra: dict) -> dict:
+    """Turn an accumulated grid into the display-ready response (rows, breakdowns, gross-profit
+    rows, FX rate row), over a generic `periods` list with `period_days` for the daily rows."""
+    grid, sales_children, sf_children, of_children, ad_children = accum
 
     def q(v: Decimal) -> float:
         return float(v.quantize(_CENT, rounding=ROUND_HALF_UP))
 
     def _sub_rows(children_grid: dict[str, dict[str, Decimal]]) -> list[dict]:
         """Ordered Sales sub-lines; any unlisted leaf is appended so children sum to Sales."""
-        def one(name: str, months: dict[str, Decimal]) -> dict:
-            vals = [months.get(m, Decimal("0")) for m in SETTLED_MONTHS]
+        def one(name: str, pmap: dict[str, Decimal]) -> dict:
+            vals = [pmap.get(p, Decimal("0")) for p in periods]
             return {"name": name, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
-
         known = {key for _label, key in SALES_CHILDREN}
         out = [one(label, children_grid.get(key, {})) for label, key in SALES_CHILDREN]
-        out += [one(key, months) for key, months in children_grid.items() if key not in known]
+        out += [one(key, pmap) for key, pmap in children_grid.items() if key not in known]
         return out
 
-    def _named_rows(child_map: dict[str, dict[str, Decimal]], order: list[str],
-                    hints: dict[str, str]) -> list[dict]:
-        """Sub-lines in fixed `order`, then any unlisted keys appended (so children always sum
-        to the row), each optionally carrying a `hint`."""
-        def one(name: str, months: dict[str, Decimal]) -> dict:
-            vals = [months.get(m, Decimal("0")) for m in SETTLED_MONTHS]
+    def _named_rows(child_map, order, hints) -> list[dict]:
+        """Sub-lines in fixed `order`, then any unlisted keys appended, each optional `hint`."""
+        def one(name: str, pmap: dict[str, Decimal]) -> dict:
+            vals = [pmap.get(p, Decimal("0")) for p in periods]
             row = {"name": name, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
             if name in hints:
                 row["hint"] = hints[name]
             return row
-
         out = [one(name, child_map.get(name, {})) for name in order]
-        out += [one(name, months) for name, months in child_map.items() if name not in order]
+        out += [one(name, pmap) for name, pmap in child_map.items() if name not in order]
         return out
 
     rows: list[dict] = []
-    net = {m: Decimal("0") for m in SETTLED_MONTHS}
+    net = {p: Decimal("0") for p in periods}
     for r in ROW_ORDER:
-        vals = [grid[r][m] for m in SETTLED_MONTHS]
-        for m in SETTLED_MONTHS:
-            net[m] += grid[r][m]
+        vals = [grid[r][p] for p in periods]
+        for p in periods:
+            net[p] += grid[r][p]
         row = {"name": r, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
         if r == "Sales":
             row["children"] = _sub_rows(sales_children)
@@ -376,24 +305,22 @@ def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = N
             row["children"] = _named_rows(of_children, OF_CHILD_ORDER, OF_CHILD_HINTS)
         rows.append(row)
 
-    # Derived summary rows. net[m] is the full profit (with reimbursements); "no
-    # reimbursement" strips the Reimbursements row. Daily = month total ÷ calendar days (an
-    # average); the daily Total is the period total ÷ total days, not a sum of daily averages.
+    # net[p] is the full profit (with reimbursements); "no reimbursement" strips the
+    # Reimbursements row. Daily = period total ÷ its days; daily Total = grand total ÷ all days.
     reimb = grid["Reimbursements from AMZ"]
-    with_reimb = {m: net[m] for m in SETTLED_MONTHS}
-    no_reimb = {m: net[m] - reimb[m] for m in SETTLED_MONTHS}
-    days = {m: _days_in_month(m) for m in SETTLED_MONTHS}
-    total_days = sum(days.values())
+    with_reimb = {p: net[p] for p in periods}
+    no_reimb = {p: net[p] - reimb[p] for p in periods}
+    total_days = sum(period_days[p] for p in periods)
 
     def _monthly_row(name: str, vmap: dict[str, Decimal], *, is_net: bool = False) -> dict:
-        vals = [vmap[m] for m in SETTLED_MONTHS]
+        vals = [vmap[p] for p in periods]
         row = {"name": name, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
         if is_net:
             row["net"] = True
         return row
 
     def _daily_row(name: str, vmap: dict[str, Decimal]) -> dict:
-        vals = [vmap[m] / days[m] for m in SETTLED_MONTHS]
+        vals = [vmap[p] / period_days[p] for p in periods]
         total = sum(vmap.values(), Decimal("0")) / total_days
         return {"name": name, "values": [q(v) for v in vals], "total": q(total)}
 
@@ -402,19 +329,107 @@ def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = N
     rows.append(_daily_row(GP_WITH_DAILY, with_reimb))
     rows.append(_daily_row(GP_NO_DAILY, no_reimb))
 
-    # native_currency lets the client offer a native↔USD toggle (only when it differs from the
-    # view currency, i.e. CA/UK/AU); US/ALL have native == USD, so no toggle.
-    native_currency = "USD" if alias == "ALL" else MARKETPLACES[alias][1]
-
-    # For non-USD marketplaces, expose the monthly rate actually used to convert to USD, as a
-    # reference row (`rate: True` → the client renders it as a plain 4-dp number, not currency).
-    # Total = simple average of the shown months. Not applicable to US (rate 1) or ALL (a blend).
-    if native_currency != "USD":
-        rate_vals = [_rate(native_currency, m, rates) for m in SETTLED_MONTHS]
-        avg = sum(rate_vals, Decimal("0")) / len(rate_vals)
+    # FX reference row (non-USD views only). `rate: True` → client renders plain 4-dp numbers.
+    if fx_rate_values is not None:
         _rq = lambda v: float(v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
+        vals = [fx_rate_values[p] for p in periods]
+        avg = sum(vals, Decimal("0")) / len(vals)
         rows.append({"name": f"FX rate ({native_currency}→USD)",
-                     "values": [_rq(v) for v in rate_vals], "total": _rq(avg), "rate": True})
+                     "values": [_rq(v) for v in vals], "total": _rq(avg), "rate": True})
 
     return {"marketplace": alias, "currency": target_ccy, "native_currency": native_currency,
-            "months": SETTLED_MONTHS, "rows": rows}
+            "months": periods, "rows": rows, **extra}
+
+
+def _resolve_target(alias: str, view_currency: str | None) -> tuple[list[str], str, str]:
+    """(marketplace_ids, target_ccy, native_currency) for a view. Shared by month + range."""
+    if alias == "ALL":
+        return [mp for mp, _n in MARKETPLACES.values()], "USD", "USD"
+    mp_id, native = MARKETPLACES[alias]
+    target = "USD" if (view_currency or "").upper() == "USD" else native
+    return [mp_id], target, native
+
+
+def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = None) -> dict:
+    """Month-as-column P&L for a marketplace alias or ALL (reads pnl_monthly).
+
+    US and ALL are always USD. CA/UK/AU default to native; view_currency="USD" converts them
+    to USD at each month's rate (the native↔USD toggle).
+    """
+    alias = alias.upper()
+    if alias != "ALL" and alias not in MARKETPLACES:
+        raise ValueError(f"unknown marketplace {alias!r}")
+    rates = _load_monthly_rates(conn)
+    mps, target_ccy, native_currency = _resolve_target(alias, view_currency)
+    period_days = {m: _days_in_month(m) for m in SETTLED_MONTHS}
+
+    pnl_rows, adspend_rows = [], []
+    with conn.cursor() as cur:
+        cur.execute("""SELECT year_month, bucket, line_key, amount, currency FROM pnl_monthly
+                       WHERE marketplace_id = ANY(%s) AND year_month = ANY(%s)""",
+                    (mps, SETTLED_MONTHS))
+        pnl_rows = [(ym, ym, b, lk, Decimal(str(a)), c) for ym, b, lk, a, c in cur.fetchall()]
+        cur.execute("""SELECT to_char(date,'YYYY-MM'), budget_currency, ad_product, SUM(total_cost)
+                       FROM ad_spend_daily
+                       WHERE marketplace_id = ANY(%s) AND to_char(date,'YYYY-MM') = ANY(%s)
+                       GROUP BY 1, 2, 3""", (mps, SETTLED_MONTHS))
+        adspend_rows = [(ym, ym, ap, c, Decimal(str(t))) for ym, c, ap, t in cur.fetchall()]
+
+    accum = _accumulate(SETTLED_MONTHS, pnl_rows, adspend_rows, target_ccy, rates)
+    fx = ({m: _rate(native_currency, m, rates) for m in SETTLED_MONTHS}
+          if native_currency != "USD" else None)
+    return _finalize(alias, SETTLED_MONTHS, period_days, target_ccy, native_currency, accum, fx, {})
+
+
+def _range_label(start: date, end: date) -> str:
+    if start.year == end.year:
+        return f"{start.strftime('%b')} {start.day} – {end.strftime('%b')} {end.day}, {end.year}"
+    return f"{start.strftime('%b')} {start.day}, {start.year} – {end.strftime('%b')} {end.day}, {end.year}"
+
+
+def assemble_range(conn: psycopg.Connection, alias: str, start: date, end: date,
+                   view_currency: str | None = None) -> dict:
+    """Single-period P&L over the day range [start, end] inclusive (reads pnl_daily).
+
+    Same rows/breakdowns/gross-profit as the monthly view, collapsed to one column. Each day
+    converts at its month's rate; the FX row shows the day-weighted average over the range.
+    """
+    alias = alias.upper()
+    if alias != "ALL" and alias not in MARKETPLACES:
+        raise ValueError(f"unknown marketplace {alias!r}")
+    if end < start:
+        raise ValueError("end date is before start date")
+    rates = _load_monthly_rates(conn)
+    mps, target_ccy, native_currency = _resolve_target(alias, view_currency)
+    P = "range"
+    periods = [P]
+    period_days = {P: (end - start).days + 1}
+
+    pnl_rows, adspend_rows = [], []
+    with conn.cursor() as cur:
+        cur.execute("""SELECT to_char(date,'YYYY-MM'), bucket, line_key, currency, SUM(amount)
+                       FROM pnl_daily
+                       WHERE marketplace_id = ANY(%s) AND date BETWEEN %s AND %s
+                       GROUP BY 1, 2, 3, 4""", (mps, start, end))
+        pnl_rows = [(P, rm, b, lk, Decimal(str(a)), c) for rm, b, lk, c, a in cur.fetchall()]
+        cur.execute("""SELECT to_char(date,'YYYY-MM'), budget_currency, ad_product, SUM(total_cost)
+                       FROM ad_spend_daily
+                       WHERE marketplace_id = ANY(%s) AND date BETWEEN %s AND %s
+                       GROUP BY 1, 2, 3""", (mps, start, end))
+        adspend_rows = [(P, rm, ap, c, Decimal(str(t))) for rm, c, ap, t in cur.fetchall()]
+
+    accum = _accumulate(periods, pnl_rows, adspend_rows, target_ccy, rates)
+
+    # FX row: day-weighted average of the month rates the range spans.
+    fx = None
+    if native_currency != "USD":
+        d, wsum, n = start, Decimal("0"), 0
+        while d <= end:
+            wsum += _rate(native_currency, d.strftime("%Y-%m"), rates)
+            n += 1
+            d += timedelta(days=1)
+        fx = {P: wsum / n}
+
+    extra = {"is_range": True, "range_label": _range_label(start, end),
+             "start": start.isoformat(), "end": end.isoformat()}
+    return _finalize(alias, periods, period_days, target_ccy, native_currency, accum, fx, extra)

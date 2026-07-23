@@ -91,9 +91,36 @@ def resolve_attribution_ym(
     return ym(pd), "purchase"
 
 
+def resolve_attribution_date(
+    *,
+    txn_type: str,
+    posted_at: datetime,
+    order_id: str | None,
+    order_map: dict[str, datetime],
+    refund_basis: str = "posted",
+) -> tuple[datetime, str]:
+    """Return (attribution_datetime, basis_used) — the day-grain twin of
+    resolve_attribution_ym. Same policy, but keeps the full datetime; by construction
+    ym(resolve_attribution_date(...)[0]) == resolve_attribution_ym(...)[0], so daily rows
+    sum back to the monthly rows. Used by the daily aggregation only; the monthly path
+    keeps calling resolve_attribution_ym unchanged.
+    """
+    if txn_type not in ("Shipment", "Refund"):
+        return posted_at, "posted"
+    if txn_type == "Refund" and refund_basis == "posted":
+        return posted_at, "posted"
+    if not order_id:
+        return posted_at, "posted_fallback"
+    pd = order_map.get(order_id)
+    if pd is None:
+        return posted_at, "posted_fallback"
+    return pd, "purchase"
+
+
 __all__ = [
     "load_order_purchase_dates",
     "order_id_from_related",
     "resolve_attribution_ym",
+    "resolve_attribution_date",
     "ym",
 ]
