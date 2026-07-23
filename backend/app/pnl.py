@@ -14,14 +14,16 @@ treated as CAD/AUD.
 
 from __future__ import annotations
 
+import calendar
 from decimal import Decimal, ROUND_HALF_UP
 
 import psycopg
 
 from sync.reconcile import _SALES_TAX_LINES  # canonical salesTaxes leaves — reuse, don't re-derive
 
-# Elena's FIXED book rates, native → USD. These are her sheet's rates (NOT the reconcile's
-# implied FX); used only for the ALL(USD) view and to show CA/AU's USD cog in native.
+# Fixed book rates, native → USD — the FALLBACK when `fx_monthly_rates` has no row for a
+# (currency, month). The live path is a per-month rate from `fx_monthly_rates` (populated by
+# `sync.fx_rates`: monthly average of a daily feed). USD is always 1.
 BOOK_RATES_TO_USD: dict[str, Decimal] = {
     "USD": Decimal("1"),
     "GBP": Decimal("1.34"),
@@ -43,7 +45,20 @@ ROW_ORDER: list[str] = [
     "Sales", "COGS", "Ad Spend", "Selling Fees",
     "Operational Fees", "Refunds", "Reimbursements from AMZ",
 ]
-NET_ROW = "Profit"
+
+# Derived summary rows appended after the components. The full monthly profit (with
+# reimbursements) is the emphasised bottom line; "no reimbursement" strips the
+# Reimbursements row; the two "Daily" rows are month total ÷ calendar days — an AVERAGE, since
+# COGS/fees are monthly-only, so no true per-day series exists.
+GP_WITH_MONTHLY = "Gross Profit Monthly (with reimbursement)"
+GP_NO_MONTHLY = "Gross Profit Monthly (no reimbursement)"
+GP_WITH_DAILY = "Gross Profit Daily (with reimbursement)"
+GP_NO_DAILY = "Gross Profit Daily (no reimbursement)"
+
+
+def _days_in_month(ym: str) -> int:
+    y, m = (int(x) for x in ym.split("-"))
+    return calendar.monthrange(y, m)[1]
 
 # Sales breakdown: display label → chargesObject `line_key`, in display order. The Sales row
 # IS the chargesObject bucket (every leaf maps to Sales, sign +1), so these children
@@ -137,11 +152,30 @@ REIMB_LEAVES = frozenset({
 _CENT = Decimal("0.01")
 
 
-def _convert(amount: Decimal, src: str, dst: str) -> Decimal:
-    """Convert via USD at Elena's book rates. Unknown currency → passthrough (rate 1)."""
-    r_src = BOOK_RATES_TO_USD.get(src, Decimal("1"))
-    r_dst = BOOK_RATES_TO_USD.get(dst, Decimal("1"))
-    return amount * r_src / r_dst
+Rates = dict[tuple[str, str], Decimal]  # (currency, 'YYYY-MM') -> native→USD
+
+
+def _load_monthly_rates(conn: psycopg.Connection) -> Rates:
+    """Per-month native→USD rates from fx_monthly_rates (empty dict if the table is empty)."""
+    out: Rates = {}
+    with conn.cursor() as cur:
+        cur.execute("SELECT currency, year_month, rate_to_usd FROM fx_monthly_rates")
+        for ccy, ym, rate in cur.fetchall():
+            out[(ccy, ym)] = rate
+    return out
+
+
+def _rate(ccy: str, ym: str, rates: Rates) -> Decimal:
+    """native→USD for (ccy, month): the pulled monthly rate, else the fixed book fallback."""
+    r = rates.get((ccy, ym))
+    if r is not None:
+        return r
+    return BOOK_RATES_TO_USD.get(ccy, Decimal("1"))
+
+
+def _convert(amount: Decimal, src: str, dst: str, ym: str, rates: Rates) -> Decimal:
+    """Convert via USD at that month's rate. Unknown currency → book/passthrough (rate 1)."""
+    return amount * _rate(src, ym, rates) / _rate(dst, ym, rates)
 
 
 def _map_row(bucket: str, line_key: str) -> tuple[str, int] | None:
@@ -173,10 +207,10 @@ def _empty_grid() -> dict[str, dict[str, Decimal]]:
 
 
 def _one_marketplace(
-    conn: psycopg.Connection, mp_id: str, target_ccy: str
+    conn: psycopg.Connection, mp_id: str, target_ccy: str, rates: Rates
 ) -> tuple[dict[str, dict[str, Decimal]], dict[str, dict[str, Decimal]],
            dict[str, dict[str, Decimal]], dict[str, dict[str, Decimal]]]:
-    """One marketplace's grid, every value converted to `target_ccy` by its own currency.
+    """One marketplace's grid, every value converted to `target_ccy` at each month's rate.
 
     Also returns three breakdowns, each a {child → month→Decimal} map that sums to its row:
     the Sales breakdown (keyed by raw chargesObject `line_key`), the Selling Fees breakdown
@@ -205,7 +239,7 @@ def _one_marketplace(
             if mapped is None:
                 continue  # whitelist — passthrough/unknown never enters a row
             row, sign = mapped
-            converted = _convert(amount, ccy, target_ccy) * sign
+            converted = _convert(amount, ccy, target_ccy, ym, rates) * sign
             grid[row][ym] += converted
             # Sales breakdown: chargesObject leaves (sign +1) are the Sales sub-lines.
             if bucket == "chargesObject":
@@ -226,7 +260,7 @@ def _one_marketplace(
             # remitted cost in Selling Fees — matches Elena's sheet and the reconcile net
             # (revenue − salesTaxes − …). Net-neutral to Profit; the amount is counted once.
             if bucket == "chargesObject" and line_key in _SALES_TAX_LINES:
-                fold = _convert(amount, ccy, target_ccy) * -1
+                fold = _convert(amount, ccy, target_ccy, ym, rates) * -1
                 grid["Selling Fees"][ym] += fold
                 sf_children["Taxes"][ym] += fold
 
@@ -242,7 +276,7 @@ def _one_marketplace(
             (mp_id, SETTLED_MONTHS),
         )
         for ym, ccy, ad_product, total in cur.fetchall():
-            spend = _convert(total, ccy, target_ccy) * -1
+            spend = _convert(total, ccy, target_ccy, ym, rates) * -1
             grid["Ad Spend"][ym] += spend
             name = ad_product or "Other"
             ad_children.setdefault(
@@ -251,9 +285,14 @@ def _one_marketplace(
     return grid, sales_children, sf_children, of_children, ad_children
 
 
-def assemble(conn: psycopg.Connection, alias: str) -> dict:
-    """Return the display-ready grid for a marketplace alias or ALL (USD)."""
+def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = None) -> dict:
+    """Return the display-ready grid for a marketplace alias or ALL.
+
+    US and ALL are always USD. CA/UK/AU default to native; pass view_currency="USD" to convert
+    them to USD at each month's rate (the native↔USD toggle).
+    """
     alias = alias.upper()
+    rates = _load_monthly_rates(conn)
     if alias == "ALL":
         target_ccy = "USD"
         grid = _empty_grid()
@@ -266,7 +305,7 @@ def assemble(conn: psycopg.Connection, alias: str) -> dict:
         }
         ad_children: dict[str, dict[str, Decimal]] = {}
         for mp_id, _native in MARKETPLACES.values():
-            one, one_children, one_sf, one_of, one_ad = _one_marketplace(conn, mp_id, "USD")
+            one, one_children, one_sf, one_of, one_ad = _one_marketplace(conn, mp_id, "USD", rates)
             for r in ROW_ORDER:
                 for m in SETTLED_MONTHS:
                     grid[r][m] += one[r][m]
@@ -285,8 +324,9 @@ def assemble(conn: psycopg.Connection, alias: str) -> dict:
                 for m in SETTLED_MONTHS:
                     acc[m] += months.get(m, Decimal("0"))
     elif alias in MARKETPLACES:
-        mp_id, target_ccy = MARKETPLACES[alias]
-        grid, sales_children, sf_children, of_children, ad_children = _one_marketplace(conn, mp_id, target_ccy)
+        mp_id, native = MARKETPLACES[alias]
+        target_ccy = "USD" if (view_currency or "").upper() == "USD" else native
+        grid, sales_children, sf_children, of_children, ad_children = _one_marketplace(conn, mp_id, target_ccy, rates)
     else:
         raise ValueError(f"unknown marketplace {alias!r}")
 
@@ -336,9 +376,45 @@ def assemble(conn: psycopg.Connection, alias: str) -> dict:
             row["children"] = _named_rows(of_children, OF_CHILD_ORDER, OF_CHILD_HINTS)
         rows.append(row)
 
-    net_vals = [net[m] for m in SETTLED_MONTHS]
-    rows.append({"name": NET_ROW, "values": [q(v) for v in net_vals],
-                 "total": q(sum(net_vals, Decimal("0")))})
+    # Derived summary rows. net[m] is the full profit (with reimbursements); "no
+    # reimbursement" strips the Reimbursements row. Daily = month total ÷ calendar days (an
+    # average); the daily Total is the period total ÷ total days, not a sum of daily averages.
+    reimb = grid["Reimbursements from AMZ"]
+    with_reimb = {m: net[m] for m in SETTLED_MONTHS}
+    no_reimb = {m: net[m] - reimb[m] for m in SETTLED_MONTHS}
+    days = {m: _days_in_month(m) for m in SETTLED_MONTHS}
+    total_days = sum(days.values())
 
-    return {"marketplace": alias, "currency": target_ccy,
+    def _monthly_row(name: str, vmap: dict[str, Decimal], *, is_net: bool = False) -> dict:
+        vals = [vmap[m] for m in SETTLED_MONTHS]
+        row = {"name": name, "values": [q(v) for v in vals], "total": q(sum(vals, Decimal("0")))}
+        if is_net:
+            row["net"] = True
+        return row
+
+    def _daily_row(name: str, vmap: dict[str, Decimal]) -> dict:
+        vals = [vmap[m] / days[m] for m in SETTLED_MONTHS]
+        total = sum(vmap.values(), Decimal("0")) / total_days
+        return {"name": name, "values": [q(v) for v in vals], "total": q(total)}
+
+    rows.append(_monthly_row(GP_WITH_MONTHLY, with_reimb, is_net=True))
+    rows.append(_monthly_row(GP_NO_MONTHLY, no_reimb))
+    rows.append(_daily_row(GP_WITH_DAILY, with_reimb))
+    rows.append(_daily_row(GP_NO_DAILY, no_reimb))
+
+    # native_currency lets the client offer a native↔USD toggle (only when it differs from the
+    # view currency, i.e. CA/UK/AU); US/ALL have native == USD, so no toggle.
+    native_currency = "USD" if alias == "ALL" else MARKETPLACES[alias][1]
+
+    # For non-USD marketplaces, expose the monthly rate actually used to convert to USD, as a
+    # reference row (`rate: True` → the client renders it as a plain 4-dp number, not currency).
+    # Total = simple average of the shown months. Not applicable to US (rate 1) or ALL (a blend).
+    if native_currency != "USD":
+        rate_vals = [_rate(native_currency, m, rates) for m in SETTLED_MONTHS]
+        avg = sum(rate_vals, Decimal("0")) / len(rate_vals)
+        _rq = lambda v: float(v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
+        rows.append({"name": f"FX rate ({native_currency}→USD)",
+                     "values": [_rq(v) for v in rate_vals], "total": _rq(avg), "rate": True})
+
+    return {"marketplace": alias, "currency": target_ccy, "native_currency": native_currency,
             "months": SETTLED_MONTHS, "rows": rows}

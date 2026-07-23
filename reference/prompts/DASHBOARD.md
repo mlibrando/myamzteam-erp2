@@ -18,6 +18,11 @@ pieces of UI state — use `useState`). No charts. No writes. No new deps beyond
   marketplace/month) — it is NOT in `pnl_monthly`.
 - **Currency:** single marketplace → native (US=USD, CA=CAD, UK=GBP, AU=AUD). "All" → USD at Elena's
   fixed book rates (GBP×1.34, CAD×0.71, AUD×0.69), in config, labelled as her book rates.
+  - **SHIPPED (2026-07-23):** a native↔USD toggle for CA/UK/AU, USD converted at a **per-month rate per
+    currency** — the monthly average of Frankfurter/ECB daily rates (Google-adjacent), in the
+    `fx_monthly_rates` table (populated by `sync.fx_rates`), with the fixed book rate as fallback. The
+    book rate is now only a fallback. `GET /pnl` gained `currency=native|usd`. Full details:
+    `reference/data/currency_selector_fx.md`.
 - **CA/AU cog is stored in USD.** Native view: convert cog USD→native for display (CA ÷0.71, AU ÷0.69).
   All→USD view: convert sales/other native→USD, but **do NOT re-convert CA/AU cog** (already USD —
   double-conversion trap).

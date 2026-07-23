@@ -32,9 +32,11 @@ pick a marketplace.
 
 - Rows in Elena's order: Sales, COGS, Ad Spend, Selling Fees, Operational Fees, Refunds,
   Reimbursements from AMZ, then Net. All settled months (Jan–Jun 2026) as columns + a Total column.
-- **Currency:** single marketplace → native (US=USD, CA=CAD, UK=GBP, AU=AUD); **All → USD** at Elena's
-  fixed book rates (GBP×1.34, CAD×0.71, AUD×0.69, in `app/pnl.py`). CA/AU `cog` is stored in USD and is
-  converted like any USD value — never double-converted.
+- **Currency:** single marketplace → native (US=USD, CA=CAD, UK=GBP, AU=AUD), with a **native↔USD toggle
+  for CA/UK/AU**; **All → USD**. USD conversion uses a **per-month rate per currency** (monthly average of
+  Frankfurter/ECB daily rates, in `fx_monthly_rates`, populated by `sync.fx_rates`); the fixed book rates
+  in `app/pnl.py` are only a fallback. CA/AU `cog` is stored in USD and converted like any USD value —
+  never double-converted. See `reference/data/currency_selector_fx.md`.
 - **Ad Spend** comes from `ad_spend_daily` (not in `pnl_monthly`).
 - An inline note flags that the Operational Fees / Reimbursements **split** is provisional (their
   combined total is reconciled).

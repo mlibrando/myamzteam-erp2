@@ -64,14 +64,18 @@ def _db_url() -> str:
 @app.get("/pnl")
 def get_pnl(
     marketplace: str = Query(default="US"),
+    currency: str = Query(default="native"),
     _auth: None = Depends(require_password),
 ) -> dict:
     alias = marketplace.upper()
     if alias not in _VALID:
         raise HTTPException(status_code=400,
                             detail=f"marketplace must be one of {sorted(_VALID)}")
+    view = currency.upper()
+    if view not in ("NATIVE", "USD"):
+        raise HTTPException(status_code=400, detail="currency must be 'native' or 'usd'")
     with psycopg.connect(_db_url()) as conn:
-        return assemble(conn, alias)
+        return assemble(conn, alias, view_currency=view)
 
 
 @app.get("/healthz")

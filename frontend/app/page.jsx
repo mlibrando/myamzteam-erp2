@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
 const MARKETPLACES = ["US", "CA", "UK", "AU", "ALL"];
+// Native currency per marketplace; only these get a native↔USD toggle (US/ALL are USD-only).
+const NATIVE_CCY = { CA: "CAD", UK: "GBP", AU: "AUD" };
 
 function monthLabel(ym) {
   const [y, m] = ym.split("-");
@@ -26,6 +28,7 @@ export default function Page() {
   const [password, setPassword] = useState(null);
   const [pwInput, setPwInput] = useState("");
   const [marketplace, setMarketplace] = useState("US");
+  const [viewCurrency, setViewCurrency] = useState("native"); // "native" | "usd" (CA/UK/AU only)
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -50,7 +53,7 @@ export default function Page() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/pnl?marketplace=${marketplace}`, {
+    fetch(`${API_BASE}/pnl?marketplace=${marketplace}&currency=${viewCurrency}`, {
       headers: { "X-Dashboard-Password": password },
     })
       .then(async (res) => {
@@ -78,7 +81,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [password, marketplace]);
+  }, [password, marketplace, viewCurrency]);
 
   function submitPassword(e) {
     e.preventDefault();
@@ -130,27 +133,49 @@ export default function Page() {
               {data && (
                 <>
                   · <span className="font-medium">{data.currency}</span>
-                  {marketplace === "ALL" && " (converted at book rates)"}
+                  {data.currency === "USD" &&
+                    data.native_currency !== "USD" &&
+                    " (converted at monthly avg rate)"}
                 </>
               )}
             </p>
           </div>
-          <nav className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
-            {MARKETPLACES.map((mp) => (
-              <button
-                key={mp}
-                onClick={() => setMarketplace(mp)}
-                className={
-                  "px-4 py-2 text-sm font-medium border-l first:border-l-0 border-slate-300 " +
-                  (marketplace === mp
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-700 hover:bg-slate-100")
-                }
-              >
-                {mp === "ALL" ? "All" : mp}
-              </button>
-            ))}
-          </nav>
+          <div className="flex flex-wrap items-center gap-2">
+            <nav className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+              {MARKETPLACES.map((mp) => (
+                <button
+                  key={mp}
+                  onClick={() => setMarketplace(mp)}
+                  className={
+                    "px-4 py-2 text-sm font-medium border-l first:border-l-0 border-slate-300 " +
+                    (marketplace === mp
+                      ? "bg-slate-900 text-white"
+                      : "bg-white text-slate-700 hover:bg-slate-100")
+                  }
+                >
+                  {mp === "ALL" ? "All" : mp}
+                </button>
+              ))}
+            </nav>
+            {NATIVE_CCY[marketplace] && (
+              <nav className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+                {[["native", NATIVE_CCY[marketplace]], ["usd", "USD"]].map(([c, label]) => (
+                  <button
+                    key={c}
+                    onClick={() => setViewCurrency(c)}
+                    className={
+                      "px-4 py-2 text-sm font-medium border-l first:border-l-0 border-slate-300 " +
+                      (viewCurrency === c
+                        ? "bg-slate-900 text-white"
+                        : "bg-white text-slate-700 hover:bg-slate-100")
+                    }
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
         </div>
 
         {loading && <p className="text-sm text-slate-500">Loading…</p>}
@@ -174,16 +199,20 @@ export default function Page() {
               </thead>
               <tbody>
                 {data.rows.flatMap((row) => {
-                  const isNet = row.name === "Profit";
+                  const isNet = row.net === true;
+                  const isRate = row.rate === true;
                   const hasChildren =
                     Array.isArray(row.children) && row.children.length > 0;
                   const isOpen = expanded.has(row.name);
+                  const fmt = (v) => (isRate ? v.toFixed(4) : money(v, data.currency));
                   const parent = (
                     <tr
                       key={row.name}
                       className={
                         isNet
                           ? "border-t-2 border-slate-300 font-semibold"
+                          : isRate
+                          ? "border-t border-slate-200 text-slate-400"
                           : "border-t border-slate-100"
                       }
                     >
@@ -209,19 +238,26 @@ export default function Page() {
                           key={i}
                           className={
                             "text-right px-4 py-2.5 whitespace-nowrap " +
-                            (v < 0 ? "text-red-600" : "text-slate-800")
+                            (isRate
+                              ? "text-slate-400"
+                              : v < 0
+                              ? "text-red-600"
+                              : "text-slate-800")
                           }
                         >
-                          {money(v, data.currency)}
+                          {fmt(v)}
                         </td>
                       ))}
                       <td
                         className={
-                          "text-right px-4 py-2.5 whitespace-nowrap border-l border-slate-200 font-medium " +
-                          (row.total < 0 ? "text-red-600" : "text-slate-900")
+                          "text-right px-4 py-2.5 whitespace-nowrap border-l border-slate-200 " +
+                          (isRate
+                            ? "text-slate-400"
+                            : "font-medium " +
+                              (row.total < 0 ? "text-red-600" : "text-slate-900"))
                         }
                       >
-                        {money(row.total, data.currency)}
+                        {fmt(row.total)}
                       </td>
                     </tr>
                   );
