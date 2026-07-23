@@ -14,6 +14,12 @@ pieces of UI state — use `useState`). No charts. No writes. No new deps beyond
 
 - **Rows (v1):** Sales, COGS, Ad Spend, Selling Fees, Operational Fees, Refunds, Reimbursements from AMZ.
   No Gross Profit / ROAS / Salaries.
+  - **SHIPPED since:** the fee/revenue rows expand into collapsible breakdowns; the bottom line is
+    now four Gross-Profit rows (monthly/daily × with/without reimbursement).
+- **Custom date ranges (SHIPPED 2026-07-23):** besides the month-as-column view, the dashboard can
+  show a P&L for any day range (e.g. Feb 15 – Mar 1) from a day-grain `pnl_daily` table
+  (`GET /pnl?start&end`). Σ pnl_daily/month == pnl_monthly (guarded). Full design:
+  `reference/data/custom_date_ranges.md`.
 - **Two sources:** six rows from `pnl_monthly`; **Ad Spend from `ad_spend_daily`** (sum `total_cost` by
   marketplace/month) — it is NOT in `pnl_monthly`.
 - **Currency:** single marketplace → native (US=USD, CA=CAD, UK=GBP, AU=AUD). "All" → USD at Elena's

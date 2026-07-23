@@ -33,6 +33,19 @@ export default function Page() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(() => new Set());
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [range, setRange] = useState(null); // {start, end} when a custom range is applied
+
+  function applyRange(e) {
+    e.preventDefault();
+    if (startDate && endDate && startDate <= endDate) {
+      setRange({ start: startDate, end: endDate });
+    }
+  }
+  function clearRange() {
+    setRange(null);
+  }
 
   function toggleRow(name) {
     setExpanded((prev) => {
@@ -53,7 +66,8 @@ export default function Page() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetch(`${API_BASE}/pnl?marketplace=${marketplace}&currency=${viewCurrency}`, {
+    const rangeQs = range ? `&start=${range.start}&end=${range.end}` : "";
+    fetch(`${API_BASE}/pnl?marketplace=${marketplace}&currency=${viewCurrency}${rangeQs}`, {
       headers: { "X-Dashboard-Password": password },
     })
       .then(async (res) => {
@@ -81,7 +95,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [password, marketplace, viewCurrency]);
+  }, [password, marketplace, viewCurrency, range]);
 
   function submitPassword(e) {
     e.preventDefault();
@@ -129,7 +143,7 @@ export default function Page() {
           <div>
             <h1 className="text-xl font-semibold">P&amp;L Dashboard</h1>
             <p className="text-sm text-slate-500">
-              Settled months (Jan–Jun 2026){" "}
+              {data?.is_range ? data.range_label : "Settled months (Jan–Jun 2026)"}{" "}
               {data && (
                 <>
                   · <span className="font-medium">{data.currency}</span>
@@ -178,6 +192,39 @@ export default function Page() {
           </div>
         </div>
 
+        <form onSubmit={applyRange} className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-slate-500">Date range</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          />
+          <span className="text-slate-400">→</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="rounded-lg border border-slate-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-400"
+          />
+          <button
+            type="submit"
+            disabled={!(startDate && endDate && startDate <= endDate)}
+            className="rounded-lg bg-slate-900 text-white font-medium px-3 py-1.5 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Apply
+          </button>
+          {range && (
+            <button
+              type="button"
+              onClick={clearRange}
+              className="rounded-lg border border-slate-300 font-medium px-3 py-1.5 text-slate-700 hover:bg-slate-100"
+            >
+              Clear · back to months
+            </button>
+          )}
+        </form>
+
         {loading && <p className="text-sm text-slate-500">Loading…</p>}
         {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -189,12 +236,14 @@ export default function Page() {
                   <th className="text-left font-medium px-4 py-3 sticky left-0 bg-white">Line item</th>
                   {data.months.map((m) => (
                     <th key={m} className="text-right font-medium px-4 py-3 whitespace-nowrap">
-                      {monthLabel(m)}
+                      {data.is_range ? data.range_label : monthLabel(m)}
                     </th>
                   ))}
-                  <th className="text-right font-semibold px-4 py-3 whitespace-nowrap border-l border-slate-200">
-                    Total
-                  </th>
+                  {!data.is_range && (
+                    <th className="text-right font-semibold px-4 py-3 whitespace-nowrap border-l border-slate-200">
+                      Total
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -248,17 +297,19 @@ export default function Page() {
                           {fmt(v)}
                         </td>
                       ))}
-                      <td
-                        className={
-                          "text-right px-4 py-2.5 whitespace-nowrap border-l border-slate-200 " +
-                          (isRate
-                            ? "text-slate-400"
-                            : "font-medium " +
-                              (row.total < 0 ? "text-red-600" : "text-slate-900"))
-                        }
-                      >
-                        {fmt(row.total)}
-                      </td>
+                      {!data.is_range && (
+                        <td
+                          className={
+                            "text-right px-4 py-2.5 whitespace-nowrap border-l border-slate-200 " +
+                            (isRate
+                              ? "text-slate-400"
+                              : "font-medium " +
+                                (row.total < 0 ? "text-red-600" : "text-slate-900"))
+                          }
+                        >
+                          {fmt(row.total)}
+                        </td>
+                      )}
                     </tr>
                   );
                   if (!hasChildren || !isOpen) return [parent];
@@ -302,14 +353,16 @@ export default function Page() {
                           {money(v, data.currency)}
                         </td>
                       ))}
-                      <td
-                        className={
-                          "text-right px-4 py-2 whitespace-nowrap border-l border-slate-200 " +
-                          (child.total < 0 ? "text-red-500" : "text-slate-500")
-                        }
-                      >
-                        {money(child.total, data.currency)}
-                      </td>
+                      {!data.is_range && (
+                        <td
+                          className={
+                            "text-right px-4 py-2 whitespace-nowrap border-l border-slate-200 " +
+                            (child.total < 0 ? "text-red-500" : "text-slate-500")
+                          }
+                        >
+                          {money(child.total, data.currency)}
+                        </td>
+                      )}
                     </tr>
                   ));
                   return [parent, ...childRows];

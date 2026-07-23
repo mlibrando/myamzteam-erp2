@@ -24,6 +24,7 @@ import psycopg
 from dotenv import load_dotenv
 
 from .aggregate import aggregate_marketplace
+from .aggregate_daily import aggregate_daily_marketplace
 from .cogs import DuplicateSkuError, compute_monthly_cogs, import_cogs
 from .config import BACKFILL_START_ISO, MARKETPLACE_ALIASES, MARKETPLACE_TO_SHEET, US_MARKETPLACE_ID
 from .finances import _parse_iso, make_finances_client, sync_marketplace
@@ -113,6 +114,18 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         log.warning("No COGS sheet mapping for marketplace %s — skipping COGS", marketplace_id)
+
+    # ── Phase 4: daily-grain P&L (pnl_daily) for the dashboard's custom date ranges ──
+    # Derived from the same freshly-built data; Σ pnl_daily/month == pnl_monthly. Non-fatal by
+    # design: a daily-build failure must never block the reconciled monthly pipeline — the
+    # range view just goes stale until the next run.
+    try:
+        with psycopg.connect(db_url) as conn:
+            daily_stats = aggregate_daily_marketplace(conn, marketplace_id)
+        log.info("Daily done: %d pnl_daily rows", daily_stats["rows"])
+    except Exception as exc:  # noqa: BLE001 — daily is a derived artifact, not the source of truth
+        log.warning("Daily aggregation failed for %s (range view may be stale): %s",
+                    marketplace_id, exc)
 
     rc = 0
     if agg_stats["unmapped_pairs"]:
