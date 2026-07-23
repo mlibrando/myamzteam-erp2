@@ -12,13 +12,14 @@ from __future__ import annotations
 import hmac
 import os
 import pathlib
+from datetime import date
 
 import psycopg
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from .pnl import MARKETPLACES, assemble
+from .pnl import MARKETPLACES, assemble, assemble_range
 
 load_dotenv(pathlib.Path(__file__).resolve().parents[2] / ".env")
 
@@ -65,6 +66,8 @@ def _db_url() -> str:
 def get_pnl(
     marketplace: str = Query(default="US"),
     currency: str = Query(default="native"),
+    start: str | None = Query(default=None),
+    end: str | None = Query(default=None),
     _auth: None = Depends(require_password),
 ) -> dict:
     alias = marketplace.upper()
@@ -74,7 +77,24 @@ def get_pnl(
     view = currency.upper()
     if view not in ("NATIVE", "USD"):
         raise HTTPException(status_code=400, detail="currency must be 'native' or 'usd'")
+
+    # Custom date range: both start and end (YYYY-MM-DD) → single-period range view.
+    # Neither → the default month-as-column view. One-without-the-other is a bad request.
+    if bool(start) != bool(end):
+        raise HTTPException(status_code=400, detail="provide both start and end, or neither")
+    range_bounds = None
+    if start and end:
+        try:
+            s, e = date.fromisoformat(start), date.fromisoformat(end)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="start/end must be YYYY-MM-DD dates")
+        if e < s:
+            raise HTTPException(status_code=400, detail="end date is before start date")
+        range_bounds = (s, e)
+
     with psycopg.connect(_db_url()) as conn:
+        if range_bounds:
+            return assemble_range(conn, alias, range_bounds[0], range_bounds[1], view_currency=view)
         return assemble(conn, alias, view_currency=view)
 
 
