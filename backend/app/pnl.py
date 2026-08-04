@@ -56,10 +56,29 @@ GP_NO_MONTHLY = "Gross Profit Monthly (no reimbursement)"
 GP_WITH_DAILY = "Gross Profit Daily (with reimbursement)"
 GP_NO_DAILY = "Gross Profit Daily (no reimbursement)"
 
+# Contribution rows = gross profit minus company salaries. Company-wide payroll is a single
+# USD cost, so these appear ONLY on the ALL view (see assemble/_finalize salary_month gating).
+# "Salaries Daily" shows the daily payroll directly; the monthly figure is daily × days.
+SAL_DAILY = "Salaries Daily"
+CONTRIB_DAILY_WITH = "Daily Contribution (with reimbursement)"
+CONTRIB_MONTHLY_WITH = "Monthly Contribution (with reimbursement)"
+CONTRIB_DAILY_NO = "Daily Contribution (no reimbursement)"
+CONTRIB_MONTHLY_NO = "Monthly Contribution (no reimbursement)"
+
 
 def _days_in_month(ym: str) -> int:
     y, m = (int(x) for x in ym.split("-"))
     return calendar.monthrange(y, m)[1]
+
+
+def _default_daily_salary(ym: str) -> Decimal:
+    """Code-level default daily salary (USD), overridable per month via `salary_override`."""
+    y, m = (int(x) for x in ym.split("-"))
+    if (y, m) == (2026, 1):
+        return Decimal("887")
+    if y == 2026 and 2 <= m <= 4:
+        return Decimal("677")
+    return Decimal("660")  # May 2026 onward (catch-all)
 
 # Sales breakdown: display label → chargesObject `line_key`, in display order. The Sales row
 # IS the chargesObject bucket (every leaf maps to Sales, sign +1), so these children
@@ -174,6 +193,22 @@ def _rate(ccy: str, ym: str, rates: Rates) -> Decimal:
     return BOOK_RATES_TO_USD.get(ccy, Decimal("1"))
 
 
+def _load_salary_overrides(conn: psycopg.Connection) -> dict[str, Decimal]:
+    """Per-month daily-salary overrides from salary_override ({} if the table is empty)."""
+    out: dict[str, Decimal] = {}
+    with conn.cursor() as cur:
+        cur.execute("SELECT year_month, daily_amount FROM salary_override")
+        for ym, amount in cur.fetchall():
+            out[ym.strip()] = Decimal(str(amount))
+    return out
+
+
+def daily_salary(ym: str, overrides: dict[str, Decimal]) -> Decimal:
+    """Effective daily salary (USD) for a month: the override if set, else the code default."""
+    r = overrides.get(ym)
+    return r if r is not None else _default_daily_salary(ym)
+
+
 def _convert(amount: Decimal, src: str, dst: str, ym: str, rates: Rates) -> Decimal:
     """Convert via USD at that month's rate. Unknown currency → book/passthrough (rate 1)."""
     return amount * _rate(src, ym, rates) / _rate(dst, ym, rates)
@@ -258,7 +293,7 @@ def _accumulate(periods: list[str], pnl_rows, adspend_rows, target_ccy: str, rat
 
 def _finalize(alias: str, periods: list[str], period_days: dict[str, int], target_ccy: str,
               native_currency: str, accum: Accum, fx_rate_values: dict[str, Decimal] | None,
-              extra: dict) -> dict:
+              salary_month: dict[str, Decimal] | None, extra: dict) -> dict:
     """Turn an accumulated grid into the display-ready response (rows, breakdowns, gross-profit
     rows, FX rate row), over a generic `periods` list with `period_days` for the daily rows."""
     grid, sales_children, sf_children, of_children, ad_children = accum
@@ -320,14 +355,28 @@ def _finalize(alias: str, periods: list[str], period_days: dict[str, int], targe
         return row
 
     def _daily_row(name: str, vmap: dict[str, Decimal]) -> dict:
+        # `avg: True` flags the Total cell as a day-weighted AVERAGE (grand total ÷ total days),
+        # not a sum — a per-day figure can't be summed. The client marks it so.
         vals = [vmap[p] / period_days[p] for p in periods]
         total = sum(vmap.values(), Decimal("0")) / total_days
-        return {"name": name, "values": [q(v) for v in vals], "total": q(total)}
+        return {"name": name, "values": [q(v) for v in vals], "total": q(total), "avg": True}
 
     rows.append(_monthly_row(GP_WITH_MONTHLY, with_reimb, is_net=True))
     rows.append(_monthly_row(GP_NO_MONTHLY, no_reimb))
     rows.append(_daily_row(GP_WITH_DAILY, with_reimb))
     rows.append(_daily_row(GP_NO_DAILY, no_reimb))
+
+    # Contribution rows (ALL view only): gross profit minus company salaries. `salary_month`
+    # is the monthly-equivalent payroll per period (daily × days, day-weighted over a range);
+    # the daily rows divide it back out via `_daily_row`, so Daily × days == Monthly exactly.
+    if salary_month is not None:
+        contrib_with = {p: with_reimb[p] - salary_month[p] for p in periods}
+        contrib_no = {p: no_reimb[p] - salary_month[p] for p in periods}
+        rows.append(_daily_row(SAL_DAILY, salary_month))
+        rows.append(_daily_row(CONTRIB_DAILY_WITH, contrib_with))
+        rows.append(_monthly_row(CONTRIB_MONTHLY_WITH, contrib_with))
+        rows.append(_daily_row(CONTRIB_DAILY_NO, contrib_no))
+        rows.append(_monthly_row(CONTRIB_MONTHLY_NO, contrib_no))
 
     # FX reference row (non-USD views only). `rate: True` → client renders plain 4-dp numbers.
     if fx_rate_values is not None:
@@ -378,7 +427,13 @@ def assemble(conn: psycopg.Connection, alias: str, view_currency: str | None = N
     accum = _accumulate(SETTLED_MONTHS, pnl_rows, adspend_rows, target_ccy, rates)
     fx = ({m: _rate(native_currency, m, rates) for m in SETTLED_MONTHS}
           if native_currency != "USD" else None)
-    return _finalize(alias, SETTLED_MONTHS, period_days, target_ccy, native_currency, accum, fx, {})
+    # Company salaries → contribution rows, ALL view only (company-wide USD payroll).
+    salary_month = None
+    if alias == "ALL":
+        sal_ov = _load_salary_overrides(conn)
+        salary_month = {m: daily_salary(m, sal_ov) * period_days[m] for m in SETTLED_MONTHS}
+    return _finalize(alias, SETTLED_MONTHS, period_days, target_ccy, native_currency,
+                     accum, fx, salary_month, {})
 
 
 def _range_label(start: date, end: date) -> str:
@@ -430,6 +485,18 @@ def assemble_range(conn: psycopg.Connection, alias: str, start: date, end: date,
             d += timedelta(days=1)
         fx = {P: wsum / n}
 
+    # Company salaries (ALL view only): sum each day's daily salary over the range so the
+    # single "range" period carries the correct payroll across any month boundary it spans.
+    salary_month = None
+    if alias == "ALL":
+        sal_ov = _load_salary_overrides(conn)
+        d, ssum = start, Decimal("0")
+        while d <= end:
+            ssum += daily_salary(d.strftime("%Y-%m"), sal_ov)
+            d += timedelta(days=1)
+        salary_month = {P: ssum}
+
     extra = {"is_range": True, "range_label": _range_label(start, end),
              "start": start.isoformat(), "end": end.isoformat()}
-    return _finalize(alias, periods, period_days, target_ccy, native_currency, accum, fx, extra)
+    return _finalize(alias, periods, period_days, target_ccy, native_currency,
+                     accum, fx, salary_month, extra)

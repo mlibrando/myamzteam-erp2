@@ -36,6 +36,8 @@ export default function Page() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [range, setRange] = useState(null); // {start, end} when a custom range is applied
+  const [settingsOpen, setSettingsOpen] = useState(false); // salary editor dialog (ALL view)
+  const [refreshKey, setRefreshKey] = useState(0); // bump to re-fetch /pnl after a salary edit
 
   function applyRange(e) {
     e.preventDefault();
@@ -95,7 +97,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [password, marketplace, viewCurrency, range]);
+  }, [password, marketplace, viewCurrency, range, refreshKey]);
 
   function submitPassword(e) {
     e.preventDefault();
@@ -188,6 +190,17 @@ export default function Page() {
                   </button>
                 ))}
               </nav>
+            )}
+            {marketplace === "ALL" && (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                title="Edit salaries"
+                aria-label="Edit salaries"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-600 hover:bg-slate-100"
+              >
+                <span aria-hidden="true">⚙</span>
+              </button>
             )}
           </div>
         </div>
@@ -308,6 +321,14 @@ export default function Page() {
                           }
                         >
                           {fmt(row.total)}
+                          {row.avg && (
+                            <span
+                              className="ml-1 align-middle text-[10px] font-normal uppercase tracking-wide text-slate-400"
+                              title="Average (per-day figure, not a sum)"
+                            >
+                              avg
+                            </span>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -373,6 +394,171 @@ export default function Page() {
         )}
 
       </div>
+      {settingsOpen && (
+        <SalaryDialog
+          password={password}
+          onClose={() => setSettingsOpen(false)}
+          onSaved={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
     </main>
+  );
+}
+
+// Company-wide daily salaries (USD) editor for the ALL view. Reads GET /salaries, upserts
+// changed months via PUT /salaries, and DELETEs an override to revert to the code default.
+function SalaryDialog({ password, onClose, onSaved }) {
+  const [rows, setRows] = useState(null); // [{year_month, daily_amount, is_override}]
+  const [drafts, setDrafts] = useState({}); // { ym: "887" }
+  const [err, setErr] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const auth = { "X-Dashboard-Password": password };
+
+  function hydrate(months) {
+    setRows(months);
+    setDrafts(Object.fromEntries(months.map((m) => [m.year_month, String(m.daily_amount)])));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_BASE}/salaries`, { headers: auth })
+      .then((r) => {
+        if (!r.ok) throw new Error(`Server error ${r.status}`);
+        return r.json();
+      })
+      .then((j) => !cancelled && hydrate(j.months))
+      .catch((e) => !cancelled && setErr(e.message || "Failed to load salaries"));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [password]);
+
+  async function save() {
+    if (!rows) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      for (const m of rows) {
+        const raw = drafts[m.year_month];
+        const val = Number(raw);
+        if (raw === "" || Number.isNaN(val) || val < 0) {
+          throw new Error(`Enter a valid amount for ${m.year_month}`);
+        }
+        if (val !== Number(m.daily_amount)) {
+          const res = await fetch(`${API_BASE}/salaries`, {
+            method: "PUT",
+            headers: { ...auth, "Content-Type": "application/json" },
+            body: JSON.stringify({ year_month: m.year_month, daily_amount: val }),
+          });
+          if (!res.ok) throw new Error(`Save failed for ${m.year_month}`);
+        }
+      }
+      onSaved();
+      onClose();
+    } catch (e) {
+      setErr(e.message || "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetMonth(ym) {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`${API_BASE}/salaries/${ym}`, { method: "DELETE", headers: auth });
+      if (!res.ok) throw new Error(`Reset failed for ${ym}`);
+      const r2 = await fetch(`${API_BASE}/salaries`, { headers: auth });
+      hydrate((await r2.json()).months);
+    } catch (e) {
+      setErr(e.message || "Reset failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Salaries (daily, USD)</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-slate-400 hover:text-slate-700"
+          >
+            ✕
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-slate-500">
+          Company-wide daily salary per month. Applied to the contribution rows on the All view.
+        </p>
+
+        {!rows && !err && <p className="text-sm text-slate-500">Loading…</p>}
+        {err && <p className="mb-3 text-sm text-red-600">{err}</p>}
+
+        {rows && (
+          <div className="space-y-2">
+            {rows.map((m) => (
+              <div key={m.year_month} className="flex items-center gap-3">
+                <label className="w-28 text-sm text-slate-600" htmlFor={`sal-${m.year_month}`}>
+                  {monthLabel(m.year_month)} {m.year_month.slice(0, 4)}
+                </label>
+                <input
+                  id={`sal-${m.year_month}`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={drafts[m.year_month] ?? ""}
+                  onChange={(e) =>
+                    setDrafts((d) => ({ ...d, [m.year_month]: e.target.value }))
+                  }
+                  className="w-32 rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                />
+                {m.is_override ? (
+                  <button
+                    type="button"
+                    onClick={() => resetMonth(m.year_month)}
+                    disabled={busy}
+                    className="text-xs text-slate-500 underline hover:text-slate-800 disabled:opacity-40"
+                  >
+                    reset
+                  </button>
+                ) : (
+                  <span className="text-xs text-slate-400">default</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy || !rows}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-40"
+          >
+            {busy ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

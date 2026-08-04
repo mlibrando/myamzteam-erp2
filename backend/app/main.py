@@ -12,14 +12,24 @@ from __future__ import annotations
 import hmac
 import os
 import pathlib
+import re
 from datetime import date
+from decimal import Decimal, InvalidOperation
 
 import psycopg
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from .pnl import MARKETPLACES, assemble, assemble_range
+from .pnl import (
+    MARKETPLACES,
+    SETTLED_MONTHS,
+    _load_salary_overrides,
+    assemble,
+    assemble_range,
+    daily_salary,
+)
 
 load_dotenv(pathlib.Path(__file__).resolve().parents[2] / ".env")
 
@@ -36,10 +46,12 @@ _cors_kwargs = (
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_methods=["GET"],
-    allow_headers=["X-Dashboard-Password"],
+    allow_methods=["GET", "PUT", "DELETE"],
+    allow_headers=["X-Dashboard-Password", "Content-Type"],
     **_cors_kwargs,
 )
+
+_YM_RE = re.compile(r"^\d{4}-\d{2}$")
 
 _VALID = set(MARKETPLACES) | {"ALL"}
 
@@ -96,6 +108,69 @@ def get_pnl(
         if range_bounds:
             return assemble_range(conn, alias, range_bounds[0], range_bounds[1], view_currency=view)
         return assemble(conn, alias, view_currency=view)
+
+
+class SalaryUpdate(BaseModel):
+    year_month: str
+    daily_amount: float
+
+
+def _validate_ym(year_month: str) -> str:
+    ym = year_month.strip()
+    if not _YM_RE.match(ym):
+        raise HTTPException(status_code=400, detail="year_month must be 'YYYY-MM'")
+    return ym
+
+
+@app.get("/salaries")
+def get_salaries(_auth: None = Depends(require_password)) -> dict:
+    """Effective daily salary per settled month, flagging which are DB overrides.
+
+    Feeds the dashboard's salary editor. `daily_amount` is the override if one exists, else
+    the code-level default; `is_override` distinguishes the two so the UI can offer a reset.
+    """
+    with psycopg.connect(_db_url()) as conn:
+        overrides = _load_salary_overrides(conn)
+    return {"months": [
+        {"year_month": m,
+         "daily_amount": float(daily_salary(m, overrides)),
+         "is_override": m in overrides}
+        for m in SETTLED_MONTHS
+    ]}
+
+
+@app.put("/salaries")
+def put_salary(body: SalaryUpdate, _auth: None = Depends(require_password)) -> dict:
+    """Upsert a month's daily-salary override (USD). Used by the ALL-view salary editor."""
+    ym = _validate_ym(body.year_month)
+    try:
+        amount = Decimal(str(body.daily_amount))
+    except (InvalidOperation, ValueError):
+        raise HTTPException(status_code=400, detail="daily_amount must be a number")
+    if amount < 0:
+        raise HTTPException(status_code=400, detail="daily_amount must be non-negative")
+    with psycopg.connect(_db_url()) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO salary_override (year_month, daily_amount, updated_at)
+                   VALUES (%s, %s, now())
+                   ON CONFLICT (year_month)
+                   DO UPDATE SET daily_amount = EXCLUDED.daily_amount, updated_at = now()""",
+                (ym, amount),
+            )
+        conn.commit()
+    return {"year_month": ym, "daily_amount": float(amount), "is_override": True}
+
+
+@app.delete("/salaries/{year_month}")
+def delete_salary(year_month: str, _auth: None = Depends(require_password)) -> dict:
+    """Remove a month's override so it reverts to the code-level default."""
+    ym = _validate_ym(year_month)
+    with psycopg.connect(_db_url()) as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM salary_override WHERE year_month = %s", (ym,))
+        conn.commit()
+    return {"year_month": ym, "is_override": False}
 
 
 @app.get("/healthz")
