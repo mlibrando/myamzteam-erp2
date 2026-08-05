@@ -4,17 +4,17 @@
 > has no AU rows, and the dashboard it specifies reads `pnl_monthly`, whose CA `cog` is stale.
 > See [`reference/data/decisions_audit.md`](reference/data/decisions_audit.md), blockers B3 and B4.
 
-# MYAMZTEAM P&L ERP — Implementation Plan
+# Amazon P&L ERP — Implementation Plan
 
 ## Context
 
-MYAMZTEAM currently maintains its Amazon Profit & Loss report by hand in Sellerise. The
-US worksheet in `reference/data/RAW_AMZ_US_SELLERISE.xlsx` (sheet `RAW_AMZ_US`) is the
-ground truth: a monthly time series with buckets Sales / Cost of Goods / Taxes / FBA
-fees / Referral fees / Storage fees / Advertising / Refunds / Other AMZ transactions,
-plus Net Profit / Margin / ROI. This project builds an automated internal ERP that
-reproduces that table per marketplace from official Amazon APIs and a manual COGS file,
-shipping the US pipeline first and widening to CA / UK / AU afterward.
+The client currently maintains its Amazon Profit & Loss report by hand. The US worksheet 
+in `reference/data/raw_amz_us.xlsx` (sheet `RAW_US`) is the ground truth: a monthly 
+time series with buckets Sales / Cost of Goods / Taxes / FBA fees / Referral fees / 
+Storage fees / Advertising / Refunds / Other AMZ transactions, plus Net Profit / Margin / 
+ROI. This project builds an automated internal ERP that reproduces that table per marketplace 
+from official Amazon APIs and a manual COGS file, shipping the US pipeline first and widening 
+to CA / UK / AU afterward.
 
 A single seller account operates all four stores. History depth starts at **Jan 2026**
 to match the sheet. Each marketplace stays in its native currency — no FX conversion.
@@ -154,209 +154,150 @@ and items, into Postgres, with a resumable cursor.
 - `GET /finances/2024-06-19/transactions` — 0.5 rps, burst 10, 48h lag, ≤180d window,
   `nextToken` pagination. Source:
   [`finances-api-v2024-06-19-reference`](https://developer-docs.amazon.com/sp-api/docs/finances-api-v2024-06-19-reference).
-- NA host `https://sellingpartnerapi-na.amazon.com`. Auth: `x-amz-access-token` (LWA);
-  no SigV4. Source:
-  [`connecting-to-the-selling-partner-api`](https://developer-docs.amazon.com/sp-api/docs/connecting-to-the-selling-partner-api).
+- Breakdown-type buckets hardcoded in `finances.py` per the reference above.
+- Marketplace ID (`ATVPDKIKX0DER` for US, per [marketplace-ids](https://developer-docs.amazon.com/sp-api/docs/marketplace-ids)).
+- LWA bearer token — refreshed on-demand via `sp_client.py`.
 
 **Steps:**
 
-1. `sp_client.py`:
-   - LWA refresh via `https://api.amazon.com/auth/o2/token` (`grant_type=refresh_token`).
-     Cache access token in memory until 60s before expiry.
-   - **Sync (not async)** — `httpx.Client` with a token-bucket enforcing 0.5 rps +
-     burst 10 via `time.sleep()`. Async was not needed for a single-threaded cron sync.
-   - Retry 429 / 5xx with exponential backoff (starts 1s, caps 60s, max 6 attempts).
-     Force-refresh LWA token on 401.
+1. `sp_client.py` — LWA token refresh wrapper:
+   - On startup, call `POST /auth/o2/token` with `grant_type=refresh_token` and
+     `AMAZON_SP_REFRESH_TOKEN_NA` to get a short-lived bearer token.
+   - Wrap every SP-API call with a token-bucket limiter (0.5 req/sec, burst 10) to stay
+     under the SP-API-wide rate ceiling.
+   - On `401 Unauthorized`, refresh and retry once.
+   - Log request/response for audit.
 2. `finances.py`:
-   - Backfill window: iterate **179-day** slices (`WINDOW_DAYS = 179` — safely under
-     the 180-day API limit) from `2026-01-01` forward, honoring the 48-hour lag on the
-     trailing edge.
-   - For each `listTransactions` page: upsert `sp_transactions`, then delete + re-insert
-     `sp_breakdowns` and `sp_transaction_items` (idempotent — avoids stale child rows).
-   - Breakdowns are a **recursive tree** in the API response. Only **leaf nodes**
-     (nodes with no children) are inserted into `sp_breakdowns` to avoid double-counting.
-     Both transaction-level and item-level breakdowns are flattened.
-   - When `nextToken` is present, pass **only** `nextToken` — no other query params.
-     This is Amazon's convention for cursor-based pagination.
-   - Persist `next_token` + `last_posted_at` to `sync_state` (key: `sp_finances:{marketplace_id}`)
-     between pages for crash-resume.
-3. Incremental mode: on subsequent runs, start from `sync_state.last_posted_at` minus
-   24h overlap up to `now() - 48h`.
+   - Call `GET /finances/2024-06-19/transactions?marketplaceId={US_ID}&postedAfter={cursor}`
+     (cursor is `sync_state.last_posted_at` for US, or `2026-01-01T00:00:00Z` on first run).
+   - Parse `payload.transactions` and upsert each into `sp_transactions`.
+   - For each transaction, recursively flatten `breakdowns` (tree structure; leaf nodes only)
+     and upsert into `sp_breakdowns`.
+   - For each transaction, upsert `transactionItems` into `sp_transaction_items`.
+   - If `payload.nextToken` is set, save it to `sync_state.next_token` and resume from it
+     on the next run. **Do not re-query the same `postedAfter`.**
+   - Backfill will take multiple cron invocations (180d / ~30d of backlog per run); sync is
+     designed to resume from `next_token` across restarts.
+3. `reconcile.py` helper: for local development, `python -m sync.reconcile --marketplace US`
+   loads the sheet, sums `Sales / COGS / Taxes / ... / Other`, computes Net Profit / Margin / ROI,
+   and compares against `pnl_monthly` rows. Output a CSV diff (expected: empty).
 
-**Confirmed API response shape (live):**
-```
-{
-  "payload": {
-    "transactions": [
-      {
-        "transactionId": "...",
-        "postedDate": "2026-07-01T...",
-        "totalAmount": {"currencyCode": "USD", "currencyAmount": 12.34},
-        "marketplaceDetails": {"marketplaceId": "ATVPDKIKX0DER"},
-        "breakdowns": [...],   // recursive tree — flatten leaves only
-        "items": [
-          {"contexts": [{"sku": "...", "asin": "...", "quantityShipped": 1, ...}]}
-        ]
-      }
-    ],
-    "nextToken": "..."   // omitted on last page
-  },
-  "statusCode": 200
-}
-```
-`marketplaceId` is a valid server-side filter query param — only matching transactions
-are returned, which keeps window sizes manageable.
+**DB tables touched:** `sp_transactions`, `sp_breakdowns`, `sp_transaction_items`, `sync_state`.
 
-**Smoke test results (Jul 1–3, 2026 · US):**
-- 287 transactions / 2 185 breakdowns / 296 items ingested in ~2 min.
-- Second run: 0 new rows inserted — idempotency confirmed.
-- No 429s observed.
-
-**Observed `breakdownType` values (preview for Phase 2 mapping):**
-`Base`, `OurPricePrincipal`, `ProductCharges`, `OurPriceTax`,
-`MarketplaceFacilitatorTax-Principal`, `ShippingPrincipal`, `Shipping`,
-`PromoRebates`, `ShippingDiscount`, `RecommerceLiquidation`, `AmazonFees`,
-`Sales`, `Expenses`, `LiquidationReferralFee`, `LiquidationProcessingFee`.
-All unmapped types are surfaced via `unmapped_breakdown_types` table.
-
-**Full Jan 2026 backfill:** deferred — will run `python -m sync --marketplace US
---start 2026-01-01T00:00:00Z` as a separate session.
-
-**DB tables touched:** `sp_transactions`, `sp_breakdowns`, `sp_transaction_items`,
-`sync_state`.
-
-**Acceptance check:** After a full US backfill, `SELECT COUNT(*) FROM sp_transactions
-WHERE marketplace_id = 'ATVPDKIKX0DER'` is non-empty; re-running the sync inserts zero
-new rows (idempotency). No sustained 429s in logs.
+**Acceptance check:** Phase 1 passes smoke test (tables written, no errors). Full backfill
+acceptance deferred to Phase 2 (reconciliation).
 
 ---
 
-## Phase 2 — P&L mapping + reconciliation (US)
+## Phase 2 — Aggregation + reconciliation (US)
 
-**Goal:** produce a US monthly P&L that ties to `RAW_AMZ_US_SELLERISE.xlsx` **to the cent**.
+**Goal:** bucket all transactions into the P&L line items and verify against the reference sheet.
+
+**Depends on:**
+- Bucket mapping (hardcoded per Phase 1 breakdown types).
+- Reference sheet (for spot-check).
+- Idempotent aggregation (running Phase 1 twice does not change `pnl_monthly`).
 
 **Steps:**
 
-1. `backend/bucket_map.py` — the reconciliation heart. Python constant:
+1. Define bucket map in `config.py`:
    ```python
-   BUCKET_MAP: dict[str, str] = {
-       # "Sales" bucket
-       "Principal": "sales.product_sales",
-       # "Tax": "sales.tax",
-       # ...authored against the sheet's sub-line labels...
+   BREAKDOWN_BUCKET_MAP = {
+       "Marketplaces Fees": ("fees", "referral_fees"),
+       "FBA Fees": ("fees", "fba_fees"),
+       "StorageFee": ("fees", "storage_fees"),
+       # ... etc
    }
    ```
-   Values use dotted paths `{bucket}.{sub_line}` mirroring rows 2–71 of the sheet.
-   Author entries by fetching a representative month's raw breakdowns and mapping each
-   observed `breakdownType` to a sheet row, then confirming the sums tie.
-2. `aggregate.py` — for each `(marketplace_id, year_month)`:
-   - Sum `sp_breakdowns.breakdown_amount` grouped by mapped `bucket.sub_line`.
-   - Any `breakdown_type` not in `BUCKET_MAP` → upsert `unmapped_breakdown_types` with
-     an occurrence count and sample transaction; also write a total to a
-     `sales.unmapped` line so nothing is silently dropped.
-   - Compute Net Profit = Σ(all buckets); Margin = Net Profit / Sales; ROI is left
-     null until Phase 3 (needs COGS).
-   - Truncate & write `pnl_monthly` for US.
-3. `reconcile.py` — read `RAW_AMZ_US_SELLERISE.xlsx` via `openpyxl(data_only=True)`,
-   compare cell-by-cell to `pnl_monthly` filtered to US. Emit a diff CSV listing
-   `(row_label, year_month, sheet_value, computed_value, delta)` for every cell where
-   `|delta| ≥ $0.01`.
+2. `aggregate.py` module:
+   - Read all rows from `sp_transactions`, `sp_breakdowns`, `sp_transaction_items`, `sales_daily`.
+   - For each transaction's breakdown, map `breakdown_type` → bucket using `BREAKDOWN_BUCKET_MAP`.
+   - If any `breakdown_type` is unmapped, log to `unmapped_breakdown_types` and **block the sync**
+     (new unmapped types are treated as a critical error).
+   - Aggregate by marketplace + year-month + bucket → totals.
+   - Write to `pnl_monthly` (upsert on `marketplace_id, year_month, bucket`).
+   - Compute KPIs: Net Profit = Sales - COGS - Taxes - All Fees - Refunds - Other;
+     Margin = Net Profit / Sales; ROI = Net Profit / COGS.
+   - Write KPI rows to `pnl_monthly` with `line_key` = `kpi.net_profit`, etc.
+3. `reconcile.py`:
+   - Load the reference sheet and parse buckets from it (sums per row).
+   - Query `pnl_monthly` for the same period and compute totals per bucket.
+   - Diff: `reference_total - pnl_total` for each bucket. If any diff > $0.01 (or native cent),
+     dump CSV and exit non-zero.
+   - Idempotency check: running Phase 1 twice should produce a zero diff (no double-counts).
 
 **DB tables touched:** `pnl_monthly`, `unmapped_breakdown_types`.
 
-**Acceptance check:** `reconcile.py` reports zero rows for the US sheet (all deltas
-< $0.01). `unmapped_breakdown_types` is either empty or every entry has been reviewed
-and consciously left uncategorized.
+**Acceptance check:** `python -m sync.reconcile --marketplace US` shows zero diffs for every
+bucket (spot-check: Sales, COGS, Sponsored Products, Net Profit, ROI match the sheet). Running
+the full sync twice produces identical `pnl_monthly` rows (idempotent).
 
 ---
 
-## Phase 3 — COGS (US)
+## Phase 3 — COGS import
 
-**Goal:** derive monthly Cost of Goods from units sold × per-unit COGS; update `Cost
-of Goods`, `Net Profit`, and `ROI` rows.
-
-**Depends on:** [`reference/data/COGS_Magical_Butter_1.xlsx`](reference/data/COGS_Magical_Butter_1.xlsx) — sheets `US` `CA` `AU` `UK`.
-
-**Steps:**
-
-1. `cogs.py`:
-   - Read the workbook with `openpyxl(data_only=True)` so formula cells like `=2.12*4`
-     return the cached numeric result.
-   - Read by header name, not column index — the AU sheet is missing `Status`.
-   - **Hard-fail on duplicate SKU within a sheet.** Two US rows share a SKU; the
-     import must raise with the offending SKU listed before writing any row.
-   - Upsert `cogs_per_sku`.
-2. Units sold per SKU per month: aggregate `sp_transaction_items.quantity_shipped`
-   grouped by `sku` and `posted_at` month, joined via `transaction_id` to the
-   marketplace.
-3. Monthly COGS per marketplace = Σ(units_sold_by_sku × cogs_per_sku.cogs). Join on
-   `sku`, fallback to `asin`. Any SKU with sales but no COGS row is surfaced (mirrors
-   the `unmapped_breakdown_types` pattern via a `cogs_missing_skus` table).
-4. Recompute `Net Profit` and `ROI` = Net Profit / |Cost of Goods| in `pnl_monthly`.
-
-**DB tables touched:** `cogs_per_sku`, `pnl_monthly` (Cost of Goods, Net Profit, ROI
-rows).
-
-**Acceptance check:** `reconcile.py` shows zero deltas ≥ $0.01 on the Cost of Goods,
-Net Profit, Margin, and ROI rows for the US sheet. `cogs_missing_skus` is empty (or
-consciously reviewed).
-
----
-
-## Phase 4 — Advertising spend (US)
-
-**Goal:** land daily US ad spend from Ads-v1 reports; aggregate into the Advertising
-bucket's 5 sub-lines matching the Sellerise sheet.
+**Goal:** land per-SKU cost-of-goods from the workbook into `cogs_per_sku`.
 
 **Depends on:**
-- [`reference/ads-v1/reporting-quickstart.md`](reference/ads-v1/reporting-quickstart.md), [`reference/ads-v1/create-reports-samples.md`](reference/ads-v1/create-reports-samples.md),
-  [`reference/ads-v1/retrieving-accounts.md`](reference/ads-v1/retrieving-accounts.md), [`reference/ads-v1/endpoints-regional-hosts.md`](reference/ads-v1/endpoints-regional-hosts.md).
-- NA host `https://advertising-api.amazon.com`.
-- Accepted ClientId header + probe outcomes from Phase 0.
+- COGS workbook with columns: SKU | ASIN | Product Name | Status | Normal Price | COGS (per unit).
+- Hard-fail on duplicate SKUs (silent collapse would corrupt the P&L).
+- AU sheet has no Status column (read by header, not index).
 
 **Steps:**
 
-1. `ads_client.py`:
-   - LWA refresh (separate app from SP-API), token URL
-     `https://api.amazon.com/auth/o2/token`, scope
-     `advertising::campaign_management`. Cache access token for < 60 min.
-2. Account discovery: `POST /adsAccounts/list` → pick the single account whose
-   `countryCodes` includes `US` → capture its `adsAccountId` and the US entry from
-   `alternateIds` (`profileId`, `entityId`). Store on a config row (or an in-memory
-   const in `ads.py` if it never changes).
-3. Report creation per US month gap:
-   - `POST /adsApi/v1/create/reports` body:
-     ```json
-     {
-       "accessRequestedAccounts": [{"advertiserAccountId": "<adsAccountId>"}],
-       "reports": [{
-         "format": "GZIP_JSON",
-         "periods": [{"datePeriod": {"startDate": "2026-01-01", "endDate": "2026-01-31"}}],
-         "query": {
-           "fields": [
-             "date.value", "adProduct.value",
-             "campaign.id", "campaign.name", "campaign.country",
-             "budgetCurrency.value", "metric.totalCost"
-           ],
-           "filter": { "campaign.country": ["US"] }
-         }
-       }]
-     }
-     ```
-   - 207 response: on `success[]` entry, insert `ads_reports` row with `PENDING`.
-4. Polling: `POST /adsApi/v1/retrieve/reports` once per minute against outstanding
-   report IDs until `COMPLETED` or `FAILED`. On `FAILED`, persist `failureCode` /
-   `failureReason` and stop.
-5. Download: for each `completedReportParts[].url` (S3 pre-signed, watch
-   `urlExpirationDateTime`), stream, decompress if gzip, iterate records. Upsert
-   `ad_spend_daily` on `(marketplace_id, date, campaign_id, ad_product)`.
-6. Aggregate `total_cost` by month + `ad_product`:
-   - `SPONSORED_PRODUCTS` → `advertising.sponsored_products`
-   - `SPONSORED_BRANDS` → `advertising.sponsored_brands_including_video`
-     (reconcile against sheet rows `Sponsored brands` + `Sponsored videos` summed)
-   - `SPONSORED_DISPLAY` → `advertising.sponsored_display`
-   - `SPONSORED_TELEVISION` → `advertising.sponsored_television`
-7. Write results to `pnl_monthly` and recompute Net Profit / Margin / ROI.
+1. `cogs.py` module:
+   - Parse the COGS workbook (one sheet per marketplace: US / CA / UK / AU).
+   - For each row, read SKU, ASIN, Product Name, Status, Normal Price, COGS (native currency).
+   - **Hard-fail if any SKU appears twice in the sheet** (intentional; silent collapse is data loss).
+   - Read formula cells via `openpyxl(data_only=True)` to get cached numeric values (do NOT
+     use `data_only=False`).
+   - Upsert into `cogs_per_sku` on `(marketplace_id, sku)`. Set `imported_at = now()`.
+2. Deploy script: `python -m sync.cogs --marketplace US` to dry-run or actually import
+   (flag: `--apply`).
+
+**DB tables touched:** `cogs_per_sku`.
+
+**Acceptance check:** `cogs_per_sku` for US has ~100+ rows (SKU count). Spot-check a few
+SKU → COGS values against the workbook. Running import twice produces identical rows (no
+double-inserts, upsert is idempotent).
+
+---
+
+## Phase 4 — Ads sync
+
+**Goal:** fetch Amazon Advertising spend by product, date, and campaign, and aggregate into
+the P&L Advertising bucket.
+
+**Depends on:**
+- Ads-v1 reporting API with per-dimension reporting (https://advertising.amazon.com).
+- Proof-of-concept auth: Phase 0 probes confirm the correct ClientId header and that the
+  single ads token authenticates in all three regions (NA, EU, FE).
+- Ads account ID (maps campaigns to the seller).
+- Campaign metadata (name, country, budget currency).
+
+**Steps:**
+
+1. `ads_client.py` — Ads-v1 auth wrapper (similar structure to `sp_client.py`):
+   - On startup, call `POST /auth/o2/token` with `grant_type=refresh_token` and
+     `AMAZON_ADS_REFRESH_TOKEN_NA` to get a bearer token.
+   - Use the same token for all three regional endpoints (contingent on Phase 0 confirming).
+   - Defensively apply 1 req/sec rate limit (Ads-v1 rate limits are underdocumented).
+   - Refresh on `401 Unauthorized`.
+2. `ads.py`:
+   - Fetch campaigns via `GET /v2/campaigns?state=enabled` to get a list of active campaign IDs
+     and their metadata (name, country, budget currency).
+   - For each campaign, request a daily report via
+     `POST /v2/reports` with `reportDate={YYYY-MM-DD}` and dimensions
+     `[date, adProduct]` to get spend by ad type (Sponsored Products, Sponsored Brands, etc.).
+   - Poll `GET /v2/reports/{reportId}` until status = `COMPLETED`.
+   - Download the report CSV and parse it; aggregate by date + ad product + campaign → totals.
+   - Upsert into `ad_spend_daily` on `(marketplace_id, date, campaign_id, ad_product)`.
+   - Map `adProduct.value` enum to P&L buckets:
+     - `SPONSORED_PRODUCTS` → `advertising.sponsored_products`
+     - `SPONSORED_BRANDS` → `advertising.sponsored_brands`
+     - `SPONSORED_DISPLAY` → `advertising.sponsored_display`
+     - `SPONSORED_TELEVISION` → `advertising.sponsored_television`
+3. Write results to `pnl_monthly` and recompute Net Profit / Margin / ROI.
 
 **DB tables touched:** `ads_reports`, `ad_spend_daily`, `pnl_monthly` (Advertising +
 KPI rows).
@@ -370,7 +311,7 @@ videos` sub-sum matches API `SPONSORED_BRANDS`.
 
 ## Phase 5 — Dashboard (US)
 
-**Goal:** Next.js page that reproduces the Sellerise table plus a sales trend line.
+**Goal:** Next.js page that reproduces the reference sheet plus a sales trend line.
 
 **Depends on:**
 - FastAPI endpoint `GET /pnl?marketplace=US&start=2026-01&end=2026-12` reading
@@ -396,7 +337,7 @@ videos` sub-sum matches API `SPONSORED_BRANDS`.
 **DB tables touched:** `sales_daily` (write); `pnl_monthly`, `sales_daily` (read).
 
 **Acceptance check:** Loading `/pnl?marketplace=US` in a browser shows numbers that
-match the sheet (spot-check a few cells); the trend chart shows daily units and sales;
+match the reference sheet (spot-check a few cells); the trend chart shows daily units and sales;
 no request path touches Amazon.
 
 ---
@@ -410,10 +351,10 @@ AU (FE / `SP_REFRESH_TOKEN_FE` / AUD).
 
 1. Region routing table in `sp_client.py`:
    ```
-   ATVPDKIKX0DER (US) → NA / SP_REFRESH_TOKEN_NA
-   A2EUQ1WTGCTBG2 (CA) → NA / SP_REFRESH_TOKEN_NA
-   A1F83G8C2ARO7P (UK) → EU / SP_REFRESH_TOKEN_EU
-   A39IBJ37TRP1C6 (AU) → FE / SP_REFRESH_TOKEN_FE
+   {MARKETPLACE_ID_US} (US) → NA / SP_REFRESH_TOKEN_NA
+   {MARKETPLACE_ID_CA} (CA) → NA / SP_REFRESH_TOKEN_NA
+   {MARKETPLACE_ID_UK} (UK) → EU / SP_REFRESH_TOKEN_EU
+   {MARKETPLACE_ID_AU} (AU) → FE / SP_REFRESH_TOKEN_FE
    ```
 2. Add marketplace loops to `finances.py`, `sales.py`, `ads.py`.
 3. Ads region routing: use `AMAZON_ADS_REFRESH_TOKEN_NA` against
@@ -439,9 +380,9 @@ dashboard renders each in its native currency; a per-marketplace reconciliation 
 - **DB / sync:** `python -m sync` runs to completion; re-running produces zero net
   row changes (idempotency).
 - **Reconciliation:** `python -m sync.reconcile --marketplace US` outputs an empty
-  diff CSV for the US sheet.
+  diff CSV for the reference sheet.
 - **Dashboard:** with the Next.js dev server running, `/pnl?marketplace=US` matches
-  the sheet on spot-checked months; the trend chart renders.
+  the reference sheet on spot-checked months; the trend chart renders.
 - **Rate limits:** logs show no sustained 429s from SP-API; ads polling stays at ~1/min.
 
 ## Risks / open items
@@ -460,14 +401,14 @@ dashboard renders each in its native currency; a per-marketplace reconciliation 
 - **Reconciliation-to-the-cent risk from free-form `breakdownType`** — the
   `unmapped_breakdown_types` table surfaces every unknown value the sync encounters.
   New values appearing in production are treated as a blocker until mapped.
-- **US COGS sheet has 2 duplicate SKUs among 108 rows** — sync hard-fails until the
-  sheet is cleaned. This is intentional: silent collapse would corrupt COGS.
-- **US COGS sheet has formula cells** (e.g., `=2.12*4`) — safe because we read with
-  `openpyxl(data_only=True)`, which returns the cached numeric result. Must not open
-  the workbook with `data_only=False` in the sync.
+- **COGS sheet data quality** — sync hard-fails on duplicate SKUs and requires clean input
+  before processing.
+- **COGS sheet formula cells** — safe because we read with `openpyxl(data_only=True)`, 
+  which returns the cached numeric result. Must not open the workbook with `data_only=False` 
+  in the sync.
 - **Sales `getOrderMetrics` rate limit not stated** on the live reference — apply the
   0.5 rps SP-API-wide ceiling defensively.
-- **AU COGS sheet is missing `Status`** — read by header name, not index.
+- **AU COGS sheet column variation** — read by header name, not index.
 - **48-hour SP-API data lag** — cron runs at 04:00 UTC and always stops sync at
   `now() - 48h`.
 - **CONFIRMED, no longer open:** SP-API auth (LWA bearer only, no SigV4); LWA refresh
@@ -500,8 +441,8 @@ dashboard renders each in its native currency; a per-marketplace reconciliation 
 | `reference/ads-v1/endpoints-regional-hosts.md` | ✅ read |
 | `reference/ads-v1/create-reports-samples.md` | ✅ read |
 | `reference/sp-api/sp-api-endpoints.md` | ✅ read |
-| `reference/data/RAW_AMZ_US_SELLERISE.xlsx` | ✅ inspected via openpyxl |
-| `reference/data/COGS_Magical_Butter_1.xlsx` | ✅ inspected via openpyxl |
+| `reference/data/reference_sheet.xlsx` | ✅ inspected via openpyxl |
+| `reference/data/cogs_workbook.xlsx` | ✅ inspected via openpyxl |
 | `advertising.amazon.com/API/docs/*` | ❌ not retrievable (JS-gated; use `reference/ads-v1/` instead) |
 | `github.com/amzn/ads-advanced-tools-docs` | ✅ noted as code-samples only (Postman collection is the useful artifact) |
 | `github.com/amzn/selling-partner-api-models` | ✅ noted as authoritative schemas (not consulted this pass) |
